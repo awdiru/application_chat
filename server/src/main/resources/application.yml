@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: testWebSocket
+
+  datasource:
+    url: jdbc:postgresql://localhost:6432/testWebSocket
+    username: user
+    password: password
+    driverClassName: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true

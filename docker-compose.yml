@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16.1
+    container_name: testWebSocket_db
+    ports:
+      - "6432:5432"
+    environment:
+      - POSTGRES_DB=testWebSocket
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10
