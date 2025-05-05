@@ -24,7 +24,8 @@
 	<modules>
 		<module>server</module>
 		<module>client</module>
-	</modules>
+        <module>template</module>
+    </modules>
 	<scm>
 		<connection/>
 		<developerConnection/>

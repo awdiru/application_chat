@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.MessageListener;
-import ru.avdonin.client.model.message.MessageDto;
+import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -36,32 +36,33 @@ public class ChatConsole implements MessageListener {
 
                 switch (content) {
                     case "setRecipient!":
-                       setRecipient();
-                       client.getChat(username, recipient);
+                        setRecipient();
+                        client.getChat(username, recipient);
                         break;
                     case "exit!":
                         return;
                     default:
-                       client.sendMessage(content, username, recipient);
+                        client.sendMessage(content, username, recipient);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
     @Override
     public void onMessageReceived(MessageDto messageDto) {
         System.out.println(getDate(messageDto.getTime()) + " "
                 + messageDto.getSender() + ": " + messageDto.getContent());
     }
 
-    private void printChat(List<MessageDto> messages){
+    private void printChat(List<MessageDto> messages) {
         for (MessageDto m : messages) {
             onMessageReceived(m);
         }
     }
 
-    private void login(boolean isSignUp) throws IOException, InterruptedException {
+    private void login(boolean isSignUp) throws Exception {
         String path = isSignUp ? "/signup" : "/login";
 
         while (true) {
@@ -70,12 +71,13 @@ public class ChatConsole implements MessageListener {
 
             System.out.println("Введите пароль:");
             String password = scanner.nextLine();
-
-            if (client.login(username, password, path)) {
+            try {
+                client.login(username, password, path);
                 if (path.equals("/signup")) System.out.println("Регистрация прошла успешно!");
                 else System.out.println("Вход прошел успешно!");
                 return;
-            } else {
+
+            } catch (Exception e) {
                 if (path.equals("/signup")) System.out.print("Ошибка регистрации! ");
                 else System.out.print("Ошибка входа! ");
                 System.out.println("Попробуйте еще раз");

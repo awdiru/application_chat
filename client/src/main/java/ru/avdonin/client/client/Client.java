@@ -8,8 +8,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
 import lombok.Setter;
-import ru.avdonin.client.model.message.MessageDto;
-import ru.avdonin.client.model.user.UserAuthenticationDto;
+import ru.avdonin.client.settings.language.LanguageProcessor;
+import ru.avdonin.template.exceptions.ClientException;
+import ru.avdonin.template.model.friend.dto.FriendDto;
+import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.util.ErrorResponse;
 
 import java.io.IOException;
 import java.net.URI;
@@ -17,6 +21,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @ClientEndpoint
@@ -24,6 +29,8 @@ public class Client {
     @Setter
     protected MessageListener messageListener;
     protected Session session;
+
+    protected final String BaseURL = "http://localhost:8080";
     protected final HttpClient httpClient = HttpClient.newHttpClient();
     protected final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -74,41 +81,94 @@ public class Client {
         session.getBasicRemote().sendText(json);
     }
 
-    public List<MessageDto> getChat(String username, String recipient) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:8080/chat/get?sender="
-                        + username + "&recipient=" + recipient + "&from=0&size=50"))
-                .header("Content-Type", "application/json")
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) throw new IOException("Не удалось получить список сообщений");
-
+    public List<MessageDto> getChat(String username, String recipient) throws Exception {
+        String url = BaseURL + "/chat/get?sender=" + username + "&recipient=" + recipient + "&from=0&size=50";
+        HttpResponse<String> response = get(url);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
 
-    public boolean login(String username, String password, String path) throws IOException, InterruptedException {
+    public void login(String username, String password, String path) throws Exception {
         UserAuthenticationDto userDto = UserAuthenticationDto.builder()
                 .username(username)
                 .password(password)
                 .build();
+        System.out.println(username + " " + password + " " + path);
         String requestBody = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/user" + path;
+        post(url, requestBody);
+    }
 
+    public List<FriendDto> getFriends(String username) throws Exception {
+        String url = BaseURL + "/user/friends/get?username=" + username;
+        HttpResponse<String> response = get(url);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
+
+    public List<FriendDto> getRequestsFriends(String username) throws Exception {
+        String url = BaseURL + "/user/friends/requests?username=" + username;
+        HttpResponse<String> response = get(url);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
+
+    public void confirmFriend(String username, String friendName, Boolean confirm) throws Exception {
+        String url = BaseURL + "/user/friends/confirm/" + confirm + "?username=" + username + "&friendName=" + friendName;
+        patch(url);
+    }
+
+    public boolean isConnected() {
+        return session != null && session.isOpen();
+    }
+
+
+    private HttpResponse<String> get(String url) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .uri(URI.create("http://localhost:8080/user" + path))
+                .GET()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) errorHandler(response);
+        return response;
+    }
+
+    private HttpResponse<String> post(String url, String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        return response.statusCode() == 200;
+        if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
-    public boolean isConnected() {
-        return session != null && session.isOpen();
+    private HttpResponse<String> patch(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(""))
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) errorHandler(response);
+        return response;
+    }
+
+    private void errorHandler(HttpResponse<String> response) throws Exception {
+        ErrorResponse errorResponse = objectMapper.readValue(response.body(), ErrorResponse.class);
+        throw new ClientException(createErrorMessage(errorResponse));
+    }
+
+    private String createErrorMessage(ErrorResponse errorResponse) {
+        String time = errorResponse.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
+        return time + " " + LanguageProcessor.errorCode() + "\n"
+                + LanguageProcessor.statusCode() + ": " + errorResponse.getStatus().toString() + "\n"
+                + LanguageProcessor.error() + ": " + errorResponse.getMessage();
     }
 }
