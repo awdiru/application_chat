@@ -1,24 +1,26 @@
-package ru.avdonin.client.client.gui.my_code;
+package ru.avdonin.client.client.gui;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.settings.language.LanguageProcessor;
+import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.FactoryLanguage;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
 
 public class LoginFrame extends JFrame {
     private final Client client;
     private JTextField usernameField;
     private JPasswordField passwordField;
+    private BaseLanguage language;
 
     public LoginFrame(Client client) {
         this.client = client;
+        language = FactoryLanguage.getFactory().getSettings();
         initUi();
     }
 
     private void initUi() {
-        setTitle(LanguageProcessor.authorization());
+        setTitle(language.getAuthorization());
         setSize(300, 200);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -28,12 +30,12 @@ public class LoginFrame extends JFrame {
         usernameField = new JTextField();
         passwordField = new JPasswordField();
 
-        JButton loginButton = new JButton(LanguageProcessor.login());
-        JButton signupButton = new JButton(LanguageProcessor.signup());
+        JButton loginButton = new JButton(language.getLogin());
+        JButton signupButton = new JButton(language.getSignup());
 
-        panel.add(new JLabel(LanguageProcessor.username()));
+        panel.add(new JLabel(language.getUsername()));
         panel.add(usernameField);
-        panel.add(new JLabel(LanguageProcessor.password()));
+        panel.add(new JLabel(language.getPassword()));
         panel.add(passwordField);
 
         panel.add(loginButton);
@@ -41,6 +43,7 @@ public class LoginFrame extends JFrame {
 
         loginButton.addActionListener(e -> tryLogin("/login"));
         signupButton.addActionListener(e -> tryLogin("/signup"));
+        passwordField.addActionListener(e -> tryLogin("/login"));
 
         add(panel);
     }
@@ -49,33 +52,38 @@ public class LoginFrame extends JFrame {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
 
-        new SwingWorker<Void, Void>() {
+        new SwingWorker<Boolean, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
+            protected Boolean doInBackground() {
                 try {
                     client.login(username, password, path);
-                    return null;
+                    return true;
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(LoginFrame.this,
-                            LanguageProcessor.authorizationError(), LanguageProcessor.error(),
-                            JOptionPane.ERROR_MESSAGE);
+                    errorHandler(e);
+                    dispose();
+                    new LoginFrame(client).setVisible(true);
                 }
-                return null;
+                return false;
             }
 
             @Override
             protected void done() {
                 try {
+                    if (!get()) return;
                     dispose();
                     client.connect(username);
                     new MainFrame(client, username).setVisible(true);
-
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(LoginFrame.this,
-                            LanguageProcessor.authorizationError(), LanguageProcessor.error(),
-                            JOptionPane.ERROR_MESSAGE);
+                    errorHandler(e);
                 }
             }
         }.execute();
+    }
+
+    private void errorHandler(Exception e) {
+        if (e.getMessage() == null || e.getMessage().isEmpty()) return;
+        JOptionPane.showMessageDialog(LoginFrame.this,
+                e.getMessage(), language.getError(),
+                JOptionPane.ERROR_MESSAGE);
     }
 }

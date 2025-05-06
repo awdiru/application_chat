@@ -5,5 +5,5 @@ import ru.avdonin.client.settings.language.BaseLanguage;
 
 @Getter
 public class LanguageEN extends BaseLanguage {
-    //Полностью наследует все тексты из BaseLanguage
+    //Fully extends all texts from BaseLanguage
 }

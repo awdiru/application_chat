@@ -91,10 +91,10 @@ public class UserController {
         }
     }
 
-    @PatchMapping("/friends/confirmed/{confirm}")
+    @PostMapping("/friends/confirmed")
     public ResponseEntity<Object> confirmedFriend(@RequestParam String username,
                                                   @RequestParam String friendName,
-                                                  @PathVariable Boolean confirm) {
+                                                  @RequestParam Boolean confirm) {
         try {
             log("confirmedFriend: username: " + username + "; friendName: " + friendName);
             userService.confirmedFriend(username, friendName, confirm);

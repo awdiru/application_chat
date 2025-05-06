@@ -13,7 +13,8 @@ public interface FriendRepository extends JpaRepository<Friend, FriendID> {
     @Query("""
             select f from Friend f
             where f.user.username = :username
-            and f.confirmation = 'CONFIRMED'
+            and (f.confirmation = 'CONFIRMED'
+            or f.confirmation = 'UNCONFIRMED')
             """)
     List<Friend> findAllFriends(String username);
 

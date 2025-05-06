@@ -1,7 +1,7 @@
 package ru.avdonin.client;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.gui.my_code.LoginFrame;
+import ru.avdonin.client.client.gui.LoginFrame;
 
 import javax.swing.*;
 

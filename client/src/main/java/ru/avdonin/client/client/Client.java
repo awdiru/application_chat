@@ -7,8 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
+import lombok.Getter;
 import lombok.Setter;
-import ru.avdonin.client.settings.language.LanguageProcessor;
+import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -27,12 +29,15 @@ import java.util.List;
 @ClientEndpoint
 public class Client {
     @Setter
-    protected MessageListener messageListener;
-    protected Session session;
+    private MessageListener messageListener;
+    private Session session;
+    @Setter
+    @Getter
+    private BaseLanguage language = FactoryLanguage.getFactory().getSettings();
 
-    protected final String BaseURL = "http://localhost:8080";
-    protected final HttpClient httpClient = HttpClient.newHttpClient();
-    protected final ObjectMapper objectMapper = new ObjectMapper()
+    private final String BaseURL = "http://localhost:8080";
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
@@ -69,6 +74,17 @@ public class Client {
         throw new IOException(throwable.getMessage());
     }
 
+    public void login(String username, String password, String path) throws Exception {
+        UserAuthenticationDto userDto = UserAuthenticationDto.builder()
+                .username(username)
+                .password(password)
+                .build();
+        System.out.println(username + " " + password + " " + path);
+        String requestBody = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/user" + path;
+        post(url, requestBody);
+    }
+
     public void sendMessage(String content, String username, String recipient) throws IOException {
         MessageDto message = MessageDto.builder()
                 .time(null)
@@ -88,22 +104,16 @@ public class Client {
         });
     }
 
-    public void login(String username, String password, String path) throws Exception {
-        UserAuthenticationDto userDto = UserAuthenticationDto.builder()
-                .username(username)
-                .password(password)
-                .build();
-        System.out.println(username + " " + password + " " + path);
-        String requestBody = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/user" + path;
-        post(url, requestBody);
-    }
-
     public List<FriendDto> getFriends(String username) throws Exception {
         String url = BaseURL + "/user/friends/get?username=" + username;
         HttpResponse<String> response = get(url);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+    }
+
+    public void addFriend(String username, String friendName) throws Exception {
+        String url = BaseURL + "/user/friends/add?username=" + username + "&friendName=" + friendName;
+        post(url, null);
     }
 
     public List<FriendDto> getRequestsFriends(String username) throws Exception {
@@ -114,8 +124,8 @@ public class Client {
     }
 
     public void confirmFriend(String username, String friendName, Boolean confirm) throws Exception {
-        String url = BaseURL + "/user/friends/confirm/" + confirm + "?username=" + username + "&friendName=" + friendName;
-        patch(url);
+        String url = BaseURL + "/user/friends/confirmed?username=" + username + "&friendName=" + friendName + "&confirm=" + confirm;
+        post(url, null);
     }
 
     public boolean isConnected() {
@@ -135,21 +145,9 @@ public class Client {
     }
 
     private HttpResponse<String> post(String url, String body) throws Exception {
+        if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(body))
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) errorHandler(response);
-        return response;
-    }
-
-    private HttpResponse<String> patch(String url) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(""))
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .build();
@@ -167,8 +165,8 @@ public class Client {
 
     private String createErrorMessage(ErrorResponse errorResponse) {
         String time = errorResponse.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
-        return time + " " + LanguageProcessor.errorCode() + "\n"
-                + LanguageProcessor.statusCode() + ": " + errorResponse.getStatus().toString() + "\n"
-                + LanguageProcessor.error() + ": " + errorResponse.getMessage();
+        return time + " " + language.getErrorCode() + "\n"
+                + language.getStatusCode() + ": " + errorResponse.getStatus().toString() + "\n"
+                + language.getError() + ": " + errorResponse.getMessage();
     }
 }
