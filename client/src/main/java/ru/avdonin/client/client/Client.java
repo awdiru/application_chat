@@ -9,7 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
-import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
@@ -33,7 +33,7 @@ public class Client {
     private Session session;
     @Setter
     @Getter
-    private BaseLanguage language = FactoryLanguage.getFactory().getSettings();
+    private BaseDictionary language = FactoryLanguage.getFactory().getSettings();
 
     private final String BaseURL = "http://localhost:8080";
     private final HttpClient httpClient = HttpClient.newHttpClient();

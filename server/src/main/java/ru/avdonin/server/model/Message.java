@@ -3,6 +3,7 @@ package ru.avdonin.server.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -18,8 +19,8 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "time")
-    private LocalDateTime time;
+    @Column(name = "time", columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    private Instant time;
 
     @Column(name = "content")
     private String content;

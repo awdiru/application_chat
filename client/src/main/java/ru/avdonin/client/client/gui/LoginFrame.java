@@ -1,7 +1,7 @@
 package ru.avdonin.client.client.gui;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 
 import javax.swing.*;
@@ -11,7 +11,7 @@ public class LoginFrame extends JFrame {
     private final Client client;
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private BaseLanguage language;
+    private BaseDictionary language;
 
     public LoginFrame(Client client) {
         this.client = client;

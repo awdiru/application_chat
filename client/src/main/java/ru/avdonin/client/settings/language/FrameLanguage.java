@@ -3,25 +3,25 @@ package ru.avdonin.client.settings.language;
 import lombok.Getter;
 import ru.avdonin.client.settings.FrameSettings;
 import ru.avdonin.client.settings.Settings;
-import ru.avdonin.client.settings.language.list.LanguageEN;
-import ru.avdonin.client.settings.language.list.LanguageIT;
-import ru.avdonin.client.settings.language.list.LanguageRU;
-import ru.avdonin.client.settings.language.list.LanguageSP;
+import ru.avdonin.client.settings.language.list.DictionaryEN;
+import ru.avdonin.client.settings.language.list.DictionaryIT;
+import ru.avdonin.client.settings.language.list.DictionaryRU;
+import ru.avdonin.client.settings.language.list.DictionarySP;
 
 import javax.swing.*;
 import java.awt.*;
 
 @Getter
 public enum FrameLanguage implements FrameSettings {
-    RU(new LanguageRU()),
-    EN(new LanguageEN()),
-    SP(new LanguageSP()),
-    IT(new LanguageIT());
+    RU(new DictionaryRU()),
+    EN(new DictionaryEN()),
+    SP(new DictionarySP()),
+    IT(new DictionaryIT());
 
-    private final BaseLanguage language;
+    private final BaseDictionary language;
     private final FactoryLanguage factory = FactoryLanguage.getFactory();
 
-    FrameLanguage(BaseLanguage language) {
+    FrameLanguage(BaseDictionary language) {
         this.language = language;
     }
 
@@ -29,13 +29,13 @@ public enum FrameLanguage implements FrameSettings {
     public void getFrame() {
         JFrame main = new JFrame();
         main.setTitle(FactoryLanguage.getFactory().getSettings().getSettingsLanguage());
-        main.setSize(200, 300);
+        main.setSize(250, 300);
         main.setLocationRelativeTo(null);
 
         DefaultListModel<String> settingsModel = new DefaultListModel<>();
         JList<String> settingsList = new JList<>(settingsModel);
         for (FrameLanguage l : FrameLanguage.values())
-            settingsModel.addElement(l.getLanguage().getCustomization());
+            settingsModel.addElement(l.getSelectedSetting());
 
         settingsList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -57,7 +57,7 @@ public enum FrameLanguage implements FrameSettings {
     }
 
     @Override
-    public String getFrameName() {
+    public String getSelectedSetting() {
         return language.getCustomization();
     }
 }

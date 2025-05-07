@@ -3,7 +3,7 @@ package ru.avdonin.client.settings.language;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import ru.avdonin.client.settings.BaseFactory;
-import ru.avdonin.template.exceptions.LanguageFactoryException;
+import ru.avdonin.template.exceptions.FactoryException;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -13,9 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FactoryLanguage extends BaseFactory {
-    private static FactoryLanguage factory;
     private static final String CONFIG_RESOURCE = "client-config.yml";
-    private static final String CONFIG_EXTERNAL = "config/client-config.yml"; // Внешний файл для записи
+    private static final String CONFIG_EXTERNAL = "config/client-config.yml";
+    private static FactoryLanguage factory;
     private static FrameLanguage language;
 
     private FactoryLanguage() {
@@ -26,7 +26,7 @@ public class FactoryLanguage extends BaseFactory {
     }
 
     @Override
-    public BaseLanguage getSettings() {
+    public BaseDictionary getSettings() {
         if (language != null) return language.getLanguage();
         language = getLanguagesListFromYml();
         return language.getLanguage();
@@ -42,18 +42,18 @@ public class FactoryLanguage extends BaseFactory {
             updateLanguageProperty(language);
             FactoryLanguage.language = language;
         } catch (Exception e) {
-            throw new LanguageFactoryException("Failed to set language", e);
+            throw new FactoryException("Failed to set language", e);
         }
     }
 
     public void setLanguage(String newLanguage) {
         try {
             FrameLanguage language = null;
-            for (FrameLanguage l : FrameLanguage.values()) if (l.getFrameName().equals(newLanguage)) language = l;
+            for (FrameLanguage l : FrameLanguage.values()) if (l.getSelectedSetting().equals(newLanguage)) language = l;
             if (language == null) throw new RuntimeException();
             setLanguage(language);
         } catch (IllegalArgumentException e) {
-            throw new LanguageFactoryException("Invalid language: " + newLanguage, e);
+            throw new FactoryException("Invalid language: " + newLanguage, e);
         }
     }
 
@@ -68,14 +68,14 @@ public class FactoryLanguage extends BaseFactory {
         try {
             Map<String, Object> config = loadConfig();
             Map<String, Object> appConfig = (Map<String, Object>) config.get("app");
-            if (appConfig == null) throw new LanguageFactoryException("Missing 'app' section in config");
+            if (appConfig == null) throw new FactoryException("Missing 'app' section in config");
 
             String languageStr = (String) appConfig.get("language");
-            if (languageStr == null) throw new LanguageFactoryException("Missing 'app.language' in config");
+            if (languageStr == null) throw new FactoryException("Missing 'app.language' in config");
 
             return FrameLanguage.valueOf(languageStr);
         } catch (Exception e) {
-            throw new LanguageFactoryException("Failed to load language settings", e);
+            throw new FactoryException("Failed to load language settings", e);
         }
     }
 

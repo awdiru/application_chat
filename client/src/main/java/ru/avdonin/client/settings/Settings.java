@@ -32,7 +32,7 @@ public enum Settings {
         DefaultListModel<String> settingsModel = new DefaultListModel<>();
         JList<String> settingsList = new JList<>(settingsModel);
         for (Settings s : Settings.values())
-            settingsModel.addElement(s.getSettingsName() + " -> " + s.factory.getFrameSettings().getFrameName());
+            settingsModel.addElement(s.getSettingsName() + " -> " + s.factory.getFrameSettings().getSelectedSetting());
         settingsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         settingsList.addListSelectionListener(e -> {

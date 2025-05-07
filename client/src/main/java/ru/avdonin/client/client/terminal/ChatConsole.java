@@ -9,6 +9,7 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Scanner;
@@ -109,14 +110,14 @@ public class ChatConsole implements MessageListener {
     }
 
 
-    private String getDate(LocalDateTime date) {
+    private String getDate(OffsetDateTime date) {
         return getDayOfWeek(date) + ", "
                 + date.getDayOfMonth() + " "
                 + getMonth(date) + " "
                 + date.format(DateTimeFormatter.ofPattern("hh:mm"));
     }
 
-    private String getMonth(LocalDateTime date) {
+    private String getMonth(OffsetDateTime date) {
         return switch (date.getMonth()) {
             case JANUARY -> "января";
             case FEBRUARY -> "февраля";
@@ -133,7 +134,7 @@ public class ChatConsole implements MessageListener {
         };
     }
 
-    private String getDayOfWeek(LocalDateTime date) {
+    private String getDayOfWeek(OffsetDateTime date) {
         return switch (date.getDayOfWeek()) {
             case MONDAY -> "Пн";
             case TUESDAY -> "Вт";

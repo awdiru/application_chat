@@ -11,8 +11,9 @@ import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -28,7 +29,7 @@ public class MessageService {
                 .orElseThrow(() -> new IncorrectUserDataException("User with username " + messageDto.getRecipient() + " does not exist"));
 
         Message message = Message.builder()
-                .time(LocalDateTime.now())
+                .time(Instant.now())
                 .sender(sender)
                 .recipient(recipient)
                 .content(messageDto.getContent())
@@ -36,7 +37,7 @@ public class MessageService {
 
         Message saved = messageRepository.save(message);
         return MessageDto.builder()
-                .time(saved.getTime())
+                .time(saved.getTime().atOffset(ZoneOffset.UTC))
                 .content(saved.getContent())
                 .sender(saved.getSender().getUsername())
                 .recipient(saved.getRecipient().getUsername())
@@ -46,7 +47,7 @@ public class MessageService {
     public List<MessageDto> getMessages (String sender, String recipient, int from, int size) {
         return messageRepository.findAllMessagesUsers(sender, recipient, PageRequest.of(from, size)).stream()
                 .map(message -> MessageDto.builder()
-                        .time(message.getTime())
+                        .time(message.getTime().atOffset(ZoneOffset.UTC))
                         .content(message.getContent())
                         .sender(message.getSender().getUsername())
                         .recipient(message.getRecipient().getUsername())
@@ -63,3 +64,5 @@ public class MessageService {
         System.out.println("[" + LocalDateTime.now() + "] MessageService: " + text);
     }
 }
+
+

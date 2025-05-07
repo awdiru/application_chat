@@ -4,7 +4,7 @@ import lombok.Getter;
 import ru.avdonin.client.settings.BaseSettings;
 
 @Getter
-public abstract class BaseLanguage extends BaseSettings {
+public abstract class BaseDictionary extends BaseSettings {
     private final String customization = "English";
     private final String yes = "Yes";
     private final String no = "No";
@@ -30,6 +30,7 @@ public abstract class BaseLanguage extends BaseSettings {
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";
+    private final String settingTimeZone = "Time zone";
     private final String restartProgram = "In order for the changes to apply, it is necessary to restart the program.";
     private final String warning = "Warning";
     //Errors messages

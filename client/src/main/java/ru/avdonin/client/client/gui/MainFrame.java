@@ -3,7 +3,7 @@ package ru.avdonin.client.client.gui;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.MessageListener;
 import ru.avdonin.client.settings.Settings;
-import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
@@ -12,6 +12,7 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -22,7 +23,7 @@ public class MainFrame extends JFrame implements MessageListener {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final Client client;
     private final String username;
-    private final BaseLanguage language;
+    private final BaseDictionary language;
     private JTextArea chatArea;
     private JTextField messageField;
     private DefaultListModel<String> friendsModel;
@@ -191,11 +192,14 @@ public class MainFrame extends JFrame implements MessageListener {
             protected void done() {
                 try {
                     chatArea.setText("");
-                    LocalDateTime oldDate = get().getFirst().getTime();
+                    OffsetDateTime oldDate = get().getFirst().getTime();
                     addDate(oldDate);
 
                     for (MessageDto m : get()) {
-                        if (m.getTime().toLocalDate().isBefore(oldDate.toLocalDate())) addDate(m.getTime());
+                        if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
+                            addDate(m.getTime());
+                            oldDate = m.getTime();
+                        }
 
                         onMessageReceived(m);
                     }
@@ -343,21 +347,21 @@ public class MainFrame extends JFrame implements MessageListener {
         });
     }
 
-    private void addDate(LocalDateTime dateTime) {
+    private void addDate(OffsetDateTime dateTime) {
         SwingUtilities.invokeLater(() -> {
             String date = getDayOfWeek(dateTime) + ", " + dateTime.getDayOfMonth() + " " + getMonth(dateTime) + "\n";
             chatArea.append(date);
         });
     }
 
-    private void addTime(LocalDateTime dateTime) {
+    private void addTime(OffsetDateTime dateTime) {
         SwingUtilities.invokeLater(() -> {
             String time = dateTime.format(DateTimeFormatter.ofPattern("hh:mm "));
             chatArea.append(time);
         });
     }
 
-    private String getMonth(LocalDateTime date) {
+    private String getMonth(OffsetDateTime date) {
         return switch (date.getMonth()) {
             case JANUARY -> language.getJanuary();
             case FEBRUARY -> language.getFebruary();
@@ -374,7 +378,7 @@ public class MainFrame extends JFrame implements MessageListener {
         };
     }
 
-    private String getDayOfWeek(LocalDateTime date) {
+    private String getDayOfWeek(OffsetDateTime date) {
         return switch (date.getDayOfWeek()) {
             case MONDAY -> language.getMonday();
             case TUESDAY -> language.getTuesday();

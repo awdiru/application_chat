@@ -1,10 +1,10 @@
 package ru.avdonin.client.settings.language.list;
 
 import lombok.Getter;
-import ru.avdonin.client.settings.language.BaseLanguage;
+import ru.avdonin.client.settings.language.BaseDictionary;
 
 @Getter
-public class LanguageSP extends BaseLanguage {
+public class DictionarySP extends BaseDictionary {
     private final String customization = "Español";
     private final String yes = "Sí";
     private final String no = "No";
@@ -33,6 +33,7 @@ public class LanguageSP extends BaseLanguage {
     private final String settingsLanguage = "Idioma";
     private final String restartProgram = "Para que los cambios se apliquen, es necesario reiniciar el programa";
     private final String warning = "Advertencia";
+    private final String settingTimeZone = "Zona horaria";
     //Сообщения об ошибках
     private final String error = "Error";
     private final String authorizationError = "Error de autorización";

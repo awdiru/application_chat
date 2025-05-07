@@ -3,6 +3,7 @@ package ru.avdonin.template.model.message.dto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @ToString
 public class MessageDto {
-    private LocalDateTime time;
+    private OffsetDateTime time;
     private String content;
     private String sender;
     private String recipient;
