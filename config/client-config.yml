@@ -1,4 +1,4 @@
 app:
-  language: RU
+  language: SYSTEM
   time_zone: SYSTEM
   secret_key: qwerty

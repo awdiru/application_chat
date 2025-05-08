@@ -26,7 +26,8 @@ CREATE TABLE public.friends (
 	friend_id int8 NOT NULL,
 	confirmation varchar(255) NOT NULL,
 	friend_name varchar(255) NOT NULL,
-	CONSTRAINT friends_confirmation_check CHECK (((confirmation)::text = ANY (ARRAY[('UNCONFIRMED'::character varying)::text, ('CONFIRMED'::character varying)::text, ('REJECTED'::character varying)::text]))),
+	CONSTRAINT friends_confirmation_check
+	    CHECK (((confirmation)::text = ANY (ARRAY[('UNCONFIRMED'::character varying)::text, ('CONFIRMED'::character varying)::text, ('REJECTED'::character varying)::text, ('DELETED'::character varying)::text]))),
 	CONSTRAINT friends_unique UNIQUE (user_id, friend_id),
 	CONSTRAINT friends_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id),
 	CONSTRAINT friends_users_fk_1 FOREIGN KEY (friend_id) REFERENCES public.users(id)

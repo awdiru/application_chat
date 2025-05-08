@@ -4,9 +4,10 @@ import lombok.Getter;
 
 @Getter
 public enum FriendConfirmation {
-    UNCONFIRMED("🖐"),
-    CONFIRMED(""),
-    REJECTED("");
+    UNCONFIRMED("\uD83D\uDC4B"),
+    CONFIRMED("\uD83D\uDC4D"),
+    REJECTED("\uD83D\uDC4E"),
+    DELETED("\uD83D\uDD95");
 
     private final String icon;
 

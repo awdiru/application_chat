@@ -1,0 +1,12 @@
+INSERT INTO public.users (username, password) VALUES ('user1', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user2', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user3', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user4', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user5', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user6', 'pass');
+INSERT INTO public.users (username, password) VALUES ('user7', 'pass');
+INSERT INTO public.friends(user_id, friend_id, confirmation, friend_name) VALUES (1, 2, 'UNCONFIRMED', 'user2');
+INSERT INTO public.friends(user_id, friend_id, confirmation, friend_name) VALUES (1, 3, 'CONFIRMED', 'user3');
+INSERT INTO public.friends(user_id, friend_id, confirmation, friend_name) VALUES (3, 1, 'CONFIRMED', 'user1');
+INSERT INTO public.friends(user_id, friend_id, confirmation, friend_name) VALUES (3, 2, 'UNCONFIRMED', 'user2');
+INSERT INTO public.friends(user_id, friend_id, confirmation, friend_name) VALUES (4, 1, 'REJECTED', 'user1');

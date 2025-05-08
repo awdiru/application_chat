@@ -19,9 +19,12 @@ public class DictionaryIT extends BaseDictionary {
     private final String chat = "Chat";
     private final String friends = "Amici";
     private final String requestFriends = "Richieste di amicizia";
+    //Статус бар
     private final String changeUser = "Cambia utente";
-    //Окно добавления друга
+    private final String restart = "Riavvia";
+    //Окно друзей
     private final String addFriendTitle = "Aggiungi amico";
+    private final String rmFriendTitle = "Rimuovi amico";
     private final String friendName = "Nome dell'amico";
     //Окно принятия запроса в друзья
     private final String confirmFriendTitle = "Conferma richiesta di amicizia";
@@ -30,6 +33,8 @@ public class DictionaryIT extends BaseDictionary {
     //Окно настроек
     private final String settingsTitle = "Impostazioni";
     private final String settingsLanguage = "Lingua";
+    private final String settingsTimeZone = "Fuso";
+    private final String settingsSystem = "Sistema";
     private final String restartProgram = "Per applicare le modifiche, è necessario riavviare il programma";
     private final String warning = "Avviso";
     private final String settingTimeZone = "Fuso";

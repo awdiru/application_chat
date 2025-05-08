@@ -19,9 +19,12 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String chat = "Chat";
     private final String friends = "Friends";
     private final String requestFriends = "Friend requests";
+    //Status bar
     private final String changeUser = "Change User";
-    //Add friend window
+    private final String restart = "Reboot";
+    //Friend window
     private final String addFriendTitle = "Add friend";
+    private final String rmFriendTitle = "Remove friend";
     private final String friendName = "Friend name";
     //Confirm friend window
     private final String confirmFriendTitle = "Request confirmation";
@@ -30,7 +33,8 @@ public abstract class BaseDictionary extends BaseSettings {
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";
-    private final String settingTimeZone = "Time zone";
+    private final String settingsTimeZone = "Time zone";
+    private final String settingsSystem = "System";
     private final String restartProgram = "In order for the changes to apply, it is necessary to restart the program.";
     private final String warning = "Warning";
     //Errors messages
@@ -64,6 +68,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String confirmed = "confirmed";
     private final String rejected = "rejected";
     //Default symbols
-    private final String addFriendBtn = "+";
-    private final String settingsIcon = "⚙";
+    private final String plus = "+";
+    private final String minus = "-";
+    private final String settings = "⚙";
 }

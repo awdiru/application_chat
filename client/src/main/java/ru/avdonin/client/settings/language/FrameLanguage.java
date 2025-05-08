@@ -1,18 +1,17 @@
 package ru.avdonin.client.settings.language;
 
 import lombok.Getter;
+import ru.avdonin.client.client.gui.SettingsFrame;
 import ru.avdonin.client.settings.FrameSettings;
 import ru.avdonin.client.settings.Settings;
-import ru.avdonin.client.settings.language.list.DictionaryEN;
-import ru.avdonin.client.settings.language.list.DictionaryIT;
-import ru.avdonin.client.settings.language.list.DictionaryRU;
-import ru.avdonin.client.settings.language.list.DictionarySP;
+import ru.avdonin.client.settings.language.list.*;
 
 import javax.swing.*;
 import java.awt.*;
 
 @Getter
 public enum FrameLanguage implements FrameSettings {
+    SYSTEM(new DictionarySystem()),
     RU(new DictionaryRU()),
     EN(new DictionaryEN()),
     SP(new DictionarySP()),
@@ -27,33 +26,7 @@ public enum FrameLanguage implements FrameSettings {
 
     @Override
     public void getFrame() {
-        JFrame main = new JFrame();
-        main.setTitle(FactoryLanguage.getFactory().getSettings().getSettingsLanguage());
-        main.setSize(250, 300);
-        main.setLocationRelativeTo(null);
-
-        DefaultListModel<String> settingsModel = new DefaultListModel<>();
-        JList<String> settingsList = new JList<>(settingsModel);
-        for (FrameLanguage l : FrameLanguage.values())
-            settingsModel.addElement(l.getSelectedSetting());
-
-        settingsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = settingsList.getSelectedValue();
-                if (selected != null) {
-                    factory.setLanguage(selected);
-                    main.dispose();
-                    JOptionPane.showMessageDialog(main,
-                            language.getRestartProgram(), language.getWarning(),
-                            JOptionPane.WARNING_MESSAGE);
-                    Settings.getFrame();
-                }
-            }
-        });
-        JScrollPane scrollPane = new JScrollPane(settingsList);
-        scrollPane.setPreferredSize(new Dimension(200, 300));
-        main.add(scrollPane);
-        main.setVisible(true);
+        SettingsFrame.getLanguageSettingsFrame(factory);
     }
 
     @Override

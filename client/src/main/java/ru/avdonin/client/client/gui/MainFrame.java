@@ -11,7 +11,6 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
 import java.awt.*;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -23,7 +22,7 @@ public class MainFrame extends JFrame implements MessageListener {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final Client client;
     private final String username;
-    private final BaseDictionary language;
+    private final BaseDictionary language = FactoryLanguage.getFactory().getSettings();
     private JTextArea chatArea;
     private JTextField messageField;
     private DefaultListModel<String> friendsModel;
@@ -33,7 +32,6 @@ public class MainFrame extends JFrame implements MessageListener {
     public MainFrame(Client client, String username) {
         this.client = client;
         this.username = username;
-        this.language = FactoryLanguage.getFactory().getSettings();
 
         client.setMessageListener(this);
 
@@ -47,111 +45,7 @@ public class MainFrame extends JFrame implements MessageListener {
         setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-
-        JSplitPane splitPane = new JSplitPane();
-        splitPane.setDividerLocation(200);
-
-        //Окно истории сообщений
-        JPanel chatPanel = new JPanel(new BorderLayout());
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(600, 500));
-        chatPanel.add(chatScroll, BorderLayout.CENTER);
-
-        //Окно ввода текста
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messageField = new JTextField();
-        messageField.addActionListener(e -> sendMessage());
-        messagePanel.add(messageField, BorderLayout.CENTER);
-
-        //Правая панель
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.add(chatPanel, BorderLayout.CENTER);
-        rightPanel.add(messagePanel, BorderLayout.SOUTH);
-
-        //Панель друзей
-        JPanel friendsPanel = new JPanel(new BorderLayout());
-        friendsModel = new DefaultListModel<>();
-        JList<String> friendsList = new JList<>(friendsModel);
-        friendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        friendsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = friendsList.getSelectedValue();
-                if (selected != null) {
-                    friendName = selected.split(" ")[0];
-                    loadChatHistory();
-                }
-            }
-        });
-        JPanel friendsLabel = new JPanel(new BorderLayout());
-        JButton addFriend = new JButton(language.getAddFriendBtn());
-        friendsLabel.add(new JLabel(language.getFriends()), BorderLayout.CENTER);
-        friendsLabel.add(addFriend, BorderLayout.EAST);
-
-        addFriend.addActionListener(e -> addFriend());
-
-        friendsPanel.add(friendsLabel, BorderLayout.NORTH);
-        friendsPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
-
-        //панель запросов в друзья
-        JPanel requestFriendsPanel = new JPanel(new BorderLayout());
-        requestFriendsModel = new DefaultListModel<>();
-        JList<String> requestFriendsList = new JList<>(requestFriendsModel);
-        requestFriendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        requestFriendsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = requestFriendsList.getSelectedValue();
-                if (selected != null) confirmFriend(selected);
-            }
-        });
-
-        requestFriendsPanel.add(new JLabel(language.getRequestFriends()), BorderLayout.NORTH);
-        requestFriendsPanel.add(new JScrollPane(requestFriendsList), BorderLayout.CENTER);
-
-        //Левая панель
-        JSplitPane leftPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        leftPane.setDividerLocation(400);
-        leftPane.setTopComponent(friendsPanel);
-        leftPane.setBottomComponent(requestFriendsPanel);
-
-        JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.add(leftPane, BorderLayout.CENTER);
-
-        splitPane.setLeftComponent(leftPanel);
-        splitPane.setRightComponent(rightPanel);
-
-        //Строка состояния
-        JPanel statusBar = new JPanel(new BorderLayout());
-        statusBar.setSize(new Dimension(800, 100));
-        //Панель кнопок
-        JPanel buttonsPanel = new JPanel(new BorderLayout());
-        //Настройки
-        JButton settings = new JButton(language.getSettingsIcon());
-        settings.addActionListener(e -> {
-            Settings.getFrame();
-        });
-        buttonsPanel.add(settings, BorderLayout.CENTER);
-
-        //Сменить пользователя
-        JButton newUser = new JButton(language.getChangeUser());
-        newUser.addActionListener(e -> {
-            dispose();
-            stopBackgroundRequestsFriends();
-            Client client = new Client();
-            new LoginFrame(client).setVisible(true);
-        });
-        buttonsPanel.add(newUser, BorderLayout.WEST);
-
-        statusBar.add(buttonsPanel, BorderLayout.WEST);
-
-        JSplitPane main = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        main.setTopComponent(statusBar);
-        main.setBottomComponent(splitPane);
-
-        add(main);
+        add(getMainWindow());
     }
 
     private void sendMessage() {
@@ -159,8 +53,11 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected Void doInBackground() {
                 try {
-                    if (!client.isConnected())
-                        throw new NoConnectionServerException("There is no connection to the server");
+                    if (!client.isConnected()) {
+                        client.connect(username);
+                        if (!client.isConnected())
+                            throw new NoConnectionServerException("There is no connection to the server");
+                    }
 
                     client.sendMessage(messageField.getText(), username, friendName);
                 } catch (Exception e) {
@@ -301,6 +198,30 @@ public class MainFrame extends JFrame implements MessageListener {
         main.setVisible(true);
     }
 
+    private void rmFriend() {
+        JFrame main = new JFrame();
+        main.setTitle(language.getRmFriendTitle());
+        main.setSize(300, 70);
+        main.setLocationRelativeTo(null);
+
+        JPanel rmFriendPanel = new JPanel(new GridLayout(1, 1, 3, 3));
+        JTextField friendField = new JTextField();
+        rmFriendPanel.add(new JLabel(language.getFriendName()));
+        rmFriendPanel.add(friendField);
+        friendField.addActionListener(e -> {
+            try {
+                client.rmFriend(username, friendField.getText());
+                loadFriends();
+            } catch (Exception ex) {
+                errorHandler(ex);
+            }
+            main.dispose();
+        });
+
+        main.add(rmFriendPanel);
+        main.setVisible(true);
+    }
+
     private void confirmFriend(String friend) {
         JFrame main = new JFrame();
         main.setTitle(language.getConfirmFriendTitle());
@@ -398,5 +319,147 @@ public class MainFrame extends JFrame implements MessageListener {
     @Override
     public void start() {
         //не используется
+    }
+
+    private JPanel getChatPanel() {
+        JPanel chatPanel = new JPanel(new BorderLayout());
+        chatArea = new JTextArea();
+        chatArea.setEditable(false);
+        JScrollPane chatScroll = new JScrollPane(chatArea);
+        chatScroll.setPreferredSize(new Dimension(600, 500));
+        chatPanel.add(chatScroll, BorderLayout.CENTER);
+        return chatPanel;
+    }
+
+    private JPanel getMessagePanel() {
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messageField = new JTextField();
+        messageField.addActionListener(e -> sendMessage());
+        messagePanel.add(messageField, BorderLayout.CENTER);
+        return messagePanel;
+    }
+
+    private JPanel getFriendPanel() {
+        friendsModel = new DefaultListModel<>();
+        JList<String> friendsList = new JList<>(friendsModel);
+        friendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        friendsList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selected = friendsList.getSelectedValue();
+                if (selected != null) {
+                    friendName = selected.split(" ")[0];
+                    loadChatHistory();
+                }
+            }
+        });
+
+        JButton addFriend = new JButton(language.getPlus());
+        addFriend.addActionListener(e -> addFriend());
+
+        JButton rmFriend = new JButton(language.getMinus());
+        rmFriend.addActionListener(e -> rmFriend());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(addFriend);
+        buttonPanel.add(rmFriend);
+
+        JPanel friendsLabel = new JPanel(new BorderLayout());
+        friendsLabel.add(new JLabel(language.getFriends()), BorderLayout.CENTER);
+        friendsLabel.add(buttonPanel, BorderLayout.EAST);
+
+        JPanel friendsPanel = new JPanel(new BorderLayout());
+        friendsPanel.add(friendsLabel, BorderLayout.NORTH);
+        friendsPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
+        return friendsPanel;
+    }
+
+    private JPanel getRequestsFriendsPanel() {
+        JPanel requestFriendsPanel = new JPanel(new BorderLayout());
+        requestFriendsModel = new DefaultListModel<>();
+        JList<String> requestFriendsList = new JList<>(requestFriendsModel);
+        requestFriendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        requestFriendsList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selected = requestFriendsList.getSelectedValue();
+                if (selected != null) confirmFriend(selected);
+            }
+        });
+
+        requestFriendsPanel.add(new JLabel(language.getRequestFriends()), BorderLayout.NORTH);
+        requestFriendsPanel.add(new JScrollPane(requestFriendsList), BorderLayout.CENTER);
+        return requestFriendsPanel;
+    }
+
+    private JPanel getStatusBar() {
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setSize(new Dimension(800, 100));
+        //Панель кнопок
+        JPanel buttonsPanel = new JPanel();
+        //Перезагрузить
+        JButton restart = new JButton(FactoryLanguage.getFactory().getSettings().getRestart());
+        restart.addActionListener(e -> {
+            dispose();
+            MainFrame mainFrame = new MainFrame(client, username);
+            client.setMessageListener(mainFrame);
+            mainFrame.setVisible(true);
+        });
+        buttonsPanel.add(restart);
+        //Сменить пользователя
+        JButton newUser = new JButton(language.getChangeUser());
+        newUser.addActionListener(e -> {
+            dispose();
+            stopBackgroundRequestsFriends();
+            Client client = new Client();
+            new LoginFrame(client).setVisible(true);
+        });
+        buttonsPanel.add(newUser);
+        //Настройки
+        JButton settings = new JButton(language.getSettings());
+        settings.addActionListener(e -> {
+            Settings.getFrame();
+        });
+        buttonsPanel.add(settings);
+        statusBar.add(buttonsPanel, BorderLayout.WEST);
+
+        return statusBar;
+    }
+
+    private JSplitPane getChatAppSplitPane() {
+        //Окно истории сообщений
+        JPanel chatPanel = getChatPanel();
+        //Окно ввода текста
+        JPanel messagePanel = getMessagePanel();
+        //Правая панель
+        JSplitPane rightPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        rightPanel.setDividerLocation(450);
+        rightPanel.setTopComponent(chatPanel);
+        rightPanel.setBottomComponent(messagePanel);
+        //Панель друзей
+        JPanel friendsPanel = getFriendPanel();
+        //панель запросов в друзья
+        JPanel requestFriendsPanel = getRequestsFriendsPanel();
+        //Левая панель
+        JSplitPane leftPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        leftPanel.setDividerLocation(400);
+        leftPanel.setTopComponent(friendsPanel);
+        leftPanel.setBottomComponent(requestFriendsPanel);
+
+        JSplitPane mainWindow = new JSplitPane();
+        mainWindow.setDividerLocation(200);
+        mainWindow.setLeftComponent(leftPanel);
+        mainWindow.setRightComponent(rightPanel);
+
+        return mainWindow;
+    }
+
+    private JSplitPane getMainWindow() {
+        JSplitPane main = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        JSplitPane mainWindow = getChatAppSplitPane();
+        JPanel statusBar = getStatusBar();
+
+        main.setTopComponent(statusBar);
+        main.setBottomComponent(mainWindow);
+        return main;
     }
 }

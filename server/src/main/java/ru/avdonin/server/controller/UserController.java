@@ -8,12 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.exceptions.IncorrectFriendDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.template.model.util.ErrorResponse;
-import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.util.ErrorResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,10 +33,9 @@ public class UserController {
             log("registry user: " + userDto);
             userService.save(userDto);
             return new ResponseEntity<>(HttpStatus.OK);
-        } catch (IncorrectUserDataException e) {
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, "signup");
+
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "signup");
+            return errorHandler(e, "signup");
         }
     }
 
@@ -47,10 +46,8 @@ public class UserController {
             userService.validate(userDto);
             return new ResponseEntity<>(HttpStatus.OK);
 
-        } catch (IncorrectUserDataException e) {
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, "login");
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "login");
+            return errorHandler(e, "login");
         }
     }
 
@@ -62,10 +59,21 @@ public class UserController {
             userService.addFriend(username, friendName);
             return new ResponseEntity<>(HttpStatus.OK);
 
-        } catch (IncorrectUserDataException e) {
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, "addFriend");
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "addFriend");
+            return errorHandler(e, "addFriend");
+        }
+    }
+
+    @PostMapping("/friends/remove")
+    public ResponseEntity<Object> removeFriend(@RequestParam String username,
+                                               @RequestParam String friendName) {
+        try {
+            log("removeFriend: username: " + username + "; friendName: " + friendName);
+            userService.removeFriend(username, friendName);
+            return new ResponseEntity<>(HttpStatus.OK);
+
+        } catch (Exception e) {
+            return errorHandler(e, "addFriend");
         }
     }
 
@@ -75,8 +83,9 @@ public class UserController {
             log("getFriends: username: " + username);
             List<FriendDto> friends = userService.getFriends(username);
             return ResponseEntity.ok(friends);
+
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "getFriends");
+            return errorHandler(e, "getFriends");
         }
     }
 
@@ -86,8 +95,9 @@ public class UserController {
             log("getRequestsFriends: username: " + username);
             List<FriendDto> requestsFriends = userService.getRequestsFriends(username);
             return ResponseEntity.ok(requestsFriends);
+
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "getFriends");
+            return errorHandler(e, "getFriends");
         }
     }
 
@@ -100,12 +110,8 @@ public class UserController {
             userService.confirmedFriend(username, friendName, confirm);
             return new ResponseEntity<>(HttpStatus.OK);
 
-        } catch (IncorrectUserDataException e) {
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, "confirmedFriend");
-        } catch (IncorrectFriendDataException e) {
-            return errorHandler(e, HttpStatus.BAD_REQUEST, "confirmedFriend");
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "confirmedFriend");
+            return errorHandler(e, "confirmedFriend");
         }
     }
 
@@ -118,18 +124,22 @@ public class UserController {
             userService.renameFriend(username, friendName, newFriendName);
             return new ResponseEntity<>(HttpStatus.OK);
 
-        } catch (IncorrectUserDataException e) {
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, "renameFriend");
-        } catch (IncorrectFriendDataException e) {
-            return errorHandler(e, HttpStatus.BAD_REQUEST, "renameFriend");
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "renameFriend");
+            return errorHandler(e, "renameFriend");
         }
     }
 
     private ResponseEntity<Object> errorHandler(Exception e, HttpStatus status, String method) {
         log(method + ": ERROR: " + e.getMessage());
         return new ResponseEntity<>(new ErrorResponse(LocalDateTime.now(), status, e.getMessage()), status);
+    }
+
+    private ResponseEntity<Object> errorHandler(Exception e, String method) {
+        if (e instanceof IncorrectUserDataException)
+            return errorHandler(e, HttpStatus.UNAUTHORIZED, method);
+        else if (e instanceof IncorrectFriendDataException)
+            return errorHandler(e, HttpStatus.BAD_REQUEST, method);
+        else return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, method);
     }
 
     private void log(String text) {

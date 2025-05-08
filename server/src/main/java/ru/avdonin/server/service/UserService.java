@@ -3,13 +3,14 @@ package ru.avdonin.server.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.avdonin.server.model.Friend;
 import ru.avdonin.server.model.FriendID;
+import ru.avdonin.server.model.User;
 import ru.avdonin.server.repository.FriendRepository;
+import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.exceptions.IncorrectFriendDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.server.model.User;
-import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.friend.FriendConfirmation;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
@@ -24,6 +25,7 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
+    private final PasswordService passwordService;
 
     public UserDto findById(Long id) {
         log("findUserById: id: " + id);
@@ -42,16 +44,17 @@ public class UserService {
 
         User user = searchUserByUsername(userDto.getUsername());
 
-        if (!user.getPassword().equals(userDto.getPassword()))
+        if (!passwordService.matches(userDto.getPassword(), user.getPassword()))
             throw new IncorrectUserDataException("Invalid password");
     }
 
+    @Transactional
     public void save(UserAuthenticationDto userDto) {
         try {
             log("save: username: " + userDto.getUsername());
             User user = User.builder()
                     .username(userDto.getUsername())
-                    .password(userDto.getPassword())
+                    .password(passwordService.hashPassword(userDto.getPassword()))
                     .build();
             userRepository.save(user);
         } catch (Exception e) {
@@ -63,7 +66,6 @@ public class UserService {
         log("addFriend: username: " + username + "; friendName: " + friendName);
         User user = searchUserByUsername(username);
         User friendUser = searchUserByUsername(friendName);
-
 
         FriendID friendID = new FriendID(user.getId(), friendUser.getId());
         Friend friend = Friend.builder()
@@ -78,12 +80,42 @@ public class UserService {
         Optional<Friend> friendOptional = friendRepository.findById(friendID);
 
         if (friendOptional.isPresent()) {
+            if (friendOptional.get().getConfirmation().equals(FriendConfirmation.REJECTED))
+                throw new IncorrectFriendDataException("User " + friendName + " rejected your request");
+            else if (friendOptional.get().getConfirmation().equals(FriendConfirmation.DELETED))
+                throw new IncorrectFriendDataException("User " + friendName + " has deleted you from friends");
+            else {
             Friend friendOpt = friendOptional.get();
             friendOpt.setConfirmation(FriendConfirmation.CONFIRMED);
             friend.setConfirmation(FriendConfirmation.CONFIRMED);
             friendRepository.save(friendOpt);
+            }
         }
         friendRepository.save(friend);
+    }
+
+    public void removeFriend(String username, String friendName) {
+        log("removeFriend: username: " + username + "; friendName: " + friendName);
+        User user = searchUserByUsername(username);
+        User friendUser = searchUserByUsername(friendName);
+
+        FriendID friendID = new FriendID(user.getId(), friendUser.getId());
+        Optional<Friend> friendOptional = friendRepository.findById(friendID);
+
+        if (friendOptional.isPresent()) {
+            Friend friend = friendOptional.get();
+            friend.setConfirmation(FriendConfirmation.DELETED);
+            friendRepository.save(friend);
+        } else throw new IncorrectFriendDataException("User " + username + " is not your friend");
+
+        friendID = new FriendID(friendUser.getId(), user.getId());
+        friendOptional = friendRepository.findById(friendID);
+
+        if (friendOptional.isPresent()) {
+            Friend friend = friendOptional.get();
+            friend.setConfirmation(FriendConfirmation.DELETED);
+            friendRepository.save(friend);
+        }
     }
 
     public List<FriendDto> getFriends(String username) {
@@ -92,8 +124,8 @@ public class UserService {
                 .map(friend -> FriendDto.builder()
                         .username(friend.getUser().getUsername())
                         .friendName(friend.getFriend().getUsername())
-                        .customFriendName(friend.getFriendName())
                         .confirmation(friend.getConfirmation())
+                        .customFriendName(friend.getFriendName())
                         .build())
                 .toList();
     }

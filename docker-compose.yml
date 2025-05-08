@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16.1
+    image: postgres:17
     container_name: application_chat_db
     ports:
       - "6432:5432"

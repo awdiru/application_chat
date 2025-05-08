@@ -1,9 +1,13 @@
 server:
   port: 8080
 
+encryption:
+  key: my-secret-key-12345
+  algorithm: AES/CBC/PKCS5Padding
+
 spring:
   application:
-    name: testWebSocket
+    name: application_chat
 
   datasource:
     url: jdbc:postgresql://localhost:6432/application_chat
@@ -16,6 +20,6 @@ spring:
       ddl-auto: update
     show-sql: true
 
- # sql:
- #   init:
- #     mode: always
+#  sql:
+#    init:
+#      mode: always

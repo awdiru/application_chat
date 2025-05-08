@@ -19,9 +19,12 @@ public class DictionaryRU extends BaseDictionary {
     private final String chat = "Чат";
     private final String friends = "Друзья";
     private final String requestFriends = "Запросы в друзья";
+    //Статус бар
     private final String changeUser = "Сменить пользователя";
-    //Окно добавления друга
+    private final String restart = "Перезагрузить";
+    //Окно друзей
     private final String addFriendTitle = "Добавить друга";
+    private final String rmFriendTitle = "Удалить друга";
     private final String friendName = "Имя друга";
     //Окно принятия запроса в друзья
     private final String confirmFriendTitle = "Подтверждение запроса в друзья";
@@ -30,9 +33,10 @@ public class DictionaryRU extends BaseDictionary {
     //Окно настроек
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";
+    private final String settingsTimeZone = "Часовой пояс";
+    private final String settingsSystem = "Система";
     private final String restartProgram = "Для того, чтобы изменения применились, необходим перезапуск программы";
     private final String warning = "Предупреждение";
-    private final String settingTimeZone = "Часовой пояс";
     //Сообщения об ошибках
     private final String error = "Ошибка";
     private final String authorizationError = "Ошибка авторизации";

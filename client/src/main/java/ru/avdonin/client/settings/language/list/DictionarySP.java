@@ -9,7 +9,6 @@ public class DictionarySP extends BaseDictionary {
     private final String yes = "Sí";
     private final String no = "No";
     private final String confirmation = "Confirmación";
-
     //Окно авторизации
     private final String authorization = "Autorización";
     private final String login = "Iniciar sesión";
@@ -20,9 +19,12 @@ public class DictionarySP extends BaseDictionary {
     private final String chat = "Chat";
     private final String friends = "Amigos";
     private final String requestFriends = "Solicitudes de amistad";
+    //Статус бар
     private final String changeUser = "Cambiar usuario";
-    //Окно добавления друга
+    private final String restart = "Volver a cargar";
+    //Окно друзей
     private final String addFriendTitle = "Añadir un amigo";
+    private final String rmFriendTitle = "Eliminar amigo";
     private final String friendName = "Nombre del amigo";
     //Окно принятия запроса в друзья
     private final String confirmFriendTitle = "Confirmación de la solicitud de amistad";
@@ -31,9 +33,10 @@ public class DictionarySP extends BaseDictionary {
     //Окно настроек
     private final String settingsTitle = "Configuración";
     private final String settingsLanguage = "Idioma";
+    private final String settingsTimeZone = "Zona horaria";
+    private final String settingsSystem = "Sistema";
     private final String restartProgram = "Para que los cambios se apliquen, es necesario reiniciar el programa";
     private final String warning = "Advertencia";
-    private final String settingTimeZone = "Zona horaria";
     //Сообщения об ошибках
     private final String error = "Error";
     private final String authorizationError = "Error de autorización";

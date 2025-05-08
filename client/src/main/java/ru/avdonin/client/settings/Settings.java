@@ -1,14 +1,14 @@
 package ru.avdonin.client.settings;
 
 import lombok.Getter;
+import ru.avdonin.client.client.gui.SettingsFrame;
 import ru.avdonin.client.settings.language.FactoryLanguage;
-
-import javax.swing.*;
-import java.awt.*;
+import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 
 @Getter
 public enum Settings {
-    LANGUAGE(FactoryLanguage.getFactory().getSettings().getSettingsLanguage(), FactoryLanguage.getFactory());
+    LANGUAGE(FactoryLanguage.getFactory().getSettings().getSettingsLanguage(), FactoryLanguage.getFactory()),
+    TIME_ZONE(FactoryLanguage.getFactory().getSettings().getSettingsTimeZone(), FactoryTimeZone.getFactory()),;
 
     private final String settingsName;
     private final BaseFactory factory;
@@ -24,34 +24,6 @@ public enum Settings {
     }
 
     public static void getFrame() {
-        JFrame main = new JFrame();
-        main.setTitle(FactoryLanguage.getFactory().getSettings().getSettingsTitle());
-        main.setSize(200, 300);
-        main.setLocationRelativeTo(null);
-
-        DefaultListModel<String> settingsModel = new DefaultListModel<>();
-        JList<String> settingsList = new JList<>(settingsModel);
-        for (Settings s : Settings.values())
-            settingsModel.addElement(s.getSettingsName() + " -> " + s.factory.getFrameSettings().getSelectedSetting());
-        settingsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        settingsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = settingsList.getSelectedValue();
-                if (selected != null) {
-                    String settingsName = selected.split(" ")[0];
-                    Settings s = Settings.getSettings(settingsName);
-                    if (s != null) {
-                        main.dispose();
-                        s.getFactory().getFrameSettings().getFrame();
-                    }
-                }
-            }
-        });
-
-        JScrollPane scrollPane = new JScrollPane(settingsList);
-        scrollPane.setPreferredSize(new Dimension(200, 300));
-        main.add(scrollPane);
-        main.setVisible(true);
+        SettingsFrame.getFrame();
     }
 }

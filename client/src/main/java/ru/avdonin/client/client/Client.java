@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -23,7 +24,9 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 @ClientEndpoint
@@ -62,6 +65,10 @@ public class Client {
     @OnMessage
     public void onMessage(String message) throws JsonProcessingException {
         MessageDto messageDto = objectMapper.readValue(message, MessageDto.class);
+        messageDto.setTime(messageDto.getTime()
+                .withOffsetSameInstant(ZoneOffset.ofHours(
+                        FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                )));
         messageListener.onMessageReceived(messageDto);
     }
 
@@ -79,7 +86,6 @@ public class Client {
                 .username(username)
                 .password(password)
                 .build();
-        System.out.println(username + " " + password + " " + path);
         String requestBody = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/user" + path;
         post(url, requestBody);
@@ -100,19 +106,33 @@ public class Client {
     public List<MessageDto> getChat(String username, String recipient) throws Exception {
         String url = BaseURL + "/chat/get?sender=" + username + "&recipient=" + recipient + "&from=0&size=50";
         HttpResponse<String> response = get(url);
-        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+        return messages.stream()
+                .peek(message -> message.setTime(message.getTime()
+                        .withOffsetSameInstant(ZoneOffset.ofHours(
+                                FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                        ))))
+                .toList();
     }
 
     public List<FriendDto> getFriends(String username) throws Exception {
         String url = BaseURL + "/user/friends/get?username=" + username;
         HttpResponse<String> response = get(url);
-        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        List<FriendDto> friendDto = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+        return friendDto.stream()
+                .sorted(Comparator.comparing(FriendDto::getCustomFriendName))
+                .toList();
     }
 
     public void addFriend(String username, String friendName) throws Exception {
         String url = BaseURL + "/user/friends/add?username=" + username + "&friendName=" + friendName;
+        post(url, null);
+    }
+
+    public void rmFriend(String username, String friendName) throws Exception {
+        String url = BaseURL + "/user/friends/remove?username=" + username + "&friendName=" + friendName;
         post(url, null);
     }
 
