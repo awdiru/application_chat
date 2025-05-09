@@ -1,6 +1,7 @@
 package ru.avdonin.client.client;
 
-import ru.avdonin.client.model.message.MessageDto;
+
+import ru.avdonin.template.model.message.dto.MessageDto;
 
 public interface MessageListener {
     void start();

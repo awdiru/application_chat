@@ -1,11 +1,11 @@
 services:
   db:
-    image: postgres:16.1
-    container_name: testWebSocket_db
+    image: postgres:17
+    container_name: application_chat_db
     ports:
       - "6432:5432"
     environment:
-      - POSTGRES_DB=testWebSocket
+      - POSTGRES_DB=application_chat
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
     healthcheck:

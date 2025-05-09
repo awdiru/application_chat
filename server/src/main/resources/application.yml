@@ -1,12 +1,17 @@
 server:
   port: 8080
 
+encryption:
+  key: this-is-a-32-character-long-key!
+  algorithm: AES
+  transformation: AES/CBC/PKCS5Padding
+
 spring:
   application:
-    name: testWebSocket
+    name: application_chat
 
   datasource:
-    url: jdbc:postgresql://localhost:6432/testWebSocket
+    url: jdbc:postgresql://localhost:6432/application_chat
     username: user
     password: password
     driverClassName: org.postgresql.Driver
@@ -15,3 +20,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+#  sql:
+#    init:
+#      mode: always

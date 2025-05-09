@@ -7,9 +7,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
+import lombok.Getter;
 import lombok.Setter;
-import ru.avdonin.client.model.message.MessageDto;
-import ru.avdonin.client.model.user.UserAuthenticationDto;
+import ru.avdonin.client.settings.language.BaseDictionary;
+import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
+import ru.avdonin.template.exceptions.ClientException;
+import ru.avdonin.template.model.friend.dto.FriendDto;
+import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.util.ErrorResponse;
 
 import java.io.IOException;
 import java.net.URI;
@@ -17,15 +24,23 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 @ClientEndpoint
 public class Client {
     @Setter
-    protected MessageListener messageListener;
-    protected Session session;
-    protected final HttpClient httpClient = HttpClient.newHttpClient();
-    protected final ObjectMapper objectMapper = new ObjectMapper()
+    private MessageListener messageListener;
+    private Session session;
+    @Setter
+    @Getter
+    private BaseDictionary language = FactoryLanguage.getFactory().getSettings();
+
+    private final String BaseURL = "http://localhost:8080";
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
@@ -50,6 +65,10 @@ public class Client {
     @OnMessage
     public void onMessage(String message) throws JsonProcessingException {
         MessageDto messageDto = objectMapper.readValue(message, MessageDto.class);
+        messageDto.setTime(messageDto.getTime()
+                .withOffsetSameInstant(ZoneOffset.ofHours(
+                        FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                )));
         messageListener.onMessageReceived(messageDto);
     }
 
@@ -60,6 +79,16 @@ public class Client {
     @OnError
     public void onError(Throwable throwable) throws IOException {
         throw new IOException(throwable.getMessage());
+    }
+
+    public void login(String username, String password, String path) throws Exception {
+        UserAuthenticationDto userDto = UserAuthenticationDto.builder()
+                .username(username)
+                .password(password)
+                .build();
+        String requestBody = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/user" + path;
+        post(url, requestBody);
     }
 
     public void sendMessage(String content, String username, String recipient) throws IOException {
@@ -74,41 +103,90 @@ public class Client {
         session.getBasicRemote().sendText(json);
     }
 
-    public List<MessageDto> getChat(String username, String recipient) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:8080/chat/get?sender="
-                        + username + "&recipient=" + recipient + "&from=0&size=50"))
-                .header("Content-Type", "application/json")
-                .build();
+    public List<MessageDto> getChat(String username, String recipient) throws Exception {
+        String url = BaseURL + "/chat/get?sender=" + username + "&recipient=" + recipient + "&from=0&size=50";
+        HttpResponse<String> response = get(url);
+        List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+        return messages.stream()
+                .peek(message -> message.setTime(message.getTime()
+                        .withOffsetSameInstant(ZoneOffset.ofHours(
+                                FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                        ))))
+                .toList();
+    }
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    public List<FriendDto> getFriends(String username) throws Exception {
+        String url = BaseURL + "/user/friends/get?username=" + username;
+        HttpResponse<String> response = get(url);
+        List<FriendDto> friendDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+        return friendDto.stream()
+                .sorted(Comparator.comparing(FriendDto::getCustomFriendName))
+                .toList();
+    }
 
-        if (response.statusCode() != 200) throw new IOException("Не удалось получить список сообщений");
+    public void addFriend(String username, String friendName) throws Exception {
+        String url = BaseURL + "/user/friends/add?username=" + username + "&friendName=" + friendName;
+        post(url, null);
+    }
 
+    public void rmFriend(String username, String friendName) throws Exception {
+        String url = BaseURL + "/user/friends/remove?username=" + username + "&friendName=" + friendName;
+        post(url, null);
+    }
+
+    public List<FriendDto> getRequestsFriends(String username) throws Exception {
+        String url = BaseURL + "/user/friends/requests?username=" + username;
+        HttpResponse<String> response = get(url);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
 
-    public boolean login(String username, String password, String path) throws IOException, InterruptedException {
-        UserAuthenticationDto userDto = UserAuthenticationDto.builder()
-                .username(username)
-                .password(password)
-                .build();
-        String requestBody = objectMapper.writeValueAsString(userDto);
+    public void confirmFriend(String username, String friendName, Boolean confirm) throws Exception {
+        String url = BaseURL + "/user/friends/confirmed?username=" + username + "&friendName=" + friendName + "&confirm=" + confirm;
+        post(url, null);
+    }
 
+    public boolean isConnected() {
+        return session != null && session.isOpen();
+    }
+
+
+    private HttpResponse<String> get(String url) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .uri(URI.create("http://localhost:8080/user" + path))
+                .GET()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) errorHandler(response);
+        return response;
+    }
+
+    private HttpResponse<String> post(String url, String body) throws Exception {
+        if (body == null) body = "";
+        HttpRequest request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        return response.statusCode() == 200;
+        if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
-    public boolean isConnected() {
-        return session != null && session.isOpen();
+    private void errorHandler(HttpResponse<String> response) throws Exception {
+        ErrorResponse errorResponse = objectMapper.readValue(response.body(), ErrorResponse.class);
+        throw new ClientException(createErrorMessage(errorResponse));
+    }
+
+    private String createErrorMessage(ErrorResponse errorResponse) {
+        String time = errorResponse.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
+        return time + " " + language.getErrorCode() + "\n"
+                + language.getStatusCode() + ": " + errorResponse.getStatus().toString() + "\n"
+                + language.getError() + ": " + errorResponse.getMessage();
     }
 }
