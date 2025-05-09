@@ -20,6 +20,7 @@ import java.util.List;
 public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
 
     public MessageDto saveMessage(MessageDto messageDto) {
         log("saveMessage: messageDto: " + messageDto);
@@ -32,15 +33,15 @@ public class MessageService {
                 .time(Instant.now())
                 .sender(sender)
                 .recipient(recipient)
-                .content(messageDto.getContent())
+                .content(encryptionService.encrypt(messageDto.getContent()))
                 .build();
 
         Message saved = messageRepository.save(message);
         return MessageDto.builder()
                 .time(saved.getTime().atOffset(ZoneOffset.UTC))
-                .content(saved.getContent())
-                .sender(saved.getSender().getUsername())
-                .recipient(saved.getRecipient().getUsername())
+                .content(messageDto.getContent())
+                .sender(messageDto.getSender())
+                .recipient(messageDto.getRecipient())
                 .build();
     }
 
@@ -48,7 +49,7 @@ public class MessageService {
         return messageRepository.findAllMessagesUsers(sender, recipient, PageRequest.of(from, size)).stream()
                 .map(message -> MessageDto.builder()
                         .time(message.getTime().atOffset(ZoneOffset.UTC))
-                        .content(message.getContent())
+                        .content(encryptionService.decrypt(message.getContent()))
                         .sender(message.getSender().getUsername())
                         .recipient(message.getRecipient().getUsername())
                         .build())

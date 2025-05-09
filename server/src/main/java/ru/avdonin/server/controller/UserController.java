@@ -92,7 +92,6 @@ public class UserController {
     @GetMapping("/friends/requests")
     public ResponseEntity<Object> getRequestsFriends(@RequestParam String username) {
         try {
-            log("getRequestsFriends: username: " + username);
             List<FriendDto> requestsFriends = userService.getRequestsFriends(username);
             return ResponseEntity.ok(requestsFriends);
 

@@ -2,8 +2,9 @@ server:
   port: 8080
 
 encryption:
-  key: my-secret-key-12345
-  algorithm: AES/CBC/PKCS5Padding
+  key: this-is-a-32-character-long-key!
+  algorithm: AES
+  transformation: AES/CBC/PKCS5Padding
 
 spring:
   application:
