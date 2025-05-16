@@ -7,10 +7,8 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
-public class ErrorResponse {
+public class ResponseMessage {
     private LocalDateTime time;
     private HttpStatus status;
     private String message;

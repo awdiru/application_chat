@@ -15,7 +15,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.template.model.util.ErrorResponse;
+import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -96,12 +96,12 @@ public class MessageHandler extends TextWebSocketHandler {
 
     private void sendError(WebSocketSession session, String error, HttpStatus status) {
         try {
-            ErrorResponse errorResponse = ErrorResponse.builder()
+            ResponseMessage responseMessage = ResponseMessage.builder()
                     .time(LocalDateTime.now())
                     .message(error)
                     .status(status)
                     .build();
-            String errorJson = objectMapper.writeValueAsString(errorResponse);
+            String errorJson = objectMapper.writeValueAsString(responseMessage);
             session.sendMessage(new TextMessage(errorJson));
         } catch (IOException e) {
             log("sendError: ERROR: " + e.getMessage());

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.util.ErrorResponse;
+import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,7 +38,7 @@ public class MessageController {
 
     private ResponseEntity<Object> errorHandler(Exception e, HttpStatus status, String method) {
         log(method + ": ERROR: " + e.getMessage());
-        return new ResponseEntity<>(new ErrorResponse(LocalDateTime.now(), status, e.getMessage()), status);
+        return new ResponseEntity<>(new ResponseMessage(LocalDateTime.now(), status, e.getMessage()), status);
     }
 
     private void log(String text) {

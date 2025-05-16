@@ -23,7 +23,7 @@ public enum Settings {
         return null;
     }
 
-    public static void getFrame() {
+    public static void getFrameSettings() {
         SettingsFrame.getFrame();
     }
 }

@@ -16,7 +16,7 @@ import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.util.ErrorResponse;
+import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
 import java.net.URI;
@@ -179,14 +179,14 @@ public class Client {
     }
 
     private void errorHandler(HttpResponse<String> response) throws Exception {
-        ErrorResponse errorResponse = objectMapper.readValue(response.body(), ErrorResponse.class);
-        throw new ClientException(createErrorMessage(errorResponse));
+        ResponseMessage responseMessage = objectMapper.readValue(response.body(), ResponseMessage.class);
+        throw new ClientException(createErrorMessage(responseMessage));
     }
 
-    private String createErrorMessage(ErrorResponse errorResponse) {
-        String time = errorResponse.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
+    private String createErrorMessage(ResponseMessage responseMessage) {
+        String time = responseMessage.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
         return time + " " + language.getErrorCode() + "\n"
-                + language.getStatusCode() + ": " + errorResponse.getStatus().toString() + "\n"
-                + language.getError() + ": " + errorResponse.getMessage();
+                + language.getStatusCode() + ": " + responseMessage.getStatus().toString() + "\n"
+                + language.getError() + ": " + responseMessage.getMessage();
     }
 }

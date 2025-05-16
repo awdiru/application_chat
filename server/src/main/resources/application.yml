@@ -24,3 +24,10 @@ spring:
 #  sql:
 #    init:
 #      mode: always
+
+ftp:
+  host: localhost
+  port: 21
+  username: user
+  password: password
+  remote-directory: /icons

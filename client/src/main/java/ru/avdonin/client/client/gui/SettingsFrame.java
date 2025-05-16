@@ -67,7 +67,7 @@ public class SettingsFrame {
                     JOptionPane.showMessageDialog(main,
                             FactoryLanguage.getFactory().getFrameSettings().getLanguage().getRestartProgram(), FactoryLanguage.getFactory().getFrameSettings().getLanguage().getWarning(),
                             JOptionPane.WARNING_MESSAGE);
-                    Settings.getFrame();
+                    Settings.getFrameSettings();
                 }
             }
         });
@@ -98,7 +98,7 @@ public class SettingsFrame {
                     JOptionPane.showMessageDialog(main,
                             language.getRestartProgram(), language.getWarning(),
                             JOptionPane.WARNING_MESSAGE);
-                    Settings.getFrame();
+                    Settings.getFrameSettings();
                 }
             }
         });
