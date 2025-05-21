@@ -18,6 +18,9 @@ import ru.avdonin.template.model.util.ResponseMessage;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static ru.avdonin.template.model.util.ResponseBuilder.getErrorResponse;
+import static ru.avdonin.template.model.util.ResponseBuilder.getOkResponse;
+
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -35,7 +38,7 @@ public class UserController {
             return getOkResponse("The user is registered");
 
         } catch (Exception e) {
-            return getErrorResponse(e, "signup");
+            return getErrorResponse(e);
         }
     }
 
@@ -47,7 +50,7 @@ public class UserController {
             return getOkResponse("The user is logged in");
 
         } catch (Exception e) {
-            return getErrorResponse(e, "login");
+            return getErrorResponse(e);
         }
     }
 
@@ -60,7 +63,7 @@ public class UserController {
             return getOkResponse("User " + username + " added user " + friendName + " as a friend");
 
         } catch (Exception e) {
-            return getErrorResponse(e, "addFriend");
+            return getErrorResponse(e);
         }
     }
 
@@ -73,7 +76,7 @@ public class UserController {
             return getOkResponse("User " + username + " deleted user " + friendName + " from friends");
 
         } catch (Exception e) {
-            return getErrorResponse(e, "addFriend");
+            return getErrorResponse(e);
         }
     }
 
@@ -82,10 +85,10 @@ public class UserController {
         try {
             log("getFriends: username: " + username);
             List<FriendDto> friends = userService.getFriends(username);
-            return ResponseEntity.ok(friends);
+            return ResponseEntity.ok().body(friends);
 
         } catch (Exception e) {
-            return getErrorResponse(e, "getFriends");
+            return getErrorResponse(e);
         }
     }
 
@@ -93,10 +96,10 @@ public class UserController {
     public ResponseEntity<Object> getRequestsFriends(@RequestParam String username) {
         try {
             List<FriendDto> requestsFriends = userService.getRequestsFriends(username);
-            return ResponseEntity.ok(requestsFriends);
+            return ResponseEntity.ok().body(requestsFriends);
 
         } catch (Exception e) {
-            return getErrorResponse(e, "getFriends");
+            return getErrorResponse(e);
         }
     }
 
@@ -113,7 +116,7 @@ public class UserController {
             else return getFriends("User " + username + " declined to add user " + friendName + " as a friend");
 
         } catch (Exception e) {
-            return getErrorResponse(e, "confirmedFriend");
+            return getErrorResponse(e);
         }
     }
 
@@ -127,36 +130,8 @@ public class UserController {
             return getOkResponse("User " + username + " renamed user " + friendName + " to " + newFriendName);
 
         } catch (Exception e) {
-            return getErrorResponse(e, "renameFriend");
+            return getErrorResponse(e);
         }
-    }
-
-    private ResponseEntity<Object> getErrorResponse(Exception e, String method) {
-        log(method + ": ERROR: " + e.getMessage());
-
-        HttpStatus status = getErrorStatus(e);
-
-        ResponseMessage responseMessage = ResponseMessage.builder()
-                .time(LocalDateTime.now())
-                .message(e.getMessage())
-                .status(status)
-                .build();
-        return ResponseEntity.status(status).body(responseMessage);
-    }
-
-    private HttpStatus getErrorStatus(Exception e) {
-        if (e instanceof IncorrectUserDataException) return HttpStatus.UNAUTHORIZED;
-        else if (e instanceof IncorrectFriendDataException) return HttpStatus.BAD_REQUEST;
-        return HttpStatus.INTERNAL_SERVER_ERROR;
-    }
-
-    private ResponseEntity<Object> getOkResponse(String message) {
-        ResponseMessage responseMessage = ResponseMessage.builder()
-                .time(LocalDateTime.now())
-                .message(message)
-                .status(HttpStatus.OK)
-                .build();
-        return ResponseEntity.ok().body(responseMessage);
     }
 
     private void log(String text) {

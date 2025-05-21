@@ -20,4 +20,7 @@ public class User {
 
     @Column(name = "password")
     private String password;
+
+    @Column(name = "icon_file_name")
+    private String iconFileName;
 }

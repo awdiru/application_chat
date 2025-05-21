@@ -10,10 +10,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static ru.avdonin.template.model.util.ResponseBuilder.getErrorResponse;
 
 @RestController
 @RequestMapping("/chat")
@@ -30,15 +31,10 @@ public class MessageController {
         try {
             log("getChat: sender " + sender + ", recipient " + recipient);
             List<MessageDto> messages = messageService.getMessages(sender, recipient, from, size);
-            return ResponseEntity.ok(messages);
+            return ResponseEntity.ok().body(messages);
         } catch (Exception e) {
-            return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, "getChat");
+            return getErrorResponse(e);
         }
-    }
-
-    private ResponseEntity<Object> errorHandler(Exception e, HttpStatus status, String method) {
-        log(method + ": ERROR: " + e.getMessage());
-        return new ResponseEntity<>(new ResponseMessage(LocalDateTime.now(), status, e.getMessage()), status);
     }
 
     private void log(String text) {

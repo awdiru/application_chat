@@ -25,6 +25,7 @@
 		<module>server</module>
 		<module>client</module>
         <module>template</module>
+        <module>logger</module>
     </modules>
 	<scm>
 		<connection/>

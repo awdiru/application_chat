@@ -9,7 +9,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>template</artifactId>
+    <artifactId>logger</artifactId>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -20,6 +20,12 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ru.avdonin</groupId>
+            <artifactId>template</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
