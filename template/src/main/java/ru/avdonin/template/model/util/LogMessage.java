@@ -11,4 +11,5 @@ public class LogMessage {
     private String message;
     private String method;
     private String level;
+    private StackTraceElement[] stackTraceElements;
 }

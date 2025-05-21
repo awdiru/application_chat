@@ -1,6 +1,7 @@
 package ru.avdonin.logger.logger;
 
 import org.springframework.stereotype.Service;
+import ru.avdonin.template.model.util.LogMessage;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -39,27 +40,44 @@ public class Logger {
         this.loggerLevel = 1;
     }
 
-    public void debug(String message, String method) {
+    public void log(LogMessage logMessage) {
+        switch (logMessage.getLevel()) {
+            case "debug":
+                debug(logMessage);
+                break;
+            case "warn":
+                warn(logMessage);
+                break;
+            case "error":
+                error(logMessage);
+                break;
+            default:
+                info(logMessage);
+                break;
+        }
+    }
+
+    public void debug(LogMessage logMessage) {
         if (loggerLevel > 0) return;
-        String entry = time() + "DEBUG " + method + message;
+        String entry = time() + "DEBUG " + logMessage.getMethod() + logMessage.getMessage();
         write(entry);
     }
 
-    public void info(String message, String method) {
+    public void info(LogMessage logMessage) {
         if (loggerLevel > 1) return;
-        String entry = time() + "INFO " + method + message;
+        String entry = time() + "INFO " + logMessage.getMethod() + logMessage.getMessage();
         write(entry);
     }
 
-    public void warn(String message, String method) {
+    public void warn(LogMessage logMessage) {
         if (loggerLevel > 2) return;
-        String entry = time() + "WARN " + method + message;
+        String entry = time() + "WARN " + logMessage.getMethod() + logMessage.getMessage();
         write(entry);
     }
 
-    public void error(String message, String method) {
+    public void error(LogMessage logMessage) {
         if (loggerLevel > 3) return;
-        String entry = time() + "WARN " + method + message;
+        String entry = time() + "WARN " + logMessage.getMethod() + logMessage.getMessage();
         write(entry);
     }
 
@@ -88,16 +106,5 @@ public class Logger {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
         );
-    }
-
-    private void startBackgroundRequestsFriends() {
-        scheduler.scheduleAtFixedRate(() -> {
-
-                }, 0, 20, TimeUnit.SECONDS
-        );
-    }
-
-    private void stopBackgroundRequestsFriends() {
-        scheduler.shutdown();
     }
 }

@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.exceptions.IncorrectFriendDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
+import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.logger.LoggerFactory;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 import ru.avdonin.template.model.util.ResponseMessage;
@@ -25,15 +27,13 @@ import static ru.avdonin.template.model.util.ResponseBuilder.getOkResponse;
 @RequestMapping("/user")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserController {
+    private static final Logger log = LoggerFactory.getLogger();
     private final UserService userService;
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @PostMapping("/signup")
     public ResponseEntity<Object> signup(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log("registry user: " + userDto);
+            log.info("registry user: " + userDto);
             userService.save(userDto);
             return getOkResponse("The user is registered");
 
@@ -45,7 +45,7 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log("login user: " + userDto);
+            log.info("login user: " + userDto);
             userService.validate(userDto);
             return getOkResponse("The user is logged in");
 
@@ -58,7 +58,7 @@ public class UserController {
     public ResponseEntity<Object> addFriend(@RequestParam String username,
                                             @RequestParam String friendName) {
         try {
-            log("addFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.addFriend(username, friendName);
             return getOkResponse("User " + username + " added user " + friendName + " as a friend");
 
@@ -71,7 +71,7 @@ public class UserController {
     public ResponseEntity<Object> removeFriend(@RequestParam String username,
                                                @RequestParam String friendName) {
         try {
-            log("removeFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.removeFriend(username, friendName);
             return getOkResponse("User " + username + " deleted user " + friendName + " from friends");
 
@@ -83,7 +83,7 @@ public class UserController {
     @GetMapping("/friends/get")
     public ResponseEntity<Object> getFriends(@RequestParam String username) {
         try {
-            log("getFriends: username: " + username);
+            log.info("username: " + username);
             List<FriendDto> friends = userService.getFriends(username);
             return ResponseEntity.ok().body(friends);
 
@@ -95,6 +95,7 @@ public class UserController {
     @GetMapping("/friends/requests")
     public ResponseEntity<Object> getRequestsFriends(@RequestParam String username) {
         try {
+            log.info("username: " + username);
             List<FriendDto> requestsFriends = userService.getRequestsFriends(username);
             return ResponseEntity.ok().body(requestsFriends);
 
@@ -108,7 +109,7 @@ public class UserController {
                                                   @RequestParam String friendName,
                                                   @RequestParam Boolean confirm) {
         try {
-            log("confirmedFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.confirmedFriend(username, friendName, confirm);
 
             if (confirm)
@@ -125,16 +126,12 @@ public class UserController {
                                                @RequestParam String friendName,
                                                @RequestParam String newFriendName) {
         try {
-            log("renameFriend: username: " + username + "; friendName: " + friendName + "; newFriendName: " + newFriendName);
+            log.info("username: " + username + "; friendName: " + friendName + "; newFriendName: " + newFriendName);
             userService.renameFriend(username, friendName, newFriendName);
             return getOkResponse("User " + username + " renamed user " + friendName + " to " + newFriendName);
 
         } catch (Exception e) {
             return getErrorResponse(e);
         }
-    }
-
-    private void log(String text) {
-        System.out.println("[" + LocalDateTime.now() + "] UserController: " + text);
     }
 }

@@ -15,19 +15,6 @@ public class LoggerController {
 
     @KafkaListener(topics = "logger", groupId = "logger-group")
     public void consume(LogMessage logMessage) {
-        switch (logMessage.getLevel()) {
-            case "debug":
-                logger.debug(logMessage.getMessage(), logMessage.getMethod());
-                break;
-            case "warn":
-                logger.warn(logMessage.getMessage(), logMessage.getMethod());
-                break;
-            case "error":
-                logger.error(logMessage.getMessage(), logMessage.getMethod());
-                break;
-            default:
-                logger.info(logMessage.getMessage(), logMessage.getMethod());
-                break;
-        }
+        logger.log(logMessage);
     }
 }

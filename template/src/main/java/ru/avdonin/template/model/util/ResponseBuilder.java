@@ -2,12 +2,18 @@ package ru.avdonin.template.model.util;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import ru.avdonin.template.exceptions.EmptyFileException;
 import ru.avdonin.template.exceptions.FtpClientException;
+import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.logger.LoggerFactory;
 
 import java.time.LocalDateTime;
 
+@Component
 public class ResponseBuilder {
+    private static final Logger log = LoggerFactory.getLogger();
+
     public static ResponseEntity<Object> getOkResponse(String message) {
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
@@ -18,6 +24,7 @@ public class ResponseBuilder {
     }
 
     public static ResponseEntity<Object> getErrorResponse(Exception e) {
+        log.warn(e.getMessage());
         HttpStatus status = getErrorStatus(e);
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())

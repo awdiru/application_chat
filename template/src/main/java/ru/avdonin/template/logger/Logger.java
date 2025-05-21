@@ -13,9 +13,13 @@ public class Logger{
             StackWalker.Option.RETAIN_CLASS_REFERENCE
     );
 
-    @Autowired
     @Qualifier("loggerKafkaTemplate")
-    private KafkaTemplate<String, LogMessage> kafkaTemplate;
+    private final KafkaTemplate<String, LogMessage> kafkaTemplate;
+
+    @Autowired
+    public Logger(KafkaTemplate<String, LogMessage> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     public void debug(String message) {
         LogMessage logMessage = getLogMessage(message, "debug");
@@ -42,6 +46,7 @@ public class Logger{
                 .message(message)
                 .method(method())
                 .level(level)
+                .stackTraceElements(Thread.currentThread().getStackTrace())
                 .build();
     }
 

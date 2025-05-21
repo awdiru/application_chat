@@ -55,6 +55,7 @@ public class UserService {
             User user = User.builder()
                     .username(userDto.getUsername())
                     .password(passwordService.hashPassword(userDto.getPassword()))
+                    .iconFileName("new_user.png")
                     .build();
             userRepository.save(user);
         } catch (Exception e) {
@@ -84,12 +85,11 @@ public class UserService {
                 throw new IncorrectFriendDataException("User " + friendName + " rejected your request");
             else if (friendOptional.get().getConfirmation().equals(FriendConfirmation.DELETED))
                 throw new IncorrectFriendDataException("User " + friendName + " has deleted you from friends");
-            else {
+
             Friend friendOpt = friendOptional.get();
             friendOpt.setConfirmation(FriendConfirmation.CONFIRMED);
             friend.setConfirmation(FriendConfirmation.CONFIRMED);
             friendRepository.save(friendOpt);
-            }
         }
         friendRepository.save(friend);
     }

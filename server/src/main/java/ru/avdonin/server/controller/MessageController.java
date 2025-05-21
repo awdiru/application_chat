@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.avdonin.server.service.MessageService;
+import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.logger.LoggerFactory;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +23,7 @@ import static ru.avdonin.template.model.util.ResponseBuilder.getErrorResponse;
 @RequestMapping("/chat")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MessageController {
+    private static final Logger log = LoggerFactory.getLogger();
     private final MessageService messageService;
 
     @GetMapping("/get")
@@ -29,15 +33,11 @@ public class MessageController {
                                           @RequestParam int size) {
 
         try {
-            log("getChat: sender " + sender + ", recipient " + recipient);
+            log.info("sender " + sender + ", recipient " + recipient + ", from " + from + ", size " + size);
             List<MessageDto> messages = messageService.getMessages(sender, recipient, from, size);
             return ResponseEntity.ok().body(messages);
         } catch (Exception e) {
             return getErrorResponse(e);
         }
-    }
-
-    private void log(String text) {
-        System.out.println("[" + LocalDateTime.now() + "] MessageController: " + text);
     }
 }
