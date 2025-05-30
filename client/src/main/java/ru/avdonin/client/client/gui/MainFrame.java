@@ -11,6 +11,8 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -25,7 +27,7 @@ public class MainFrame extends JFrame implements MessageListener {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private JTextArea chatArea;
     private JTextField messageField;
-    private DefaultListModel<String> friendsModel;
+    private JPanel friendsContainer;
     private JPanel requestsContainer;
     private String friendName;
 
@@ -124,9 +126,12 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected void done() {
                 try {
-                    friendsModel.clear();
-                    for (FriendDto f : get())
-                        friendsModel.addElement(f.getCustomFriendName() + " " + f.getConfirmation().getIcon());
+                    friendsContainer.removeAll();
+                    for (FriendDto f : get()) {
+                        friendsContainer.add(createFriendItem(f));
+                    }
+                    friendsContainer.revalidate();
+                    friendsContainer.repaint();
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -199,30 +204,6 @@ public class MainFrame extends JFrame implements MessageListener {
         });
 
         main.add(addFriendPanel);
-        main.setVisible(true);
-    }
-
-    private void rmFriend() {
-        JFrame main = new JFrame();
-        main.setTitle(dictionary.getRmFriendTitle());
-        main.setSize(300, 70);
-        main.setLocationRelativeTo(null);
-
-        JPanel rmFriendPanel = new JPanel(new GridLayout(1, 1, 3, 3));
-        JTextField friendField = new JTextField();
-        rmFriendPanel.add(new JLabel(dictionary.getFriendName()));
-        rmFriendPanel.add(friendField);
-        friendField.addActionListener(e -> {
-            try {
-                client.rmFriend(username, friendField.getText());
-                loadFriends();
-            } catch (Exception ex) {
-                errorHandler(ex);
-            }
-            main.dispose();
-        });
-
-        main.add(rmFriendPanel);
         main.setVisible(true);
     }
 
@@ -307,38 +288,96 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private JPanel getFriendPanel() {
-        friendsModel = new DefaultListModel<>();
-        JList<String> friendsList = new JList<>(friendsModel);
-        friendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        friendsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = friendsList.getSelectedValue();
-                if (selected != null) {
-                    friendName = selected.split(" ")[0];
+        friendsContainer = new JPanel();
+        friendsContainer.setLayout(new BoxLayout(friendsContainer, BoxLayout.Y_AXIS));
+
+        JScrollPane scrollPane = new JScrollPane(friendsContainer);
+
+        JButton addButton = new JButton(dictionary.getPlus());
+        addButton.addActionListener(e -> addFriend());
+
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.add(new JLabel(dictionary.getFriends()), BorderLayout.CENTER);
+        headerPanel.add(addButton, BorderLayout.EAST);
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(headerPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createFriendItem(FriendDto friend) {
+        MouseAdapter selectListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 1) {
+                    friendName = friend.getFriendName();
                     loadChatHistory();
                 }
             }
-        });
 
-        JButton addFriend = new JButton(dictionary.getPlus());
-        addFriend.addActionListener(e -> addFriend());
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                e.getComponent().setBackground(new Color(120, 240, 240));
+            }
 
-        JButton rmFriend = new JButton(dictionary.getMinus());
-        rmFriend.addActionListener(e -> rmFriend());
+            @Override
+            public void mouseExited(MouseEvent e) {
+                e.getComponent().setBackground(UIManager.getColor("Panel.background"));
+            }
+        };
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(addFriend);
-        buttonPanel.add(rmFriend);
+        JLabel nameLabel = new JLabel(friend.getCustomFriendName());
+        nameLabel.addMouseListener(selectListener);
+        JButton menuButton = new JButton(dictionary.getEllipsis());
+        menuButton.addActionListener(e -> showFriendMenu(menuButton, friend));
 
-        JPanel friendsLabel = new JPanel(new BorderLayout());
-        friendsLabel.add(new JLabel(dictionary.getFriends()), BorderLayout.CENTER);
-        friendsLabel.add(buttonPanel, BorderLayout.EAST);
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.add(nameLabel, BorderLayout.WEST);
+        itemPanel.add(menuButton, BorderLayout.EAST);
+        itemPanel.setMaximumSize(new Dimension(10000, 40));
+        itemPanel.addMouseListener(selectListener);
+        itemPanel.setOpaque(true);
 
-        JPanel friendsPanel = new JPanel(new BorderLayout());
-        friendsPanel.add(friendsLabel, BorderLayout.NORTH);
-        friendsPanel.add(new JScrollPane(friendsList), BorderLayout.CENTER);
-        return friendsPanel;
+        return itemPanel;
     }
+
+    private void showFriendMenu(JComponent parent, FriendDto friend) {
+        JPopupMenu menu = new JPopupMenu();
+
+        JMenuItem removeItem = new JMenuItem(dictionary.getDeleteFriend());
+        removeItem.addActionListener(e -> deleteFriend(friend.getFriendName()));
+        menu.add(removeItem);
+
+        // TODO Здесь можно добавить другие действия над пользователем
+
+        menu.show(parent, 0, parent.getHeight());
+    }
+
+    private void deleteFriend(String deleteFriendName) {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    client.rmFriend(username, deleteFriendName);
+                } catch (Exception ex) {
+                    errorHandler(ex);
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                loadFriends();
+                if (deleteFriendName.equals(friendName)) {
+                    chatArea.setText("");
+                }
+            }
+        }.execute();
+    }
+
+    //TODO хочу добавить окошко предупреждения об удалении друга
 
     private JPanel getRequestsFriendsPanel() {
         JPanel requestFriendsPanel = new JPanel(new BorderLayout());

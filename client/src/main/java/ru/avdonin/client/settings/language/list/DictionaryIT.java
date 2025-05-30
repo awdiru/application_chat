@@ -30,6 +30,7 @@ public class DictionaryIT extends BaseDictionary {
     private final String confirmFriendTitle = "Conferma richiesta di amicizia";
     private final String confirmFriend = "Accetta richiesta";
     private final String rejectedFriend = "Rifiuta richiesta";
+    private final String deleteFriend = "Elimina un amico";
     //Окно настроек
     private final String settingsTitle = "Impostazioni";
     private final String settingsLanguage = "Lingua";

@@ -26,6 +26,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String addFriendTitle = "Add friend";
     private final String rmFriendTitle = "Remove friend";
     private final String friendName = "Friend name";
+    private final String deleteFriend = "Delete a friend";
     //Confirm friend window
     private final String confirmFriendTitle = "Request confirmation";
     private final String confirmFriend = "Accept the request";
@@ -71,4 +72,5 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String plus = "+";
     private final String minus = "-";
     private final String settings = "⚙";
+    private final String ellipsis = "...";
 }

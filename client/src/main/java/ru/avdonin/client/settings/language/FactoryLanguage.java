@@ -19,7 +19,7 @@ public class FactoryLanguage extends BaseFactory {
 
     @Override
     public BaseDictionary getSettings() {
-        return getFrameSettings().getLanguage();
+        return getFrameSettings().getDictionary();
     }
 
     @Override
