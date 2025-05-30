@@ -10,21 +10,17 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.avdonin.server.service.FtpService;
 import ru.avdonin.template.exceptions.EmptyFileException;
 import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.logger.LoggerFactory;
 
 import java.io.InputStream;
 
-import static ru.avdonin.template.model.util.ResponseBuilder.getErrorResponse;
-import static ru.avdonin.template.model.util.ResponseBuilder.getOkResponse;
-
 @RestController
 @RequestMapping("/ftp")
-public class FtpController {
-    private static final Logger log = LoggerFactory.getLogger();
+public class FtpController extends AbstractController{
     private final FtpService ftpService;
 
     @Autowired
-    public FtpController(FtpService ftpService) {
+    public FtpController(Logger log, FtpService ftpService) {
+        super(log);
         this.ftpService = ftpService;
     }
 

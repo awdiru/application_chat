@@ -2,11 +2,10 @@ package ru.avdonin.server.service;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import ru.avdonin.server.config.FtpConfig;
 import ru.avdonin.template.exceptions.FtpClientException;
+import ru.avdonin.template.logger.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -15,45 +14,55 @@ import java.io.InputStream;
 @Service
 public class FtpService {
     private final FtpConfig ftpConfig;
+    private final Logger log;
+    private final FTPClient ftpClient;
 
-    @Autowired
-    public FtpService(FtpConfig ftpConfig) {
+    public FtpService(FtpConfig ftpConfig, Logger log) {
         this.ftpConfig = ftpConfig;
-    }
-
-    public void uploadFile(String filename, InputStream inputStream) throws IOException {
-        FTPClient ftpClient = new FTPClient();
+        this.log = log;
+        this.ftpClient = new FTPClient();
         try {
             configClient(ftpClient);
-            if (!ftpClient.storeFile(filename, inputStream))
-                throw new FtpClientException("The file was not recorded");
-
         } catch (Exception e) {
-            throw new FtpClientException(e.getMessage());
-
-        } finally {
-            if (ftpClient.isConnected())
-                ftpClient.disconnect();
+            log.error(e.getMessage());
         }
     }
 
-    public InputStream getIcon(String filename) throws FileNotFoundException {
-        FTPClient ftpClient = new FTPClient();
+    public void uploadFile(String filename, InputStream inputStream) throws IOException {
         try {
-            configClient(ftpClient);
+            if (!ftpClient.isConnected())
+                throw new FtpClientException("The FTP server is not available");
+            if (!ftpClient.storeFile(filename, inputStream))
+                throw new FtpClientException("The file was not recorded");
+
+        } catch (FtpClientException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
+    public InputStream getIcon(String filename) throws IOException {
+        try {
+            if (!ftpClient.isConnected())
+                throw new FtpClientException("The FTP server is not available");
+
             InputStream inputStream = ftpClient.retrieveFileStream(filename);
-            if (inputStream == null) throw new FileNotFoundException("File not found");
+            if (inputStream == null)
+                throw new FileNotFoundException("File not found");
+
             return new FTPInputStreamWrapper(ftpClient, inputStream);
 
-        } catch (FileNotFoundException e) {
-            throw new FileNotFoundException(e.getMessage());
-        } catch (IOException e) {
-            throw new FtpClientException(e.getMessage());
+        } catch (FileNotFoundException | FtpClientException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
         }
     }
 
     private void configClient(FTPClient ftpClient) throws IOException {
-
         ftpClient.connect(ftpConfig.getHost(), ftpConfig.getPort());
         ftpClient.login(ftpConfig.getUsername(), ftpConfig.getPassword());
 

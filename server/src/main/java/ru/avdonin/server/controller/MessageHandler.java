@@ -16,7 +16,6 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.logger.LoggerFactory;
 import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.server.service.UserService;
@@ -31,7 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 @Component
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MessageHandler extends TextWebSocketHandler {
-    private static final Logger log = LoggerFactory.getLogger();
+    private final Logger log;
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -76,6 +75,7 @@ public class MessageHandler extends TextWebSocketHandler {
 
         } catch (JsonProcessingException | IncorrectUserDataException e) {
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
+
         } catch (IOException e) {
             sendError(session, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

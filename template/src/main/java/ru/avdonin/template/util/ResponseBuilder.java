@@ -1,18 +1,22 @@
-package ru.avdonin.template.model.util;
+package ru.avdonin.template.util;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import ru.avdonin.template.exceptions.EmptyFileException;
 import ru.avdonin.template.exceptions.FtpClientException;
-import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.logger.LoggerFactory;
+
+import ru.avdonin.template.exceptions.IncorrectFriendDataException;
+import ru.avdonin.template.exceptions.IncorrectUserDataException;
+import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.time.LocalDateTime;
 
 @Component
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ResponseBuilder {
-    private static final Logger log = LoggerFactory.getLogger();
 
     public static ResponseEntity<Object> getOkResponse(String message) {
         ResponseMessage responseMessage = ResponseMessage.builder()
@@ -24,7 +28,6 @@ public class ResponseBuilder {
     }
 
     public static ResponseEntity<Object> getErrorResponse(Exception e) {
-        log.warn(e.getMessage());
         HttpStatus status = getErrorStatus(e);
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
@@ -35,8 +38,10 @@ public class ResponseBuilder {
     }
 
     private static HttpStatus getErrorStatus(Exception e) {
-        if (e instanceof EmptyFileException) return HttpStatus.BAD_REQUEST;
-        else if (e instanceof FtpClientException) return HttpStatus.CONFLICT;
+        if (e instanceof EmptyFileException
+                || e instanceof IncorrectUserDataException
+                || e instanceof IncorrectFriendDataException) return HttpStatus.BAD_REQUEST;
+        else if (e instanceof FtpClientException) return HttpStatus.EXPECTATION_FAILED;
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

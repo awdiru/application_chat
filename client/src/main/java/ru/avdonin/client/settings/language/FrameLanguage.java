@@ -3,11 +3,7 @@ package ru.avdonin.client.settings.language;
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
 import ru.avdonin.client.settings.FrameSettings;
-import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.list.*;
-
-import javax.swing.*;
-import java.awt.*;
 
 @Getter
 public enum FrameLanguage implements FrameSettings {

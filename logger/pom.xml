@@ -18,10 +18,6 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-        <dependency>
             <groupId>ru.avdonin</groupId>
             <artifactId>template</artifactId>
             <version>0.0.1-SNAPSHOT</version>

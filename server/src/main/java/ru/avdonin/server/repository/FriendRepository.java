@@ -3,8 +3,8 @@ package ru.avdonin.server.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import ru.avdonin.server.model.Friend;
-import ru.avdonin.server.model.FriendID;
+import ru.avdonin.server.entity_model.Friend;
+import ru.avdonin.server.entity_model.FriendID;
 
 import java.util.List;
 

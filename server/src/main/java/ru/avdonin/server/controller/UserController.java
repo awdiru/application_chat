@@ -1,39 +1,30 @@
 package ru.avdonin.server.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.avdonin.server.service.UserService;
-import ru.avdonin.template.exceptions.IncorrectFriendDataException;
-import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.logger.LoggerFactory;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.util.ResponseMessage;
 
-import java.time.LocalDateTime;
 import java.util.List;
-
-import static ru.avdonin.template.model.util.ResponseBuilder.getErrorResponse;
-import static ru.avdonin.template.model.util.ResponseBuilder.getOkResponse;
 
 @RestController
 @RequestMapping("/user")
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class UserController {
-    private static final Logger log = LoggerFactory.getLogger();
+public class UserController extends AbstractController {
     private final UserService userService;
+
+    @Autowired
+    public UserController(Logger log, UserService userService) {
+        super(log);
+        this.userService = userService;
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<Object> signup(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log.info("registry user: " + userDto);
+            log.info("registry user: username: " + userDto.getUsername());
             userService.save(userDto);
             return getOkResponse("The user is registered");
 
@@ -114,7 +105,7 @@ public class UserController {
 
             if (confirm)
                 return getOkResponse("User " + username + " has confirmed the addition of user " + friendName + " as a friend");
-            else return getFriends("User " + username + " declined to add user " + friendName + " as a friend");
+            else return getOkResponse("User " + username + " declined to add user " + friendName + " as a friend");
 
         } catch (Exception e) {
             return getErrorResponse(e);

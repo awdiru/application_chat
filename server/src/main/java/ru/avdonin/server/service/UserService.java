@@ -4,13 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.avdonin.server.model.Friend;
-import ru.avdonin.server.model.FriendID;
-import ru.avdonin.server.model.User;
+import ru.avdonin.server.entity_model.Friend;
+import ru.avdonin.server.entity_model.FriendID;
+import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.FriendRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.exceptions.IncorrectFriendDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
+import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.friend.FriendConfirmation;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
@@ -26,21 +27,19 @@ public class UserService {
     private final UserRepository userRepository;
     private final FriendRepository friendRepository;
     private final PasswordService passwordService;
+    private final Logger log;
 
     public UserDto findById(Long id) {
-        log("findUserById: id: " + id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IncorrectUserDataException("User with id " + id + " does not exist"));
         return getUserDtoFromUser(user);
     }
 
     public void findByUsername(String username) {
-        log("findByUsername: username: " + username);
         searchUserByUsername(username);
     }
 
     public void validate(UserAuthenticationDto userDto) {
-        log("validate: username: " + userDto.getUsername());
 
         User user = searchUserByUsername(userDto.getUsername());
 
@@ -51,7 +50,6 @@ public class UserService {
     @Transactional
     public void save(UserAuthenticationDto userDto) {
         try {
-            log("save: username: " + userDto.getUsername());
             User user = User.builder()
                     .username(userDto.getUsername())
                     .password(passwordService.hashPassword(userDto.getPassword()))
@@ -64,7 +62,6 @@ public class UserService {
     }
 
     public void addFriend(String username, String friendName) {
-        log("addFriend: username: " + username + "; friendName: " + friendName);
         User user = searchUserByUsername(username);
         User friendUser = searchUserByUsername(friendName);
 
@@ -95,7 +92,6 @@ public class UserService {
     }
 
     public void removeFriend(String username, String friendName) {
-        log("removeFriend: username: " + username + "; friendName: " + friendName);
         User user = searchUserByUsername(username);
         User friendUser = searchUserByUsername(friendName);
 
@@ -119,7 +115,6 @@ public class UserService {
     }
 
     public List<FriendDto> getFriends(String username) {
-        log("getFriends: username: " + username);
         return friendRepository.findAllFriends(username).stream()
                 .map(friend -> FriendDto.builder()
                         .username(friend.getUser().getUsername())
@@ -131,7 +126,6 @@ public class UserService {
     }
 
     public List<FriendDto> getRequestsFriends(String username) {
-        log("getRequestsFriends: username: " + username);
         return friendRepository.findAllRequestFriends(username).stream()
                 .map(friend -> FriendDto.builder()
                         .username(friend.getUser().getUsername())
@@ -194,9 +188,5 @@ public class UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .build();
-    }
-
-    private void log(String text) {
-        System.out.println("[" + LocalDateTime.now() + "] UserService: " + text);
     }
 }
