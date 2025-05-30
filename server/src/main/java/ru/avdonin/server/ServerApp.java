@@ -2,9 +2,10 @@ package ru.avdonin.server;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import ru.avdonin.server.service.EncryptionService;
+import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
+@ComponentScan(basePackages = {"ru.avdonin.template", "ru.avdonin.server"})
 public class ServerApp {
 
 	public static void main(String[] args) {

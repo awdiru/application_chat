@@ -7,8 +7,6 @@ import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.MessageListener;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;

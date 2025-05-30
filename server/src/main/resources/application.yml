@@ -2,7 +2,7 @@ server:
   port: 8080
 
 encryption:
-  key: this-is-a-32-character-long-key!
+  key: 18'XY5W^:@LhW^V8NiEUftJ@+jd|LWOS
   algorithm: AES
   transformation: AES/CBC/PKCS5Padding
 
@@ -21,6 +21,13 @@ spring:
       ddl-auto: update
     show-sql: true
 
-#  sql:
-#    init:
-#      mode: always
+  sql:
+    init:
+      mode: always
+
+ftp:
+  host: localhost
+  port: 21
+  username: user
+  password: password
+  remote-directory: /icons

@@ -1,4 +1,4 @@
-package ru.avdonin.server.model;
+package ru.avdonin.server.entity_model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

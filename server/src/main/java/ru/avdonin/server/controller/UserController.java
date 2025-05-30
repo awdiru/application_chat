@@ -1,53 +1,47 @@
 package ru.avdonin.server.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.avdonin.server.service.UserService;
-import ru.avdonin.template.exceptions.IncorrectFriendDataException;
-import ru.avdonin.template.exceptions.IncorrectUserDataException;
+import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.util.ErrorResponse;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/user")
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class UserController {
+public class UserController extends AbstractController {
     private final UserService userService;
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    @Autowired
+    public UserController(Logger log, UserService userService) {
+        super(log);
+        this.userService = userService;
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<Object> signup(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log("registry user: " + userDto);
+            log.info("registry user: username: " + userDto.getUsername());
             userService.save(userDto);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return getOkResponse("The user is registered");
 
         } catch (Exception e) {
-            return errorHandler(e, "signup");
+            return getErrorResponse(e);
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log("login user: " + userDto);
+            log.info("login user: " + userDto);
             userService.validate(userDto);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return getOkResponse("The user is logged in");
 
         } catch (Exception e) {
-            return errorHandler(e, "login");
+            return getErrorResponse(e);
         }
     }
 
@@ -55,12 +49,12 @@ public class UserController {
     public ResponseEntity<Object> addFriend(@RequestParam String username,
                                             @RequestParam String friendName) {
         try {
-            log("addFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.addFriend(username, friendName);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return getOkResponse("User " + username + " added user " + friendName + " as a friend");
 
         } catch (Exception e) {
-            return errorHandler(e, "addFriend");
+            return getErrorResponse(e);
         }
     }
 
@@ -68,35 +62,36 @@ public class UserController {
     public ResponseEntity<Object> removeFriend(@RequestParam String username,
                                                @RequestParam String friendName) {
         try {
-            log("removeFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.removeFriend(username, friendName);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return getOkResponse("User " + username + " deleted user " + friendName + " from friends");
 
         } catch (Exception e) {
-            return errorHandler(e, "addFriend");
+            return getErrorResponse(e);
         }
     }
 
     @GetMapping("/friends/get")
     public ResponseEntity<Object> getFriends(@RequestParam String username) {
         try {
-            log("getFriends: username: " + username);
+            log.info("username: " + username);
             List<FriendDto> friends = userService.getFriends(username);
-            return ResponseEntity.ok(friends);
+            return ResponseEntity.ok().body(friends);
 
         } catch (Exception e) {
-            return errorHandler(e, "getFriends");
+            return getErrorResponse(e);
         }
     }
 
     @GetMapping("/friends/requests")
     public ResponseEntity<Object> getRequestsFriends(@RequestParam String username) {
         try {
+            log.info("username: " + username);
             List<FriendDto> requestsFriends = userService.getRequestsFriends(username);
-            return ResponseEntity.ok(requestsFriends);
+            return ResponseEntity.ok().body(requestsFriends);
 
         } catch (Exception e) {
-            return errorHandler(e, "getFriends");
+            return getErrorResponse(e);
         }
     }
 
@@ -105,12 +100,15 @@ public class UserController {
                                                   @RequestParam String friendName,
                                                   @RequestParam Boolean confirm) {
         try {
-            log("confirmedFriend: username: " + username + "; friendName: " + friendName);
+            log.info("username: " + username + "; friendName: " + friendName);
             userService.confirmedFriend(username, friendName, confirm);
-            return new ResponseEntity<>(HttpStatus.OK);
+
+            if (confirm)
+                return getOkResponse("User " + username + " has confirmed the addition of user " + friendName + " as a friend");
+            else return getOkResponse("User " + username + " declined to add user " + friendName + " as a friend");
 
         } catch (Exception e) {
-            return errorHandler(e, "confirmedFriend");
+            return getErrorResponse(e);
         }
     }
 
@@ -119,29 +117,12 @@ public class UserController {
                                                @RequestParam String friendName,
                                                @RequestParam String newFriendName) {
         try {
-            log("renameFriend: username: " + username + "; friendName: " + friendName + "; newFriendName: " + newFriendName);
+            log.info("username: " + username + "; friendName: " + friendName + "; newFriendName: " + newFriendName);
             userService.renameFriend(username, friendName, newFriendName);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return getOkResponse("User " + username + " renamed user " + friendName + " to " + newFriendName);
 
         } catch (Exception e) {
-            return errorHandler(e, "renameFriend");
+            return getErrorResponse(e);
         }
-    }
-
-    private ResponseEntity<Object> errorHandler(Exception e, HttpStatus status, String method) {
-        log(method + ": ERROR: " + e.getMessage());
-        return new ResponseEntity<>(new ErrorResponse(LocalDateTime.now(), status, e.getMessage()), status);
-    }
-
-    private ResponseEntity<Object> errorHandler(Exception e, String method) {
-        if (e instanceof IncorrectUserDataException)
-            return errorHandler(e, HttpStatus.UNAUTHORIZED, method);
-        else if (e instanceof IncorrectFriendDataException)
-            return errorHandler(e, HttpStatus.BAD_REQUEST, method);
-        else return errorHandler(e, HttpStatus.INTERNAL_SERVER_ERROR, method);
-    }
-
-    private void log(String text) {
-        System.out.println("[" + LocalDateTime.now() + "] UserController: " + text);
     }
 }

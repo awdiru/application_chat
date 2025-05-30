@@ -2,7 +2,7 @@ package ru.avdonin.server.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import ru.avdonin.server.model.User;
+import ru.avdonin.server.entity_model.User;
 
 import java.util.Optional;
 

@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 @ToString
 public class MessageDto {
     private OffsetDateTime time;
+    @ToString.Exclude
     private String content;
     private String sender;
     private String recipient;

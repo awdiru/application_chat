@@ -15,7 +15,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.template.model.util.ErrorResponse;
+import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -29,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 @Component
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MessageHandler extends TextWebSocketHandler {
+    private final Logger log;
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -43,9 +45,8 @@ public class MessageHandler extends TextWebSocketHandler {
             String username = getUsernameFromSession(session);
             userService.findByUsername(username);
             sessions.put(username, session);
-            log("afterConnectionEstablished: connection established, username: " + username);
+            log.info("connection established, username: " + username);
         } catch (Exception e) {
-            log("afterConnectionEstablished: ERROR: " + e.getMessage());
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
@@ -56,9 +57,8 @@ public class MessageHandler extends TextWebSocketHandler {
         try {
             String username = getUsernameFromSession(session);
             sessions.remove(username);
-            log("afterConnectionClosed: connection closed");
+            log.info("connection closed");
         } catch (Exception e) {
-            log("afterConnectionClosed: ERROR: " + e.getMessage());
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
@@ -71,13 +71,12 @@ public class MessageHandler extends TextWebSocketHandler {
 
             sendToUser(messageDto.getSender(), messageDto);
             sendToUser(messageDto.getRecipient(), messageDto);
-            log("handleTextMessage: successful send message");
+            log.info("successful send message");
 
         } catch (JsonProcessingException | IncorrectUserDataException e) {
-            log("handleTextMessage: ERROR: " + e.getMessage());
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
+
         } catch (IOException e) {
-            log("handleTextMessage: ERROR: " + e.getMessage());
             sendError(session, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -85,26 +84,27 @@ public class MessageHandler extends TextWebSocketHandler {
     private void sendToUser(String username, MessageDto message) throws IOException {
         WebSocketSession session = sessions.get(username);
         if (session != null && session.isOpen()) {
-            log("sendToUser: sendMessage: " + message);
+            log.info("sendMessage: " + message);
             session.sendMessage(new TextMessage(objectMapper.writeValueAsBytes(message)));
         } else if (session == null) {
-            log("sendToUser: ERROR: session == null");
+            log.warn("session == null");
         } else {
-            log("sendToUser: ERROR: session closed");
+            log.warn("session closed");
         }
     }
 
     private void sendError(WebSocketSession session, String error, HttpStatus status) {
         try {
-            ErrorResponse errorResponse = ErrorResponse.builder()
+            log.warn(error);
+            ResponseMessage responseMessage = ResponseMessage.builder()
                     .time(LocalDateTime.now())
                     .message(error)
                     .status(status)
                     .build();
-            String errorJson = objectMapper.writeValueAsString(errorResponse);
+            String errorJson = objectMapper.writeValueAsString(responseMessage);
             session.sendMessage(new TextMessage(errorJson));
         } catch (IOException e) {
-            log("sendError: ERROR: " + e.getMessage());
+            log.error(e.getMessage());
         }
     }
 
@@ -113,9 +113,5 @@ public class MessageHandler extends TextWebSocketHandler {
         String username = uri.getQueryParams().getFirst("username");
         if (username == null) throw new IncorrectUserDataException("Username cannot be empty");
         return username;
-    }
-
-    private void log (String text) {
-        System.out.println("[" + LocalDateTime.now() + "] MessageHandler: " + text);
     }
 }

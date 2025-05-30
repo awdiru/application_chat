@@ -4,7 +4,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import ru.avdonin.server.model.Message;
+import ru.avdonin.server.entity_model.Message;
 
 import java.util.List;
 

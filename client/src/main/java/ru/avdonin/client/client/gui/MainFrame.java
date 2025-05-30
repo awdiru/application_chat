@@ -417,7 +417,7 @@ public class MainFrame extends JFrame implements MessageListener {
         //Настройки
         JButton settings = new JButton(language.getSettings());
         settings.addActionListener(e -> {
-            Settings.getFrame();
+            Settings.getFrameSettings();
         });
         buttonsPanel.add(settings);
         statusBar.add(buttonsPanel, BorderLayout.WEST);

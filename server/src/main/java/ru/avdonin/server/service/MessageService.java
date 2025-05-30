@@ -5,13 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.server.model.Message;
-import ru.avdonin.server.model.User;
+import ru.avdonin.server.entity_model.Message;
+import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.time.*;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -53,11 +54,7 @@ public class MessageService {
                         .sender(message.getSender().getUsername())
                         .recipient(message.getRecipient().getUsername())
                         .build())
-                .sorted((message1, message2) -> {
-                    if (message1.getTime().isBefore(message2.getTime()))
-                        return -1;
-                    return 1;
-                })
+                .sorted(Comparator.comparing(MessageDto::getTime))
                 .toList();
     }
 
