@@ -21,9 +21,9 @@ spring:
       ddl-auto: update
     show-sql: true
 
-  sql:
-    init:
-      mode: always
+#  sql:
+#    init:
+#      mode: always
 
 ftp:
   host: localhost

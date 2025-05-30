@@ -22,11 +22,11 @@ public class MainFrame extends JFrame implements MessageListener {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final Client client;
     private final String username;
-    private final BaseDictionary language = FactoryLanguage.getFactory().getSettings();
+    private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private JTextArea chatArea;
     private JTextField messageField;
     private DefaultListModel<String> friendsModel;
-    private DefaultListModel<String> requestFriendsModel;
+    private JPanel requestsContainer;
     private String friendName;
 
     public MainFrame(Client client, String username) {
@@ -41,7 +41,7 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private void initUi() {
-        setTitle(language.getChat() + " - " + username);
+        setTitle(dictionary.getChat() + " - " + username);
         setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -136,7 +136,6 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private void loadRequestsFriends() {
         new SwingWorker<List<FriendDto>, Void>() {
-
             @Override
             protected List<FriendDto> doInBackground() {
                 try {
@@ -150,8 +149,13 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected void done() {
                 try {
-                    requestFriendsModel.clear();
-                    for (FriendDto f : get()) requestFriendsModel.addElement(f.getUsername());
+                    requestsContainer.removeAll();
+                    for (FriendDto request : get()) {
+                        requestsContainer.add(createRequestItem(request));
+                    }
+                    // Обновляем UI
+                    requestsContainer.revalidate();
+                    requestsContainer.repaint();
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -176,13 +180,13 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private void addFriend() {
         JFrame main = new JFrame();
-        main.setTitle(language.getAddFriendTitle());
+        main.setTitle(dictionary.getAddFriendTitle());
         main.setSize(300, 70);
         main.setLocationRelativeTo(null);
 
         JPanel addFriendPanel = new JPanel(new GridLayout(1, 1, 3, 3));
         JTextField friendField = new JTextField();
-        addFriendPanel.add(new JLabel(language.getFriendName()));
+        addFriendPanel.add(new JLabel(dictionary.getFriendName()));
         addFriendPanel.add(friendField);
         friendField.addActionListener(e -> {
             try {
@@ -200,13 +204,13 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private void rmFriend() {
         JFrame main = new JFrame();
-        main.setTitle(language.getRmFriendTitle());
+        main.setTitle(dictionary.getRmFriendTitle());
         main.setSize(300, 70);
         main.setLocationRelativeTo(null);
 
         JPanel rmFriendPanel = new JPanel(new GridLayout(1, 1, 3, 3));
         JTextField friendField = new JTextField();
-        rmFriendPanel.add(new JLabel(language.getFriendName()));
+        rmFriendPanel.add(new JLabel(dictionary.getFriendName()));
         rmFriendPanel.add(friendField);
         friendField.addActionListener(e -> {
             try {
@@ -219,43 +223,6 @@ public class MainFrame extends JFrame implements MessageListener {
         });
 
         main.add(rmFriendPanel);
-        main.setVisible(true);
-    }
-
-    private void confirmFriend(String friend) {
-        JFrame main = new JFrame();
-        main.setTitle(language.getConfirmFriendTitle());
-        main.setSize(200, 150);
-        main.setLocationRelativeTo(null);
-
-        JPanel confirmFriendPanel = new JPanel(new GridLayout(1, 1, 1, 1));
-        JButton confirmBtn = new JButton(language.getConfirmFriend());
-        JButton rejectBtn = new JButton(language.getRejectedFriend());
-        confirmFriendPanel.add(confirmBtn);
-        confirmFriendPanel.add(rejectBtn);
-
-        confirmBtn.addActionListener(e -> {
-            try {
-                client.confirmFriend(username, friend, true);
-                loadRequestsFriends();
-                loadFriends();
-            } catch (Exception ex) {
-                errorHandler(ex);
-            }
-            main.dispose();
-        });
-        rejectBtn.addActionListener(e -> {
-            try {
-                client.confirmFriend(username, friend, false);
-                loadRequestsFriends();
-                loadFriends();
-            } catch (Exception ex) {
-                errorHandler(ex);
-            }
-            main.dispose();
-        });
-
-        main.add(confirmFriendPanel);
         main.setVisible(true);
     }
 
@@ -284,36 +251,36 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private String getMonth(OffsetDateTime date) {
         return switch (date.getMonth()) {
-            case JANUARY -> language.getJanuary();
-            case FEBRUARY -> language.getFebruary();
-            case MARCH -> language.getMarch();
-            case APRIL -> language.getApril();
-            case MAY -> language.getMay();
-            case JUNE -> language.getJune();
-            case JULY -> language.getJuly();
-            case AUGUST -> language.getAugust();
-            case SEPTEMBER -> language.getSeptember();
-            case OCTOBER -> language.getOctober();
-            case NOVEMBER -> language.getNovember();
-            default -> language.getDecember();
+            case JANUARY -> dictionary.getJanuary();
+            case FEBRUARY -> dictionary.getFebruary();
+            case MARCH -> dictionary.getMarch();
+            case APRIL -> dictionary.getApril();
+            case MAY -> dictionary.getMay();
+            case JUNE -> dictionary.getJune();
+            case JULY -> dictionary.getJuly();
+            case AUGUST -> dictionary.getAugust();
+            case SEPTEMBER -> dictionary.getSeptember();
+            case OCTOBER -> dictionary.getOctober();
+            case NOVEMBER -> dictionary.getNovember();
+            default -> dictionary.getDecember();
         };
     }
 
     private String getDayOfWeek(OffsetDateTime date) {
         return switch (date.getDayOfWeek()) {
-            case MONDAY -> language.getMonday();
-            case TUESDAY -> language.getTuesday();
-            case WEDNESDAY -> language.getWednesday();
-            case THURSDAY -> language.getThursday();
-            case FRIDAY -> language.getFriday();
-            case SATURDAY -> language.getSaturday();
-            default -> language.getSunday();
+            case MONDAY -> dictionary.getMonday();
+            case TUESDAY -> dictionary.getTuesday();
+            case WEDNESDAY -> dictionary.getWednesday();
+            case THURSDAY -> dictionary.getThursday();
+            case FRIDAY -> dictionary.getFriday();
+            case SATURDAY -> dictionary.getSaturday();
+            default -> dictionary.getSunday();
         };
     }
 
     private void errorHandler(Exception e) {
         if (e.getMessage() == null || e.getMessage().isEmpty()) return;
-        JOptionPane.showMessageDialog(MainFrame.this, e.getMessage(), language.getError(), JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(MainFrame.this, e.getMessage(), dictionary.getError(), JOptionPane.ERROR_MESSAGE);
     }
 
     @Override
@@ -353,10 +320,10 @@ public class MainFrame extends JFrame implements MessageListener {
             }
         });
 
-        JButton addFriend = new JButton(language.getPlus());
+        JButton addFriend = new JButton(dictionary.getPlus());
         addFriend.addActionListener(e -> addFriend());
 
-        JButton rmFriend = new JButton(language.getMinus());
+        JButton rmFriend = new JButton(dictionary.getMinus());
         rmFriend.addActionListener(e -> rmFriend());
 
         JPanel buttonPanel = new JPanel();
@@ -364,7 +331,7 @@ public class MainFrame extends JFrame implements MessageListener {
         buttonPanel.add(rmFriend);
 
         JPanel friendsLabel = new JPanel(new BorderLayout());
-        friendsLabel.add(new JLabel(language.getFriends()), BorderLayout.CENTER);
+        friendsLabel.add(new JLabel(dictionary.getFriends()), BorderLayout.CENTER);
         friendsLabel.add(buttonPanel, BorderLayout.EAST);
 
         JPanel friendsPanel = new JPanel(new BorderLayout());
@@ -375,20 +342,58 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private JPanel getRequestsFriendsPanel() {
         JPanel requestFriendsPanel = new JPanel(new BorderLayout());
-        requestFriendsModel = new DefaultListModel<>();
-        JList<String> requestFriendsList = new JList<>(requestFriendsModel);
-        requestFriendsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        requestFriendsPanel.add(new JLabel(dictionary.getRequestFriends()), BorderLayout.NORTH);
+        // Создаем контейнер с вертикальным расположением
+        requestsContainer = new JPanel();
+        requestsContainer.setLayout(new BoxLayout(requestsContainer, BoxLayout.Y_AXIS));
+        // Добавляем скроллинг
+        JScrollPane scrollPane = new JScrollPane(requestsContainer);
+        requestFriendsPanel.add(scrollPane, BorderLayout.CENTER);
 
-        requestFriendsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = requestFriendsList.getSelectedValue();
-                if (selected != null) confirmFriend(selected);
-            }
-        });
-
-        requestFriendsPanel.add(new JLabel(language.getRequestFriends()), BorderLayout.NORTH);
-        requestFriendsPanel.add(new JScrollPane(requestFriendsList), BorderLayout.CENTER);
         return requestFriendsPanel;
+    }
+
+    private JPanel createRequestItem(FriendDto friendRequest) {
+        JPanel label = new JPanel(new FlowLayout());
+        label.add(new JLabel(friendRequest.getUsername()), FlowLayout.LEFT);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton acceptButton = new JButton("+");
+        acceptButton.setToolTipText(dictionary.getConfirmFriend());
+        acceptButton.addActionListener(e -> handleFriendResponse(friendRequest.getUsername(), true));
+
+        JButton rejectButton = new JButton("-");
+        rejectButton.setToolTipText(dictionary.getRejectedFriend());
+        rejectButton.addActionListener(e -> handleFriendResponse(friendRequest.getUsername(), false));
+
+        buttonPanel.add(acceptButton);
+        buttonPanel.add(rejectButton);
+
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.add(label, BorderLayout.WEST);
+        itemPanel.add(buttonPanel, BorderLayout.EAST);
+
+        return itemPanel;
+    }
+
+    private void handleFriendResponse(String friendName, boolean accept) {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    client.confirmFriend(username, friendName, accept);
+                } catch (Exception ex) {
+                    errorHandler(ex);
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                loadRequestsFriends();
+                loadFriends();
+            }
+        }.execute();
     }
 
     private JPanel getStatusBar() {
@@ -406,7 +411,7 @@ public class MainFrame extends JFrame implements MessageListener {
         });
         buttonsPanel.add(restart);
         //Сменить пользователя
-        JButton newUser = new JButton(language.getChangeUser());
+        JButton newUser = new JButton(dictionary.getChangeUser());
         newUser.addActionListener(e -> {
             dispose();
             stopBackgroundRequestsFriends();
@@ -415,7 +420,7 @@ public class MainFrame extends JFrame implements MessageListener {
         });
         buttonsPanel.add(newUser);
         //Настройки
-        JButton settings = new JButton(language.getSettings());
+        JButton settings = new JButton(dictionary.getSettings());
         settings.addActionListener(e -> {
             Settings.getFrameSettings();
         });
