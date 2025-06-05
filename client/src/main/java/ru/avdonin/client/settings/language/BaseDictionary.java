@@ -3,6 +3,8 @@ package ru.avdonin.client.settings.language;
 import lombok.Getter;
 import ru.avdonin.client.settings.BaseSettings;
 
+import javax.swing.*;
+
 @Getter
 public abstract class BaseDictionary extends BaseSettings {
     private final String customization = "English";
@@ -21,12 +23,14 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String requestFriends = "Friend requests";
     //Status bar
     private final String changeUser = "Change User";
-    private final String restart = "Reboot";
     //Friend window
     private final String addFriendTitle = "Add friend";
-    private final String rmFriendTitle = "Remove friend";
     private final String friendName = "Friend name";
+    //Context menu
     private final String deleteFriend = "Delete a friend";
+    private final String deleteFriendQuestion = "Do you really want to delete friend";
+    private final String renameFriend = "Rename a friend";
+    private final String rename = "Rename it";
     //Confirm friend window
     private final String confirmFriendTitle = "Request confirmation";
     private final String confirmFriend = "Accept the request";
@@ -69,8 +73,9 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String confirmed = "confirmed";
     private final String rejected = "rejected";
     //Default symbols
-    private final String plus = "+";
-    private final String minus = "-";
-    private final String settings = "⚙";
-    private final String ellipsis = "...";
+    private final ImageIcon plus = new ImageIcon("data/plus-icon.png");
+    private final ImageIcon minus = new ImageIcon("date/minus-icon.png");
+    private final ImageIcon settings = new ImageIcon("data/settings-icon.png");
+    private final ImageIcon ellipsis = new ImageIcon("data/ellipsis-icon.png");
+    private final ImageIcon reboot = new ImageIcon("data/reboot-icon.png");
 }

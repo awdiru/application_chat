@@ -7,6 +7,7 @@ import ru.avdonin.server.service.UserService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.user.dto.UserRenameDto;
 
 import java.util.List;
 
@@ -112,11 +113,13 @@ public class UserController extends AbstractController {
         }
     }
 
-    @PatchMapping("/friend/rename")
-    public ResponseEntity<Object> renameFriend(@RequestParam String username,
-                                               @RequestParam String friendName,
-                                               @RequestParam String newFriendName) {
+    @PostMapping("/friend/rename")
+    public ResponseEntity<Object> renameFriend(@RequestBody UserRenameDto userRenameDto) {
         try {
+            String username = userRenameDto.getUsername();
+            String friendName = userRenameDto.getFriendName();
+            String newFriendName = userRenameDto.getNewFriendName();
+
             log.info("username: " + username + "; friendName: " + friendName + "; newFriendName: " + newFriendName);
             userService.renameFriend(username, friendName, newFriendName);
             return getOkResponse("User " + username + " renamed user " + friendName + " to " + newFriendName);

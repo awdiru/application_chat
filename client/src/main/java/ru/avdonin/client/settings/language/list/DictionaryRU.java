@@ -21,16 +21,18 @@ public class DictionaryRU extends BaseDictionary {
     private final String requestFriends = "Запросы в друзья";
     //Статус бар
     private final String changeUser = "Сменить пользователя";
-    private final String restart = "Перезагрузить";
     //Окно друзей
     private final String addFriendTitle = "Добавить друга";
-    private final String rmFriendTitle = "Удалить друга";
     private final String friendName = "Имя друга";
+    //Контекстное меню
+    private final String deleteFriend = "Удалить друга";
+    private final String deleteFriendQuestion = "Вы действительно хотите удалить друга";
+    private final String renameFriend = "Переименовать друга";
+    private final String rename = "Переименовать";
     //Окно принятия запроса в друзья
     private final String confirmFriendTitle = "Подтверждение запроса в друзья";
     private final String confirmFriend = "Принять запрос";
     private final String rejectedFriend = "Отклонить запрос";
-    private final String deleteFriend = "Удалить друга";
     //Окно настроек
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";

@@ -319,7 +319,7 @@ public class MainFrame extends JFrame implements MessageListener {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                e.getComponent().setBackground(new Color(120, 240, 240));
+                e.getComponent().setBackground(new Color(183, 250, 211));
             }
 
             @Override
@@ -330,12 +330,16 @@ public class MainFrame extends JFrame implements MessageListener {
 
         JLabel nameLabel = new JLabel(friend.getCustomFriendName());
         nameLabel.addMouseListener(selectListener);
+
         JButton menuButton = new JButton(dictionary.getEllipsis());
+        menuButton.setSize(new Dimension(10, 10));
+        menuButton.setMaximumSize(new Dimension(20, 15));
         menuButton.addActionListener(e -> showFriendMenu(menuButton, friend));
 
         JPanel itemPanel = new JPanel(new BorderLayout());
         itemPanel.add(nameLabel, BorderLayout.WEST);
         itemPanel.add(menuButton, BorderLayout.EAST);
+
         itemPanel.setMaximumSize(new Dimension(10000, 40));
         itemPanel.addMouseListener(selectListener);
         itemPanel.setOpaque(true);
@@ -346,8 +350,12 @@ public class MainFrame extends JFrame implements MessageListener {
     private void showFriendMenu(JComponent parent, FriendDto friend) {
         JPopupMenu menu = new JPopupMenu();
 
+        JMenuItem renameItem = new JMenuItem(dictionary.getRenameFriend());
+        renameItem.addActionListener(e -> renameFriend(friend));
+        menu.add(renameItem);
+
         JMenuItem removeItem = new JMenuItem(dictionary.getDeleteFriend());
-        removeItem.addActionListener(e -> deleteFriend(friend.getFriendName()));
+        removeItem.addActionListener(e -> deleteFriend(friend));
         menu.add(removeItem);
 
         // TODO Здесь можно добавить другие действия над пользователем
@@ -355,29 +363,121 @@ public class MainFrame extends JFrame implements MessageListener {
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void deleteFriend(String deleteFriendName) {
+    private void deleteFriend(FriendDto deleteFriend) {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                try {
-                    client.rmFriend(username, deleteFriendName);
-                } catch (Exception ex) {
-                    errorHandler(ex);
-                }
+                deleteFriendFrame(deleteFriend);
                 return null;
             }
 
             @Override
             protected void done() {
                 loadFriends();
-                if (deleteFriendName.equals(friendName)) {
+                if (deleteFriend.getUsername().equals(friendName)) {
                     chatArea.setText("");
                 }
+                friendsContainer.revalidate();
+                friendsContainer.repaint();
             }
         }.execute();
     }
 
-    //TODO хочу добавить окошко предупреждения об удалении друга
+    private void deleteFriendFrame(FriendDto deleteFriend) {
+        JFrame main = new JFrame();
+        main.setTitle(dictionary.getDeleteFriend());
+        main.setSize(250, 150);
+        main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        main.setLocationRelativeTo(null);
+        main.add(getMainWindow());
+
+        String question = dictionary.getDeleteFriendQuestion() + " " + deleteFriend.getCustomFriendName();
+        JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
+        deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel buttonPanel = getDeleteFriendButtonPanel(deleteFriend.getUsername(), main);
+
+        JPanel deletePanel = new JPanel(new BorderLayout());
+        deletePanel.add(deleteLabel, BorderLayout.NORTH);
+        deletePanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        main.add(deletePanel);
+        main.setVisible(true);
+    }
+
+    private JPanel getDeleteFriendButtonPanel(String deleteFriendName, JFrame main) {
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
+        JButton yesButton = new JButton();
+        yesButton.addActionListener(e -> {
+            try {
+                client.rmFriend(username, deleteFriendName);
+            } catch (Exception ex) {
+                errorHandler(ex);
+            } finally {
+                main.dispose();
+            }
+        });
+        yesButton.setText(dictionary.getYes());
+
+        JButton noButton = new JButton();
+        noButton.addActionListener(e -> main.dispose());
+        noButton.setText(dictionary.getNo());
+
+        buttonPanel.add(yesButton, BorderLayout.WEST);
+        buttonPanel.add(noButton, BorderLayout.EAST);
+
+        JPanel wrapperPanel = new JPanel(new GridBagLayout());
+        wrapperPanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 20, 40));
+        wrapperPanel.add(buttonPanel);
+        return wrapperPanel;
+    }
+
+    private void renameFriend(FriendDto renameFriend) {
+        new SwingWorker<Void, Void>() {
+
+            @Override
+            protected Void doInBackground() {
+                renameFriendFrame(renameFriend);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                loadFriends();
+                friendsContainer.revalidate();
+                friendsContainer.repaint();
+            }
+        }.execute();
+    }
+
+    private void renameFriendFrame(FriendDto renameFriend) {
+        JFrame main = new JFrame();
+        main.setTitle(dictionary.getRenameFriend() + " " + renameFriend.getCustomFriendName());
+        main.setSize(250, 150);
+        main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        main.setLocationRelativeTo(null);
+        main.add(getMainWindow());
+
+        JTextField renameField = new JTextField();
+
+        JButton renameButton = new JButton();
+        renameButton.setText(dictionary.getRename());
+        renameButton.addActionListener(e -> {
+            try {
+                client.renameFriend(username, renameFriend.getFriendName(), renameField.getText());
+            } catch (Exception ex) {
+                errorHandler(ex);
+            } finally {
+                main.dispose();
+            }
+        });
+
+        JPanel renamePanel = new JPanel(new BorderLayout());
+        renamePanel.add(renameField, BorderLayout.NORTH);
+        renamePanel.add(renameButton, BorderLayout.SOUTH);
+        main.add(renamePanel);
+        main.setVisible(true);
+    }
 
     private JPanel getRequestsFriendsPanel() {
         JPanel requestFriendsPanel = new JPanel(new BorderLayout());
@@ -436,12 +536,10 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private JPanel getStatusBar() {
-        JPanel statusBar = new JPanel(new BorderLayout());
-        statusBar.setSize(new Dimension(800, 100));
         //Панель кнопок
         JPanel buttonsPanel = new JPanel();
         //Перезагрузить
-        JButton restart = new JButton(FactoryLanguage.getFactory().getSettings().getRestart());
+        JButton restart = new JButton(dictionary.getReboot());
         restart.addActionListener(e -> {
             dispose();
             MainFrame mainFrame = new MainFrame(client, username);
@@ -449,6 +547,12 @@ public class MainFrame extends JFrame implements MessageListener {
             mainFrame.setVisible(true);
         });
         buttonsPanel.add(restart);
+        //Настройки
+        JButton settings = new JButton(dictionary.getSettings());
+        settings.addActionListener(e -> {
+            Settings.getFrameSettings();
+        });
+        buttonsPanel.add(settings);
         //Сменить пользователя
         JButton newUser = new JButton(dictionary.getChangeUser());
         newUser.addActionListener(e -> {
@@ -458,14 +562,10 @@ public class MainFrame extends JFrame implements MessageListener {
             new LoginFrame(client).setVisible(true);
         });
         buttonsPanel.add(newUser);
-        //Настройки
-        JButton settings = new JButton(dictionary.getSettings());
-        settings.addActionListener(e -> {
-            Settings.getFrameSettings();
-        });
-        buttonsPanel.add(settings);
-        statusBar.add(buttonsPanel, BorderLayout.WEST);
 
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setSize(new Dimension(800, 100));
+        statusBar.add(buttonsPanel, BorderLayout.WEST);
         return statusBar;
     }
 

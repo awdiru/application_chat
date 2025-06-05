@@ -2,4 +2,4 @@ server:
   port: 9080
 
 logger:
-  level: WARN
+  level: INFO
