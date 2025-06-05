@@ -21,11 +21,13 @@ public class DictionaryIT extends BaseDictionary {
     private final String requestFriends = "Richieste di amicizia";
     //Статус бар
     private final String changeUser = "Cambia utente";
-    private final String restart = "Riavvia";
     //Окно друзей
     private final String addFriendTitle = "Aggiungi amico";
-    private final String rmFriendTitle = "Rimuovi amico";
     private final String friendName = "Nome dell'amico";
+    //Контекстное меню
+    private final String deleteFriend = "Elimina un amico";
+    private final String deleteFriendQuestion = "Vuoi davvero rimuovere l'amico";
+    private final String renameFriend = "Rinomina amico";
     //Окно принятия запроса в друзья
     private final String confirmFriendTitle = "Conferma richiesta di amicizia";
     private final String confirmFriend = "Accetta richiesta";

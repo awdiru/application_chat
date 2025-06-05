@@ -16,6 +16,7 @@ import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.friend.dto.FriendDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.user.dto.UserRenameDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
@@ -136,6 +137,17 @@ public class Client {
         post(url, null);
     }
 
+    public void renameFriend(String username, String friendName, String newFriendName) throws Exception {
+        UserRenameDto userDto = UserRenameDto.builder()
+                .username(username)
+                .friendName(friendName)
+                .newFriendName(newFriendName)
+                .build();
+        String requestBody = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/user/friend/rename";
+        post(url, requestBody);
+    }
+
     public List<FriendDto> getRequestsFriends(String username) throws Exception {
         String url = BaseURL + "/user/friends/requests?username=" + username;
         HttpResponse<String> response = get(url);
@@ -164,7 +176,7 @@ public class Client {
         return response;
     }
 
-    private HttpResponse<String> post(String url, String body) throws Exception {
+    private void post(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -175,6 +187,17 @@ public class Client {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) errorHandler(response);
+    }
+
+    private HttpResponse<String> patch(String url, String body) throws Exception {
+        if (body == null) body = "";
+        HttpRequest request = HttpRequest.newBuilder()
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         return response;
     }
 

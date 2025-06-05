@@ -65,7 +65,7 @@ public class SettingsFrame {
                     factory.setTimeZone(selected);
                     main.dispose();
                     JOptionPane.showMessageDialog(main,
-                            FactoryLanguage.getFactory().getFrameSettings().getLanguage().getRestartProgram(), FactoryLanguage.getFactory().getFrameSettings().getLanguage().getWarning(),
+                            FactoryLanguage.getFactory().getFrameSettings().getDictionary().getRestartProgram(), FactoryLanguage.getFactory().getFrameSettings().getDictionary().getWarning(),
                             JOptionPane.WARNING_MESSAGE);
                     Settings.getFrameSettings();
                 }
@@ -94,7 +94,7 @@ public class SettingsFrame {
                 if (selected != null) {
                     factory.setLanguage(selected);
                     main.dispose();
-                    BaseDictionary language = FactoryLanguage.getFactory().getFrameSettings().getLanguage();
+                    BaseDictionary language = FactoryLanguage.getFactory().getFrameSettings().getDictionary();
                     JOptionPane.showMessageDialog(main,
                             language.getRestartProgram(), language.getWarning(),
                             JOptionPane.WARNING_MESSAGE);

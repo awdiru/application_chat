@@ -13,11 +13,11 @@ public enum FrameLanguage implements FrameSettings {
     SP(new DictionarySP()),
     IT(new DictionaryIT());
 
-    private final BaseDictionary language;
+    private final BaseDictionary dictionary;
     private final FactoryLanguage factory = FactoryLanguage.getFactory();
 
-    FrameLanguage(BaseDictionary language) {
-        this.language = language;
+    FrameLanguage(BaseDictionary dictionary) {
+        this.dictionary = dictionary;
     }
 
     @Override
@@ -27,6 +27,6 @@ public enum FrameLanguage implements FrameSettings {
 
     @Override
     public String getSelectedSetting() {
-        return language.getCustomization();
+        return dictionary.getCustomization();
     }
 }
