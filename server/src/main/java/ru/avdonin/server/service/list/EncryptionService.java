@@ -1,7 +1,8 @@
-    package ru.avdonin.server.service;
+    package ru.avdonin.server.service.list;
 
     import org.springframework.beans.factory.annotation.Value;
     import org.springframework.stereotype.Service;
+    import ru.avdonin.server.service.AbstractService;
 
     import javax.crypto.Cipher;
     import javax.crypto.spec.IvParameterSpec;
@@ -12,7 +13,7 @@
     import java.util.Base64;
 
     @Service
-    public class EncryptionService {
+    public class EncryptionService extends AbstractService {
         private static final int IV_LENGTH = 16;
 
         @Value("${encryption.transformation}")
@@ -24,30 +25,32 @@
         @Value("${encryption.key}")
         private String secretKey;
 
-        private SecretKeySpec getSecretKeySpec() {
+        private SecretKeySpec getSecretKeySpec(String locale) {
             if (secretKey == null || secretKey.length() != 32) {
-                throw new IllegalArgumentException("Invalid key. Must be 32 chars");
+                throw new IllegalArgumentException(getDictionary(locale)
+                        .getGetSecretKeySpecIllegalArgumentException());
             }
             return new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), algorithm);
         }
 
-        public String encrypt(String input) {
+        public String encrypt(String input, String locale) {
             try {
                 Cipher cipher = Cipher.getInstance(transformation);
                 IvParameterSpec ivSpec = generateIv();
 
-                cipher.init(Cipher.ENCRYPT_MODE, getSecretKeySpec(), ivSpec);
+                cipher.init(Cipher.ENCRYPT_MODE, getSecretKeySpec(locale), ivSpec);
                 byte[] encrypted = cipher.doFinal(input.getBytes(StandardCharsets.UTF_8));
 
                 return Base64.getEncoder().encodeToString(
                         concatenateByteArrays(ivSpec.getIV(), encrypted)
                 );
             } catch (Exception e) {
-                throw new RuntimeException("Encryption failed", e);
+                throw new RuntimeException(getDictionary(locale)
+                        .getEncryptRuntimeException(e.getMessage()));
             }
         }
 
-        public String decrypt(String input) {
+        public String decrypt(String input, String locale) {
             try {
                 byte[] decoded = Base64.getDecoder().decode(input);
 
@@ -55,11 +58,12 @@
                 byte[] cipherText = Arrays.copyOfRange(decoded, IV_LENGTH, decoded.length);
 
                 Cipher cipher = Cipher.getInstance(transformation);
-                cipher.init(Cipher.DECRYPT_MODE, getSecretKeySpec(), new IvParameterSpec(iv));
+                cipher.init(Cipher.DECRYPT_MODE, getSecretKeySpec(locale), new IvParameterSpec(iv));
 
                 return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
             } catch (Exception e) {
-                throw new RuntimeException("Decryption failed", e);
+                throw new RuntimeException(getDictionary(locale)
+                        .getDecryptRuntimeException(e.getMessage()));
             }
         }
 

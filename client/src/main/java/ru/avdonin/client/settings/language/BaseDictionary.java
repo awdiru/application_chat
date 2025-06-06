@@ -7,6 +7,7 @@ import javax.swing.*;
 
 @Getter
 public abstract class BaseDictionary extends BaseSettings {
+    private final String locale = "EN";
     private final String customization = "English";
     private final String yes = "Yes";
     private final String no = "No";
@@ -19,22 +20,26 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String password = "Password";
     //Chat window
     private final String chat = "Chat";
-    private final String friends = "Friends";
-    private final String requestFriends = "Friend requests";
+    private final String chats = "Chats";
     //Status bar
     private final String changeUser = "Change User";
-    //Friend window
-    private final String addFriendTitle = "Add friend";
-    private final String friendName = "Friend name";
+    //Chat status bar
+    private final String participants = "Participants";
+    //Chats window
+    private final String addChatTitle = "Add chat";
+    private final String chatName = "Chat name";
+    private final String privateChat = "Private chat";
+    private final String publicChat = "Public chat";
     //Context menu
-    private final String deleteFriend = "Delete a friend";
-    private final String deleteFriendQuestion = "Do you really want to delete friend";
-    private final String renameFriend = "Rename a friend";
+    private final String logoutChat = "Log out of the chat";
+    private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
+    private final String renameChatCustom = "Rename the chat (at home)";
+    private final String renameChatAdmin = "Rename the chat (for everyone)";
     private final String rename = "Rename it";
-    //Confirm friend window
-    private final String confirmFriendTitle = "Request confirmation";
-    private final String confirmFriend = "Accept the request";
-    private final String rejectedFriend = "Reject the request";
+    private final String addUser = "Add a user to chats";
+    private final String addUserQuestion = "Username";
+    private final String add = "Add";
+    private final String deleteChat = "Delete chat";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";
@@ -48,18 +53,18 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String errorCode = "Error code";
     private final String statusCode = "Status code";
     //Month
-    private final String january = "January";
-    private final String february = "February";
-    private final String march = "March";
-    private final String april = "April";
-    private final String may = "May";
-    private final String june = "June";
-    private final String july = "July";
-    private final String august = "August";
-    private final String september = "September";
-    private final String october = "October";
-    private final String november = "November";
-    private final String december = "December";
+    private final String january = "january";
+    private final String february = "february";
+    private final String march = "march";
+    private final String april = "april";
+    private final String may = "may";
+    private final String june = "june";
+    private final String july = "july";
+    private final String august = "august";
+    private final String september = "september";
+    private final String october = "october";
+    private final String november = "november";
+    private final String december = "december";
     //Weekday
     private final String monday = "Mon";
     private final String tuesday = "Tue";
@@ -68,10 +73,6 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String friday = "Fri";
     private final String saturday = "Sat";
     private final String sunday = "Sun";
-    //Confirmation
-    private final String unconfirmed = "unconfirmed";
-    private final String confirmed = "confirmed";
-    private final String rejected = "rejected";
     //Default symbols
     private final ImageIcon plus = new ImageIcon("data/plus-icon.png");
     private final ImageIcon minus = new ImageIcon("date/minus-icon.png");

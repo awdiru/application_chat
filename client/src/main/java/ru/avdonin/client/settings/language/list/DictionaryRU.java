@@ -5,6 +5,7 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 
 @Getter
 public class DictionaryRU extends BaseDictionary {
+    private final String locale = "RU";
     private final String customization = "Русский";
     private final String yes = "Да";
     private final String no = "Нет";
@@ -12,52 +13,54 @@ public class DictionaryRU extends BaseDictionary {
     //Окно авторизации
     private final String authorization = "Авторизация";
     private final String login = "Войти";
-    private final String signup = "Зарегистрироваться";
+    private final String signup = "Регистрация";
     private final String username = "Имя пользователя";
     private final String password = "Пароль";
     //Окно чата
     private final String chat = "Чат";
-    private final String friends = "Друзья";
-    private final String requestFriends = "Запросы в друзья";
-    //Статус бар
+    private final String chats = "Чаты";
+    //Статус-бар
     private final String changeUser = "Сменить пользователя";
-    //Окно друзей
-    private final String addFriendTitle = "Добавить друга";
-    private final String friendName = "Имя друга";
+    //Статус-бар чата
+    private final String participants = "Участники";
+    //Окно чатов
+    private final String addChatTitle = "Создать чат";
+    private final String chatName = "Название чата";
     //Контекстное меню
-    private final String deleteFriend = "Удалить друга";
-    private final String deleteFriendQuestion = "Вы действительно хотите удалить друга";
-    private final String renameFriend = "Переименовать друга";
+    private final String logoutChat = "Покинуть чат";
+    private final String logoutChatQuestion = "Вы уверены, что хотите выйти из чата?";
+    private final String renameChatCustom = "Переименовать чат (для себя)";
+    private final String renameChatAdmin = "Переименовать чат (для всех)";
     private final String rename = "Переименовать";
-    //Окно принятия запроса в друзья
-    private final String confirmFriendTitle = "Подтверждение запроса в друзья";
-    private final String confirmFriend = "Принять запрос";
-    private final String rejectedFriend = "Отклонить запрос";
+    private final String addUser = "Добавить пользователя";
+    private final String addUserQuestion = "Имя пользователя";
+    private final String add = "Добавить";
+    private final String deleteChat = "Удалить чат";
     //Окно настроек
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";
     private final String settingsTimeZone = "Часовой пояс";
-    private final String settingsSystem = "Система";
-    private final String restartProgram = "Для того, чтобы изменения применились, необходим перезапуск программы";
+    private final String settingsSystem = "Системные";
+    private final String restartProgram = "Для применения изменений необходимо перезапустить программу.";
     private final String warning = "Предупреждение";
     //Сообщения об ошибках
     private final String error = "Ошибка";
     private final String authorizationError = "Ошибка авторизации";
     private final String errorCode = "Код ошибки";
-    private final String statusCode = "Статус ошибки";
-    //Месяца
-    private final String january = "Января";
-    private final String february = "Февраля";
-    private final String march = "Марта";
-    private final String april = "Апреля";
-    private final String may = "Мая";
-    private final String june = "Июня";
-    private final String july = "Июля";
-    private final String august = "Августа";
-    private final String september = "Сентября";
-    private final String october = "Октября";
-    private final String november = "Ноября";
-    private final String december = "Декабря";
+    private final String statusCode = "Статусный код";
+    //Месяцы (в родительном падеже)
+    private final String january = "января";
+    private final String february = "февраля";
+    private final String march = "марта";
+    private final String april = "апреля";
+    private final String may = "мая";
+    private final String june = "июня";
+    private final String july = "июля";
+    private final String august = "августа";
+    private final String september = "сентября";
+    private final String october = "октября";
+    private final String november = "ноября";
+    private final String december = "декабря";
     //Дни недели
     private final String monday = "Пн";
     private final String tuesday = "Вт";

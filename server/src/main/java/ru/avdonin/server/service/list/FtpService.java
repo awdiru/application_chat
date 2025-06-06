@@ -1,4 +1,4 @@
-package ru.avdonin.server.service;
+package ru.avdonin.server.service.list;
 
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
@@ -7,7 +7,6 @@ import ru.avdonin.server.config.FtpConfig;
 import ru.avdonin.template.exceptions.FtpClientException;
 import ru.avdonin.template.logger.Logger;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -43,7 +42,12 @@ public class FtpService {
         }
     }
 
-    public InputStream getIcon(String filename) throws IOException {
+    public InputStream getFile(String filename) {
+        return null;
+    }
+
+    public InputStream getIcon(String filename) {
+        /*
         try {
             if (!ftpClient.isConnected())
                 throw new FtpClientException("The FTP server is not available");
@@ -60,6 +64,8 @@ public class FtpService {
             log.error(e.getMessage());
             throw e;
         }
+         */
+        return null;
     }
 
     private void configClient(FTPClient ftpClient) throws IOException {

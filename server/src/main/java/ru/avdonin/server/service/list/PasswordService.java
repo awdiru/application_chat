@@ -1,4 +1,4 @@
-package ru.avdonin.server.service;
+package ru.avdonin.server.service.list;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;

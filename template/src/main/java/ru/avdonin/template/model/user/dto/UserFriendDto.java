@@ -8,8 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @ToString
-public class UserRenameDto {
-    private String username;
-    private String friendName;
-    private String newFriendName;
+public class UserFriendDto {
+    String username;
+    String friendName;
+    String locale;
 }

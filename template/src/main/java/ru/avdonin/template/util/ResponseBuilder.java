@@ -5,11 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import ru.avdonin.template.exceptions.EmptyFileException;
-import ru.avdonin.template.exceptions.FtpClientException;
+import ru.avdonin.template.exceptions.*;
 
-import ru.avdonin.template.exceptions.IncorrectFriendDataException;
-import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.time.LocalDateTime;
@@ -22,7 +19,7 @@ public class ResponseBuilder {
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
                 .message(message)
-                .status(HttpStatus.OK)
+                .status(HttpStatus.OK.toString())
                 .build();
         return ResponseEntity.ok().body(responseMessage);
     }
@@ -31,7 +28,7 @@ public class ResponseBuilder {
         HttpStatus status = getErrorStatus(e);
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
-                .status(status)
+                .status(status.toString())
                 .message(e.getMessage())
                 .build();
         return ResponseEntity.status(status).body(responseMessage);
@@ -40,8 +37,13 @@ public class ResponseBuilder {
     private static HttpStatus getErrorStatus(Exception e) {
         if (e instanceof EmptyFileException
                 || e instanceof IncorrectUserDataException
-                || e instanceof IncorrectFriendDataException) return HttpStatus.BAD_REQUEST;
-        else if (e instanceof FtpClientException) return HttpStatus.EXPECTATION_FAILED;
+                || e instanceof IncorrectFriendDataException
+                || e instanceof IncorrectChatDataException)
+            return HttpStatus.BAD_REQUEST;
+
+        else if (e instanceof FtpClientException)
+            return HttpStatus.EXPECTATION_FAILED;
+
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

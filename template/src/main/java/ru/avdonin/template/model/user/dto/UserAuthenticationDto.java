@@ -11,4 +11,5 @@ import lombok.*;
 public class UserAuthenticationDto {
     String username;
     String password;
+    String locale;
 }

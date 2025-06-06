@@ -5,59 +5,62 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 
 @Getter
 public class DictionarySP extends BaseDictionary {
+    private final String locale = "SP";
     private final String customization = "Español";
     private final String yes = "Sí";
     private final String no = "No";
     private final String confirmation = "Confirmación";
-    //Окно авторизации
+    //Ventana de autorización
     private final String authorization = "Autorización";
     private final String login = "Iniciar sesión";
     private final String signup = "Registrarse";
     private final String username = "Nombre de usuario";
     private final String password = "Contraseña";
-    //Окно чата
+    //Ventana de chat
     private final String chat = "Chat";
-    private final String friends = "Amigos";
-    private final String requestFriends = "Solicitudes de amistad";
-    //Статус бар
+    private final String chats = "Chats";
+    //Barra de estado
     private final String changeUser = "Cambiar usuario";
-    //Окно друзей
-    private final String addFriendTitle = "Añadir un amigo";
-    private final String friendName = "Nombre del amigo";
-    private final String renameFriend = "Cambiar el nombre de un amigo";
-    //Контекстное меню
-    private final String deleteFriend = "Eliminar a un amigo";
-    private final String deleteFriendQuestion = "Vuoi davvero rimuovere l'amico";
-    //Окно принятия запроса в друзья
-    private final String confirmFriendTitle = "Confirmación de la solicitud de amistad";
-    private final String confirmFriend = "Aceptar solicitud";
-    private final String rejectedFriend = "Rechazar solicitud";
-    //Окно настроек
+    //Barra de estado del chat
+    private final String participants = "Participantes";
+    //Ventana de chats
+    private final String addChatTitle = "Crear chat";
+    private final String chatName = "Nombre del chat";
+    //Menú contextual
+    private final String logoutChat = "Salir del chat";
+    private final String logoutChatQuestion = "¿Estás seguro de que quieres salir del chat?";
+    private final String renameChatCustom = "Renombrar chat (solo para ti)";
+    private final String renameChatAdmin = "Renombrar chat (para todos)";
+    private final String rename = "Renombrar";
+    private final String addUser = "Añadir usuario";
+    private final String addUserQuestion = "Nombre de usuario";
+    private final String add = "Añadir";
+    //Ventana de configuración
     private final String settingsTitle = "Configuración";
     private final String settingsLanguage = "Idioma";
     private final String settingsTimeZone = "Zona horaria";
     private final String settingsSystem = "Sistema";
-    private final String restartProgram = "Para que los cambios se apliquen, es necesario reiniciar el programa";
+    private final String restartProgram = "Para aplicar los cambios, es necesario reiniciar el programa.";
     private final String warning = "Advertencia";
-    //Сообщения об ошибках
+    //Mensajes de error
     private final String error = "Error";
     private final String authorizationError = "Error de autorización";
     private final String errorCode = "Código de error";
-    private final String statusCode = "Estado del error";
-    //Месяца
-    private final String january = "Enero";
-    private final String february = "Febrero";
-    private final String march = "Marzo";
-    private final String april = "Abril";
-    private final String may = "Mayo";
-    private final String june = "Junio";
-    private final String july = "Julio";
-    private final String august = "Agosto";
-    private final String september = "Septiembre";
-    private final String october = "Octubre";
-    private final String november = "Noviembre";
-    private final String december = "Diciembre";
-    //Дни недели
+    private final String statusCode = "Código de estado";
+    //Meses (en forma base)
+    private final String january = "enero";
+    private final String february = "febrero";
+    private final String march = "marzo";
+    private final String april = "abril";
+    private final String may = "mayo";
+    private final String june = "junio";
+    private final String july = "julio";
+    private final String august = "agosto";
+    private final String september = "septiembre";
+    private final String october = "octubre";
+    private final String november = "noviembre";
+    private final String december = "diciembre";
+    //Días de la semana
     private final String monday = "Lun";
     private final String tuesday = "Mar";
     private final String wednesday = "Mié";

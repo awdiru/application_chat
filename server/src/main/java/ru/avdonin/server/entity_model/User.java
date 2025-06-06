@@ -10,6 +10,7 @@ import lombok.*;
 @Builder
 @Entity
 @Table(name = "users")
+@EqualsAndHashCode
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,6 +22,6 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "icon_file_name")
-    private String iconFileName;
+    @Column(name = "icon")
+    private String icon;
 }

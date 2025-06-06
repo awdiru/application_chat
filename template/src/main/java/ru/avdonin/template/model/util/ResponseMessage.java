@@ -3,13 +3,16 @@ package ru.avdonin.template.model.util;
 import lombok.*;
 import org.springframework.http.HttpStatus;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Builder
-public class ResponseMessage {
+@AllArgsConstructor
+@NoArgsConstructor
+public class ResponseMessage implements Serializable {
     private LocalDateTime time;
-    private HttpStatus status;
+    private String status;
     private String message;
 }
