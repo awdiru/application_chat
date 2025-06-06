@@ -17,6 +17,7 @@ import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 import ru.avdonin.template.model.user.dto.UserDto;
+import ru.avdonin.template.model.user.dto.UserFriendDto;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
@@ -212,6 +213,18 @@ public class Client {
         return session == null || !session.isOpen();
     }
 
+    public ChatDto getPrivateChat(String username, String friendName) throws Exception {
+        UserFriendDto userFriendDto = UserFriendDto.builder()
+                .friendName(friendName)
+                .username(username)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .build();
+        String json = objectMapper.writeValueAsString(userFriendDto);
+        String url = BaseURL + "/chat/get/private";
+        HttpResponse<String> response = get(url, json);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
 
     private HttpResponse<String> get(String url, String body) throws Exception {
         if (body == null) body = "";

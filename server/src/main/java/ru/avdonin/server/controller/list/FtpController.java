@@ -1,4 +1,4 @@
-package ru.avdonin.server.controller;
+package ru.avdonin.server.controller.list;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
@@ -7,7 +7,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.avdonin.server.service.FtpService;
+import ru.avdonin.server.controller.AbstractController;
+import ru.avdonin.server.service.list.FtpService;
 import ru.avdonin.template.exceptions.EmptyFileException;
 import ru.avdonin.template.logger.Logger;
 
@@ -15,7 +16,7 @@ import java.io.InputStream;
 
 @RestController
 @RequestMapping("/ftp")
-public class FtpController extends AbstractController{
+public class FtpController extends AbstractController {
     private final FtpService ftpService;
 
     @Autowired

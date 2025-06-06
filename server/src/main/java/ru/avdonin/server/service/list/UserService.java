@@ -1,4 +1,4 @@
-package ru.avdonin.server.service;
+package ru.avdonin.server.service.list;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,12 +6,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.avdonin.server.entity_model.*;
 import ru.avdonin.server.repository.UserRepository;
+import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class UserService extends AbstractService{
+public class UserService extends AbstractService {
     private final UserRepository userRepository;
     private final PasswordService passwordService;
 

@@ -39,6 +39,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String addUser = "Add a user to chats";
     private final String addUserQuestion = "Username";
     private final String add = "Add";
+    private final String deleteChat = "Delete chat";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";

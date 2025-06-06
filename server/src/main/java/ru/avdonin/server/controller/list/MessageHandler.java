@@ -1,4 +1,4 @@
-package ru.avdonin.server.controller;
+package ru.avdonin.server.controller.list;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,14 +14,14 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
-import ru.avdonin.server.service.ChatService;
+import ru.avdonin.server.service.list.ChatService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.chat.dto.ChatIdDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
-import ru.avdonin.server.service.MessageService;
-import ru.avdonin.server.service.UserService;
+import ru.avdonin.server.service.list.MessageService;
+import ru.avdonin.server.service.list.UserService;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;

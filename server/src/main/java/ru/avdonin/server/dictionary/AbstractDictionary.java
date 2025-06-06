@@ -3,7 +3,7 @@ package ru.avdonin.server.dictionary;
 import lombok.Getter;
 
 @Getter
-public abstract class BaseDictionary {
+public abstract class AbstractDictionary {
     private final String addUserIncorrectChatDataException = "A user cannot be added to a private chat";
     private final String deleteChatIncorrectUserDataException = "Only the admin can delete the chat";
     private final String renameChatAdminIncorrectChatDataException = "Only the admin can rename the chat";
@@ -15,6 +15,7 @@ public abstract class BaseDictionary {
     private final String saveIncorrectPasswordException = "The password cannot be empty";
     private final String saveIncorrectUserDataException = "A user with that name has already been registered";
     private final String createChatIncorrectChatDataException = "The chat name cannot be empty";
+    private final String getPrivateChatIncorrectChatDataException = "There is no chat submitted by the user";
 
     public String getSaveMessageIncorrectUserDataException(String sender) {
         return "User with username " + sender + " does not exist";

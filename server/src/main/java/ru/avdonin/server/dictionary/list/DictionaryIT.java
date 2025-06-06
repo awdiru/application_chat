@@ -1,10 +1,10 @@
 package ru.avdonin.server.dictionary.list;
 
 import lombok.Getter;
-import ru.avdonin.server.dictionary.BaseDictionary;
+import ru.avdonin.server.dictionary.AbstractDictionary;
 
 @Getter
-public class DictionaryIT extends BaseDictionary {
+public class DictionaryIT extends AbstractDictionary {
     private final String addUserIncorrectChatDataException = "Non è possibile aggiungere un utente a una chat privata";
     private final String deleteChatIncorrectUserDataException = "Solo l'amministratore può eliminare la chat";
     private final String renameChatAdminIncorrectChatDataException = "Solo l'amministratore può rinominare la chat";
@@ -16,6 +16,7 @@ public class DictionaryIT extends BaseDictionary {
     private final String saveIncorrectPasswordException = "La password non può essere vuota";
     private final String saveIncorrectUserDataException = "Un utente con questo nome è già registrato";
     private final String createChatIncorrectChatDataException = "Il nome della chat non può essere vuoto";
+    private final String getPrivateChatIncorrectChatDataException = "Non ci sono chat create dall'utente";
 
     public String getSaveMessageIncorrectUserDataException(String sender) {
         return "L'utente con nome " + sender + " non esiste";

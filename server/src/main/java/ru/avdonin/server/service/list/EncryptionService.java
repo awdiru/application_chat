@@ -1,7 +1,8 @@
-    package ru.avdonin.server.service;
+    package ru.avdonin.server.service.list;
 
     import org.springframework.beans.factory.annotation.Value;
     import org.springframework.stereotype.Service;
+    import ru.avdonin.server.service.AbstractService;
 
     import javax.crypto.Cipher;
     import javax.crypto.spec.IvParameterSpec;

@@ -1,9 +1,10 @@
-package ru.avdonin.server.controller;
+package ru.avdonin.server.controller.list;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.avdonin.server.service.UserService;
+import ru.avdonin.server.controller.AbstractController;
+import ru.avdonin.server.service.list.UserService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 

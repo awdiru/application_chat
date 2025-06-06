@@ -2,6 +2,7 @@ package ru.avdonin.client.client.gui;
 
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.MessageListener;
+import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
@@ -15,8 +16,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -62,7 +61,7 @@ public class MainFrame extends JFrame implements MessageListener {
 
                     client.sendMessage(messageField.getText(), username, chatId);
                 } catch (Exception e) {
-                    errorHandler(e);
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
                 return null;
             }
@@ -81,7 +80,7 @@ public class MainFrame extends JFrame implements MessageListener {
                 try {
                     return client.getChatHistory(chatId);
                 } catch (Exception e) {
-                    errorHandler(e);
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
                 return List.of();
             }
@@ -91,11 +90,11 @@ public class MainFrame extends JFrame implements MessageListener {
                 try {
                     chatArea.setText("");
                     OffsetDateTime oldDate = get().getFirst().getTime();
-                    addDate(oldDate);
+                    MainFrameHelper.addDate(oldDate, chatArea, dictionary);
 
                     for (MessageDto m : get()) {
                         if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
-                            addDate(m.getTime());
+                            MainFrameHelper.addDate(m.getTime(), chatArea, dictionary);
                             oldDate = m.getTime();
                         }
 
@@ -104,7 +103,7 @@ public class MainFrame extends JFrame implements MessageListener {
                     chatArea.setCaretPosition(chatArea.getDocument().getLength());
 
                 } catch (Exception e) {
-                    errorHandler(e);
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
             }
         }.execute();
@@ -117,7 +116,7 @@ public class MainFrame extends JFrame implements MessageListener {
                 try {
                     return client.getChats(username);
                 } catch (Exception e) {
-                    errorHandler(e);
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
                 return List.of();
             }
@@ -130,7 +129,7 @@ public class MainFrame extends JFrame implements MessageListener {
                     chatsContainer.revalidate();
                     chatsContainer.repaint();
                 } catch (Exception e) {
-                    errorHandler(e);
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
             }
         }.execute();
@@ -154,7 +153,7 @@ public class MainFrame extends JFrame implements MessageListener {
                 client.createChat(username, chatNameField.getText(), false);
                 loadChats();
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
             main.dispose();
         });
@@ -165,7 +164,7 @@ public class MainFrame extends JFrame implements MessageListener {
                 client.createChat(username, chatNameField.getText(), true);
                 loadChats();
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
             main.dispose();
         });
@@ -181,59 +180,11 @@ public class MainFrame extends JFrame implements MessageListener {
     @Override
     public void onMessageReceived(MessageDto message) {
         if (!message.getChat().equals(chatId)) return;
-        addTime(message.getTime());
+        MainFrameHelper.addTime(message.getTime(), chatArea);
         SwingUtilities.invokeLater(() -> {
             String formatted = String.format("%s: %s\n", message.getSender(), message.getContent());
             chatArea.append(formatted);
         });
-    }
-
-    private void addDate(OffsetDateTime dateTime) {
-        SwingUtilities.invokeLater(() -> {
-            String date = getDayOfWeek(dateTime) + ", " + dateTime.getDayOfMonth() + " " + getMonth(dateTime) + "\n";
-            chatArea.append(date);
-        });
-    }
-
-    private void addTime(OffsetDateTime dateTime) {
-        SwingUtilities.invokeLater(() -> {
-            String time = dateTime.format(DateTimeFormatter.ofPattern("HH:mm "));
-            chatArea.append(time);
-        });
-    }
-
-    private String getMonth(OffsetDateTime date) {
-        return switch (date.getMonth()) {
-            case JANUARY -> dictionary.getJanuary();
-            case FEBRUARY -> dictionary.getFebruary();
-            case MARCH -> dictionary.getMarch();
-            case APRIL -> dictionary.getApril();
-            case MAY -> dictionary.getMay();
-            case JUNE -> dictionary.getJune();
-            case JULY -> dictionary.getJuly();
-            case AUGUST -> dictionary.getAugust();
-            case SEPTEMBER -> dictionary.getSeptember();
-            case OCTOBER -> dictionary.getOctober();
-            case NOVEMBER -> dictionary.getNovember();
-            default -> dictionary.getDecember();
-        };
-    }
-
-    private String getDayOfWeek(OffsetDateTime date) {
-        return switch (date.getDayOfWeek()) {
-            case MONDAY -> dictionary.getMonday();
-            case TUESDAY -> dictionary.getTuesday();
-            case WEDNESDAY -> dictionary.getWednesday();
-            case THURSDAY -> dictionary.getThursday();
-            case FRIDAY -> dictionary.getFriday();
-            case SATURDAY -> dictionary.getSaturday();
-            default -> dictionary.getSunday();
-        };
-    }
-
-    private void errorHandler(Exception e) {
-        if (e.getMessage() == null || e.getMessage().isEmpty()) return;
-        JOptionPane.showMessageDialog(MainFrame.this, e.getMessage(), dictionary.getError(), JOptionPane.ERROR_MESSAGE);
     }
 
     @Override
@@ -334,11 +285,17 @@ public class MainFrame extends JFrame implements MessageListener {
             menu.add(renameItemAdmin);
         }
 
-        JMenuItem renameItemCustom = new JMenuItem(dictionary.getRenameChatCustom());
+        JMenuItem renameItemCustom = new JMenuItem();
+        if (chat.getPrivateChat())
+            renameItemCustom.setText(dictionary.getRename());
+        else renameItemCustom.setText(dictionary.getRenameChatCustom());
         renameItemCustom.addActionListener(e -> renameChat(chat, false));
         menu.add(renameItemCustom);
 
-        JMenuItem removeItem = new JMenuItem(dictionary.getLogoutChat());
+        JMenuItem removeItem = new JMenuItem();
+        if (chat.getPrivateChat())
+            removeItem.setText(dictionary.getDeleteChat());
+        else removeItem.setText(dictionary.getLogoutChat());
         removeItem.addActionListener(e -> logoutChat(chat));
         menu.add(removeItem);
 
@@ -390,7 +347,7 @@ public class MainFrame extends JFrame implements MessageListener {
             try {
                 client.addUserFromChat(addUserField.getText(), chatId);
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             } finally {
                 main.dispose();
             }
@@ -457,7 +414,7 @@ public class MainFrame extends JFrame implements MessageListener {
             try {
                 client.logoutOfChat(username, deleteChatId);
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             } finally {
                 main.dispose();
             }
@@ -513,7 +470,7 @@ public class MainFrame extends JFrame implements MessageListener {
                     client.renameChatAdmin(username, renameChat.getId(), renameField.getText());
                 else client.renameChatCustom(username, renameChat.getId(), renameField.getText());
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             } finally {
                 main.dispose();
             }
@@ -531,7 +488,7 @@ public class MainFrame extends JFrame implements MessageListener {
         JPanel buttonsPanel = new JPanel();
         //Перезагрузить
         JButton restart = new JButton(dictionary.getReboot());
-        restart.addActionListener(e -> restart());
+        restart.addActionListener(e -> MainFrameHelper.restart(MainFrame.this, client, username));
         buttonsPanel.add(restart);
         //Настройки
         JButton settings = new JButton(dictionary.getSettings());
@@ -554,20 +511,13 @@ public class MainFrame extends JFrame implements MessageListener {
         return statusBar;
     }
 
-    private void restart() {
-        dispose();
-        MainFrame mainFrame = new MainFrame(client, username);
-        client.setMessageListener(mainFrame);
-        mainFrame.setVisible(true);
-    }
-
     private JPanel getChatStatusBar() {
         JButton chatUsers = new JButton(dictionary.getParticipants());
         chatUsers.addActionListener(e -> {
             try {
                 getParticipants(chatUsers);
             } catch (Exception ex) {
-                errorHandler(ex);
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
         });
 
@@ -578,17 +528,24 @@ public class MainFrame extends JFrame implements MessageListener {
 
     private void getParticipants(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
-
         if (chatId == null || chatId.isEmpty()) return;
 
         List<UserDto> users = client.getChatParticipants(chatId);
-
         for (UserDto u : users) {
             JMenuItem userItem = new JMenuItem();
             userItem.setText(u.getUsername());
             participants.add(userItem);
+            userItem.addActionListener(e -> {
+                try {
+                    String chatIdNew = client.getPrivateChat(username, u.getUsername()).getId();
+                    if (chatId.equals(chatIdNew)) return;
+                    chatId = chatIdNew;
+                    loadChatHistory();
+                } catch (Exception ex) {
+                    MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+                }
+            });
         }
-
         participants.show(parent, 0, parent.getHeight());
     }
 

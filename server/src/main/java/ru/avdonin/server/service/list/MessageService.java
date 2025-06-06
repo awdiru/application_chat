@@ -1,4 +1,4 @@
-package ru.avdonin.server.service;
+package ru.avdonin.server.service.list;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.avdonin.server.entity_model.Chat;
 import ru.avdonin.server.repository.ChatRepository;
+import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.server.entity_model.Message;

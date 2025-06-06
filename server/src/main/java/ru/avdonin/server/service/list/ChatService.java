@@ -1,4 +1,4 @@
-package ru.avdonin.server.service;
+package ru.avdonin.server.service.list;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,17 +7,19 @@ import ru.avdonin.server.entity_model.*;
 import ru.avdonin.server.repository.ChatParticipantRepository;
 import ru.avdonin.server.repository.ChatRepository;
 import ru.avdonin.server.repository.UserRepository;
+import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.user.dto.UserDto;
+import ru.avdonin.template.model.user.dto.UserFriendDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class ChatService extends AbstractService{
+public class ChatService extends AbstractService {
     private final ChatRepository chatRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final UserRepository userRepository;
@@ -159,19 +161,42 @@ public class ChatService extends AbstractService{
     }
 
     public void renameChatAdmin(ChatRenameDto chatRenameDto) {
-        String chatId = chatRenameDto.getChatId();
-        String username = chatRenameDto.getUsername();
-        String newChatName = chatRenameDto.getNewChatName();
-
-        Chat chat = getChat(chatId, chatRenameDto.getLocale());
-        User user = getUser(username, chatRenameDto.getLocale());
+        Chat chat = getChat(chatRenameDto.getChatId(), chatRenameDto.getLocale());
+        User user = getUser(chatRenameDto.getUsername(), chatRenameDto.getLocale());
 
         if (!chat.getAdmin().equals(user))
             throw new IncorrectUserDataException(getDictionary(chatRenameDto.getLocale())
                     .getRenameChatAdminIncorrectChatDataException());
 
-        chat.setChatName(newChatName);
+        chat.setChatName(chatRenameDto.getNewChatName());
         chatRepository.save(chat);
+    }
+
+    public ChatDto getPrivateChat(UserFriendDto userFriendDto) {
+        User user = getUser(userFriendDto.getUsername(), userFriendDto.getLocale());
+        User friend = getUser(userFriendDto.getFriendName(), userFriendDto.getLocale());
+
+        String chatName1 = user.getUsername() + " - " + friend.getUsername();
+        String chatName2 = friend.getUsername() + " - " + user.getUsername();
+
+        Chat chat = chatRepository.findChatByChatName(chatName1, chatName2).stream()
+                .findFirst()
+                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(userFriendDto.getLocale())
+                        .getGetPrivateChatIncorrectChatDataException()));
+
+        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
+
+        ChatParticipant chatParticipant = chatParticipantRepository.findById(chatParticipantID)
+                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(userFriendDto.getLocale())
+                        .getGetPrivateChatIncorrectChatDataException()));
+
+        return ChatDto.builder()
+                .id(chat.getId())
+                .chatName(chat.getChatName())
+                .customName(chatParticipant.getCustomChatName())
+                .privateChat(chat.getPrivateChat())
+                .admin(chat.getAdmin().getUsername())
+                .build();
     }
 
     private String generateChatId() {

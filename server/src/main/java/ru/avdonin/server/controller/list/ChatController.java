@@ -1,14 +1,16 @@
-package ru.avdonin.server.controller;
+package ru.avdonin.server.controller.list;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.avdonin.server.service.ChatService;
-import ru.avdonin.server.service.MessageService;
+import ru.avdonin.server.controller.AbstractController;
+import ru.avdonin.server.service.list.ChatService;
+import ru.avdonin.server.service.list.MessageService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
+import ru.avdonin.template.model.user.dto.UserFriendDto;
 
 import java.util.List;
 
@@ -126,6 +128,17 @@ public class ChatController extends AbstractController {
             return getOkResponse("Chat " + chatRenameDto.getChatId()
                     + " has been renamed to chat " + chatRenameDto.getNewChatName()
                     + " for user " + chatRenameDto.getUsername());
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @GetMapping("/get/private")
+    public ResponseEntity<Object> getPrivateChat(@RequestBody UserFriendDto userFriendDto) {
+        try {
+            log.info("username: " + userFriendDto.getUsername() + ", friendName: " + userFriendDto.getFriendName());
+            ChatDto chatDto = chatService.getPrivateChat(userFriendDto);
+            return ResponseEntity.ok().body(chatDto);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

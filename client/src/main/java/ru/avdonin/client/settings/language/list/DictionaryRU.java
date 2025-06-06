@@ -35,6 +35,7 @@ public class DictionaryRU extends BaseDictionary {
     private final String addUser = "Добавить пользователя";
     private final String addUserQuestion = "Имя пользователя";
     private final String add = "Добавить";
+    private final String deleteChat = "Удалить чат";
     //Окно настроек
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import ru.avdonin.server.controller.MessageHandler;
+import ru.avdonin.server.controller.list.MessageHandler;
 
 @Configuration
 @EnableWebSocket
