@@ -43,7 +43,12 @@ public class FtpService {
         }
     }
 
-    public InputStream getIcon(String filename) throws IOException {
+    public InputStream getFile(String filename) {
+        return null;
+    }
+
+    public InputStream getIcon(String filename) {
+        /*
         try {
             if (!ftpClient.isConnected())
                 throw new FtpClientException("The FTP server is not available");
@@ -60,6 +65,8 @@ public class FtpService {
             log.error(e.getMessage());
             throw e;
         }
+         */
+        return null;
     }
 
     private void configClient(FTPClient ftpClient) throws IOException {

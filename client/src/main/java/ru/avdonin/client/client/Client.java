@@ -13,10 +13,12 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
-import ru.avdonin.template.model.friend.dto.FriendDto;
+import ru.avdonin.template.model.chat.dto.ChatCreateDto;
+import ru.avdonin.template.model.chat.dto.ChatDto;
+import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.user.dto.UserRenameDto;
+import ru.avdonin.template.model.chat.dto.ChatRenameDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
@@ -27,7 +29,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.List;
 
 @ClientEndpoint
@@ -92,11 +93,10 @@ public class Client {
         post(url, requestBody);
     }
 
-    public void sendMessage(String content, String username, String recipient) throws IOException {
+    public void sendMessage(String content, String username, String chatId) throws IOException {
         MessageDto message = MessageDto.builder()
-                .time(null)
                 .sender(username)
-                .recipient(recipient)
+                .chat(chatId)
                 .content(content)
                 .build();
 
@@ -104,9 +104,16 @@ public class Client {
         session.getBasicRemote().sendText(json);
     }
 
-    public List<MessageDto> getChat(String username, String recipient) throws Exception {
-        String url = BaseURL + "/chat/get?sender=" + username + "&recipient=" + recipient + "&from=0&size=50";
-        HttpResponse<String> response = get(url);
+    public List<MessageDto> getChatHistory(String chatId) throws Exception {
+        ChatGetHistoryDto chatGetHistoryDto = ChatGetHistoryDto.builder()
+                .chatId(chatId)
+                .from(0)
+                .size(10)
+                .build();
+
+        String url = BaseURL + "/chat/get/history";
+        String json = objectMapper.writeValueAsString(chatGetHistoryDto);
+        HttpResponse<String> response = get(url, json);
         List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
         return messages.stream()
@@ -117,57 +124,60 @@ public class Client {
                 .toList();
     }
 
-    public List<FriendDto> getFriends(String username) throws Exception {
-        String url = BaseURL + "/user/friends/get?username=" + username;
-        HttpResponse<String> response = get(url);
-        List<FriendDto> friendDto = objectMapper.readValue(response.body(), new TypeReference<>() {
-        });
-        return friendDto.stream()
-                .sorted(Comparator.comparing(FriendDto::getCustomFriendName))
-                .toList();
-    }
-
-    public void addFriend(String username, String friendName) throws Exception {
-        String url = BaseURL + "/user/friends/add?username=" + username + "&friendName=" + friendName;
-        post(url, null);
-    }
-
-    public void rmFriend(String username, String friendName) throws Exception {
-        String url = BaseURL + "/user/friends/remove?username=" + username + "&friendName=" + friendName;
-        post(url, null);
-    }
-
-    public void renameFriend(String username, String friendName, String newFriendName) throws Exception {
-        UserRenameDto userDto = UserRenameDto.builder()
-                .username(username)
-                .friendName(friendName)
-                .newFriendName(newFriendName)
-                .build();
-        String requestBody = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/user/friend/rename";
-        post(url, requestBody);
-    }
-
-    public List<FriendDto> getRequestsFriends(String username) throws Exception {
-        String url = BaseURL + "/user/friends/requests?username=" + username;
-        HttpResponse<String> response = get(url);
+    public List<ChatDto> getChats(String username) throws Exception {
+        String url = BaseURL + "/chat/get/all?username=" + username;
+        HttpResponse<String> response = get(url, null);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
 
-    public void confirmFriend(String username, String friendName, Boolean confirm) throws Exception {
-        String url = BaseURL + "/user/friends/confirmed?username=" + username + "&friendName=" + friendName + "&confirm=" + confirm;
+    public void createChat(String username, String chatName) throws Exception {
+        ChatCreateDto chatCreateDto = ChatCreateDto.builder()
+                .chatName(chatName)
+                .username(username)
+                .build();
+
+        String url = BaseURL + "/chat/create";
+        String json = objectMapper.writeValueAsString(chatCreateDto);
+        post(url, json);
+    }
+
+    public void logoutOfChat(String username, String chatId) throws Exception {
+        String url = BaseURL + "/chat/logout?username=" + username + "&chatId=" + chatId;
         post(url, null);
     }
 
-    public boolean isConnected() {
-        return session != null && session.isOpen();
+    public void renameChatCustom(String username, String chatId, String newChatName) throws Exception {
+        ChatRenameDto userDto = ChatRenameDto.builder()
+                .username(username)
+                .chatId(chatId)
+                .newChatName(newChatName)
+                .build();
+        String json = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/chat/rename/custom";
+        put(url, json);
+    }
+
+    public void renameChatAdmin(String username, String chatId, String newChatName) throws Exception {
+        ChatRenameDto userDto = ChatRenameDto.builder()
+                .username(username)
+                .chatId(chatId)
+                .newChatName(newChatName)
+                .build();
+        String requestBody = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/chat/rename";
+        put(url, requestBody);
+    }
+
+    public boolean isNotConnected() {
+        return session == null || !session.isOpen();
     }
 
 
-    private HttpResponse<String> get(String url) throws Exception {
+    private HttpResponse<String> get(String url, String body) throws Exception {
+        if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
-                .GET()
+                .method("GET", HttpRequest.BodyPublishers.ofString(body))
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .build();
@@ -189,10 +199,10 @@ public class Client {
         if (response.statusCode() != 200) errorHandler(response);
     }
 
-    private HttpResponse<String> patch(String url, String body) throws Exception {
+    private HttpResponse<String> put(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+                .method("PUT", HttpRequest.BodyPublishers.ofString(body))
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .build();

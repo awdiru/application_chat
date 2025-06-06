@@ -19,22 +19,17 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String password = "Password";
     //Chat window
     private final String chat = "Chat";
-    private final String friends = "Friends";
-    private final String requestFriends = "Friend requests";
+    private final String chats = "Chats";
     //Status bar
     private final String changeUser = "Change User";
-    //Friend window
-    private final String addFriendTitle = "Add friend";
-    private final String friendName = "Friend name";
+    //Chats window
+    private final String addChatTitle = "Add chat";
+    private final String chatName = "Chat name";
     //Context menu
-    private final String deleteFriend = "Delete a friend";
-    private final String deleteFriendQuestion = "Do you really want to delete friend";
-    private final String renameFriend = "Rename a friend";
+    private final String logoutChat = "Log out of the chat";
+    private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
+    private final String renameChat = "Rename a chat";
     private final String rename = "Rename it";
-    //Confirm friend window
-    private final String confirmFriendTitle = "Request confirmation";
-    private final String confirmFriend = "Accept the request";
-    private final String rejectedFriend = "Reject the request";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";

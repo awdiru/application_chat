@@ -3,6 +3,9 @@ package ru.avdonin.template.model.user.dto;
 import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.swing.*;
+import java.io.InputStream;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -12,5 +15,5 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserDto {
     Long id;
     String username;
-    MultipartFile icon;
+    InputStream icon;
 }

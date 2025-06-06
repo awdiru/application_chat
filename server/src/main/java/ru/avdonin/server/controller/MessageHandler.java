@@ -14,8 +14,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
+import ru.avdonin.server.service.ChatService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.server.service.UserService;
@@ -23,6 +25,7 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,19 +34,20 @@ import java.util.concurrent.ConcurrentMap;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MessageHandler extends TextWebSocketHandler {
     private final Logger log;
+    private final UserService userService;
+    private final MessageService messageService;
+    private final ChatService chatService;
+
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    private final UserService userService;
-    private final MessageService messageService;
-
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         try {
             String username = getUsernameFromSession(session);
-            userService.findByUsername(username);
+            userService.searchUserByUsername(username);
             sessions.put(username, session);
             log.info("connection established, username: " + username);
         } catch (Exception e) {
@@ -58,6 +62,7 @@ public class MessageHandler extends TextWebSocketHandler {
             String username = getUsernameFromSession(session);
             sessions.remove(username);
             log.info("connection closed");
+
         } catch (Exception e) {
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -69,8 +74,12 @@ public class MessageHandler extends TextWebSocketHandler {
             MessageDto messageDto = objectMapper.readValue(textMessage.getPayload(), MessageDto.class);
             messageDto = messageService.saveMessage(messageDto);
 
-            sendToUser(messageDto.getSender(), messageDto);
-            sendToUser(messageDto.getRecipient(), messageDto);
+            List<String> users = chatService.getChatUsers(messageDto.getChat()).stream()
+                    .map(UserDto::getUsername)
+                    .toList();
+
+            for (String username : users) sendToUser(username, messageDto);
+
             log.info("successful send message");
 
         } catch (JsonProcessingException | IncorrectUserDataException e) {
@@ -89,7 +98,7 @@ public class MessageHandler extends TextWebSocketHandler {
         } else if (session == null) {
             log.warn("session == null");
         } else {
-            log.warn("session closed");
+            log.info("session closed");
         }
     }
 

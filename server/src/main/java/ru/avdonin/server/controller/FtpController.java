@@ -25,7 +25,7 @@ public class FtpController extends AbstractController{
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Object> uploadFile(@RequestParam("username") String username,
+    public ResponseEntity<Object> uploadIcon(@RequestParam("username") String username,
                                              @RequestBody MultipartFile file) {
 
         try(InputStream inputStream = file.getInputStream()) {
@@ -36,7 +36,7 @@ public class FtpController extends AbstractController{
             String filename = file.getOriginalFilename();
             if (filename == null) throw new EmptyFileException("The filename is empty");
 
-            ftpService.uploadFile(filename, inputStream);
+            ftpService.uploadFile(username + "/" + filename, inputStream);
             return getOkResponse("The file is uploaded");
 
         } catch (Exception e) {

@@ -28,7 +28,7 @@ public class ChatConsole implements MessageListener {
             setRecipient();
             getClient().connect(username);
             printMenu();
-            printChat(client.getChat(username, recipient));
+            printChat(client.getChatHistory(recipient));
 
             while (true) {
                 String content = scanner.nextLine();
@@ -36,7 +36,7 @@ public class ChatConsole implements MessageListener {
                 switch (content) {
                     case "setRecipient!":
                         setRecipient();
-                        client.getChat(username, recipient);
+                        client.getChatHistory(recipient);
                         break;
                     case "exit!":
                         return;

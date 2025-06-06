@@ -12,10 +12,10 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-public class FriendID implements Serializable {
+public class ChatParticipantID implements Serializable {
+    @Column(name = "chat_id")
+    private String chatId;
+
     @Column(name = "user_id")
     private Long userId;
-
-    @Column(name = "friend_id")
-    private Long friendId;
 }

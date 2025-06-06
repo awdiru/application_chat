@@ -6,7 +6,7 @@ import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
-import ru.avdonin.template.model.friend.dto.FriendDto;
+import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
@@ -18,7 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class MainFrame extends JFrame implements MessageListener {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -27,9 +26,8 @@ public class MainFrame extends JFrame implements MessageListener {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private JTextArea chatArea;
     private JTextField messageField;
-    private JPanel friendsContainer;
-    private JPanel requestsContainer;
-    private String friendName;
+    private JPanel chatsContainer;
+    private String chatId;
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -38,8 +36,7 @@ public class MainFrame extends JFrame implements MessageListener {
         client.setMessageListener(this);
 
         initUi();
-        loadFriends();
-        startBackgroundRequestsFriends();
+        loadChats();
     }
 
     private void initUi() {
@@ -55,13 +52,13 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected Void doInBackground() {
                 try {
-                    if (!client.isConnected()) {
+                    if (client.isNotConnected()) {
                         client.connect(username);
-                        if (!client.isConnected())
+                        if (client.isNotConnected())
                             throw new NoConnectionServerException("There is no connection to the server");
                     }
 
-                    client.sendMessage(messageField.getText(), username, friendName);
+                    client.sendMessage(messageField.getText(), username, chatId);
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -80,7 +77,7 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
-                    return client.getChat(username, friendName);
+                    return client.getChatHistory(chatId);
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -111,12 +108,12 @@ public class MainFrame extends JFrame implements MessageListener {
         }.execute();
     }
 
-    private void loadFriends() {
-        new SwingWorker<List<FriendDto>, Void>() {
+    private void loadChats() {
+        new SwingWorker<List<ChatDto>, Void>() {
             @Override
-            protected List<FriendDto> doInBackground() {
+            protected List<ChatDto> doInBackground() {
                 try {
-                    return client.getFriends(username);
+                    return client.getChats(username);
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -126,12 +123,12 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected void done() {
                 try {
-                    friendsContainer.removeAll();
-                    for (FriendDto f : get()) {
-                        friendsContainer.add(createFriendItem(f));
+                    chatsContainer.removeAll();
+                    for (ChatDto c : get()) {
+                        chatsContainer.add(createChatItem(c));
                     }
-                    friendsContainer.revalidate();
-                    friendsContainer.repaint();
+                    chatsContainer.revalidate();
+                    chatsContainer.repaint();
                 } catch (Exception e) {
                     errorHandler(e);
                 }
@@ -139,71 +136,27 @@ public class MainFrame extends JFrame implements MessageListener {
         }.execute();
     }
 
-    private void loadRequestsFriends() {
-        new SwingWorker<List<FriendDto>, Void>() {
-            @Override
-            protected List<FriendDto> doInBackground() {
-                try {
-                    return client.getRequestsFriends(username);
-                } catch (Exception e) {
-                    errorHandler(e);
-                }
-                return List.of();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    requestsContainer.removeAll();
-                    for (FriendDto request : get()) {
-                        requestsContainer.add(createRequestItem(request));
-                    }
-                    // Обновляем UI
-                    requestsContainer.revalidate();
-                    requestsContainer.repaint();
-                } catch (Exception e) {
-                    errorHandler(e);
-                }
-            }
-        }.execute();
-    }
-
-    private void startBackgroundRequestsFriends() {
-        scheduler.scheduleAtFixedRate(() -> {
-                    try {
-                        loadRequestsFriends();
-                    } catch (Exception e) {
-                        errorHandler(e);
-                    }
-                }, 0, 20, TimeUnit.SECONDS
-        );
-    }
-
-    private void stopBackgroundRequestsFriends() {
-        scheduler.shutdown();
-    }
-
-    private void addFriend() {
+    private void createChat() {
         JFrame main = new JFrame();
-        main.setTitle(dictionary.getAddFriendTitle());
+        main.setTitle(dictionary.getAddChatTitle());
         main.setSize(300, 70);
         main.setLocationRelativeTo(null);
 
-        JPanel addFriendPanel = new JPanel(new GridLayout(1, 1, 3, 3));
-        JTextField friendField = new JTextField();
-        addFriendPanel.add(new JLabel(dictionary.getFriendName()));
-        addFriendPanel.add(friendField);
-        friendField.addActionListener(e -> {
+        JPanel addChatPanel = new JPanel(new GridLayout(1, 1, 3, 3));
+        JTextField chatNameField = new JTextField();
+        addChatPanel.add(new JLabel(dictionary.getChatName()));
+        addChatPanel.add(chatNameField);
+        chatNameField.addActionListener(e -> {
             try {
-                client.addFriend(username, friendField.getText());
-                loadFriends();
+                client.createChat(username, chatNameField.getText());
+                loadChats();
             } catch (Exception ex) {
                 errorHandler(ex);
             }
             main.dispose();
         });
 
-        main.add(addFriendPanel);
+        main.add(addChatPanel);
         main.setVisible(true);
     }
 
@@ -287,17 +240,17 @@ public class MainFrame extends JFrame implements MessageListener {
         return messagePanel;
     }
 
-    private JPanel getFriendPanel() {
-        friendsContainer = new JPanel();
-        friendsContainer.setLayout(new BoxLayout(friendsContainer, BoxLayout.Y_AXIS));
+    private JPanel getChatsPanel() {
+        chatsContainer = new JPanel();
+        chatsContainer.setLayout(new BoxLayout(chatsContainer, BoxLayout.Y_AXIS));
 
-        JScrollPane scrollPane = new JScrollPane(friendsContainer);
+        JScrollPane scrollPane = new JScrollPane(chatsContainer);
 
         JButton addButton = new JButton(dictionary.getPlus());
-        addButton.addActionListener(e -> addFriend());
+        addButton.addActionListener(e -> createChat());
 
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.add(new JLabel(dictionary.getFriends()), BorderLayout.CENTER);
+        headerPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
         headerPanel.add(addButton, BorderLayout.EAST);
 
         JPanel panel = new JPanel(new BorderLayout());
@@ -307,12 +260,12 @@ public class MainFrame extends JFrame implements MessageListener {
         return panel;
     }
 
-    private JPanel createFriendItem(FriendDto friend) {
+    private JPanel createChatItem(ChatDto chat) {
         MouseAdapter selectListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
-                    friendName = friend.getFriendName();
+                    chatId = chat.getId();
                     loadChatHistory();
                 }
             }
@@ -328,13 +281,15 @@ public class MainFrame extends JFrame implements MessageListener {
             }
         };
 
-        JLabel nameLabel = new JLabel(friend.getCustomFriendName());
+        String chatName = chat.getCustomName() == null || chat.getCustomName().isEmpty()
+                ? chat.getChatName() : chat.getCustomName() + "(" + chat.getChatName() + ")";
+        JLabel nameLabel = new JLabel(chatName);
         nameLabel.addMouseListener(selectListener);
 
         JButton menuButton = new JButton(dictionary.getEllipsis());
         menuButton.setSize(new Dimension(10, 10));
         menuButton.setMaximumSize(new Dimension(20, 15));
-        menuButton.addActionListener(e -> showFriendMenu(menuButton, friend));
+        menuButton.addActionListener(e -> showChatContextMenu(menuButton, chat));
 
         JPanel itemPanel = new JPanel(new BorderLayout());
         itemPanel.add(nameLabel, BorderLayout.WEST);
@@ -347,15 +302,15 @@ public class MainFrame extends JFrame implements MessageListener {
         return itemPanel;
     }
 
-    private void showFriendMenu(JComponent parent, FriendDto friend) {
+    private void showChatContextMenu(JComponent parent, ChatDto chat) {
         JPopupMenu menu = new JPopupMenu();
 
-        JMenuItem renameItem = new JMenuItem(dictionary.getRenameFriend());
-        renameItem.addActionListener(e -> renameFriend(friend));
+        JMenuItem renameItem = new JMenuItem(dictionary.getRenameChat());
+        renameItem.addActionListener(e -> renameChatCustom(chat));
         menu.add(renameItem);
 
-        JMenuItem removeItem = new JMenuItem(dictionary.getDeleteFriend());
-        removeItem.addActionListener(e -> deleteFriend(friend));
+        JMenuItem removeItem = new JMenuItem(dictionary.getLogoutChat());
+        removeItem.addActionListener(e -> logoutChat(chat));
         menu.add(removeItem);
 
         // TODO Здесь можно добавить другие действия над пользователем
@@ -363,39 +318,39 @@ public class MainFrame extends JFrame implements MessageListener {
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void deleteFriend(FriendDto deleteFriend) {
+    private void logoutChat(ChatDto deleteChat) {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                deleteFriendFrame(deleteFriend);
+                logoutChatFrame(deleteChat);
                 return null;
             }
 
             @Override
             protected void done() {
-                loadFriends();
-                if (deleteFriend.getUsername().equals(friendName)) {
+                loadChats();
+                if (deleteChat.getId().equals(chatId)) {
                     chatArea.setText("");
                 }
-                friendsContainer.revalidate();
-                friendsContainer.repaint();
+                chatsContainer.revalidate();
+                chatsContainer.repaint();
             }
         }.execute();
     }
 
-    private void deleteFriendFrame(FriendDto deleteFriend) {
+    private void logoutChatFrame(ChatDto deleteChat) {
         JFrame main = new JFrame();
-        main.setTitle(dictionary.getDeleteFriend());
+        main.setTitle(dictionary.getLogoutChat());
         main.setSize(250, 150);
         main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         main.setLocationRelativeTo(null);
         main.add(getMainWindow());
 
-        String question = dictionary.getDeleteFriendQuestion() + " " + deleteFriend.getCustomFriendName();
+        String question = dictionary.getLogoutChatQuestion() + " " + deleteChat.getCustomName();
         JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JPanel buttonPanel = getDeleteFriendButtonPanel(deleteFriend.getUsername(), main);
+        JPanel buttonPanel = getLogoutChatButtonPanel(deleteChat.getId(), main);
 
         JPanel deletePanel = new JPanel(new BorderLayout());
         deletePanel.add(deleteLabel, BorderLayout.NORTH);
@@ -405,12 +360,12 @@ public class MainFrame extends JFrame implements MessageListener {
         main.setVisible(true);
     }
 
-    private JPanel getDeleteFriendButtonPanel(String deleteFriendName, JFrame main) {
+    private JPanel getLogoutChatButtonPanel(String deleteChatId, JFrame main) {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
         JButton yesButton = new JButton();
         yesButton.addActionListener(e -> {
             try {
-                client.rmFriend(username, deleteFriendName);
+                client.logoutOfChat(username, deleteChatId);
             } catch (Exception ex) {
                 errorHandler(ex);
             } finally {
@@ -432,27 +387,27 @@ public class MainFrame extends JFrame implements MessageListener {
         return wrapperPanel;
     }
 
-    private void renameFriend(FriendDto renameFriend) {
+    private void renameChatCustom(ChatDto chat) {
         new SwingWorker<Void, Void>() {
 
             @Override
             protected Void doInBackground() {
-                renameFriendFrame(renameFriend);
+                renameChatCustomFrame(chat);
                 return null;
             }
 
             @Override
             protected void done() {
-                loadFriends();
-                friendsContainer.revalidate();
-                friendsContainer.repaint();
+                loadChats();
+                chatsContainer.revalidate();
+                chatsContainer.repaint();
             }
         }.execute();
     }
 
-    private void renameFriendFrame(FriendDto renameFriend) {
+    private void renameChatCustomFrame(ChatDto renameChat) {
         JFrame main = new JFrame();
-        main.setTitle(dictionary.getRenameFriend() + " " + renameFriend.getCustomFriendName());
+        main.setTitle(dictionary.getRenameChat() + " " + renameChat.getCustomName());
         main.setSize(250, 150);
         main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         main.setLocationRelativeTo(null);
@@ -464,7 +419,7 @@ public class MainFrame extends JFrame implements MessageListener {
         renameButton.setText(dictionary.getRename());
         renameButton.addActionListener(e -> {
             try {
-                client.renameFriend(username, renameFriend.getFriendName(), renameField.getText());
+                client.renameChatCustom(username, renameChat.getId(), renameField.getText());
             } catch (Exception ex) {
                 errorHandler(ex);
             } finally {
@@ -477,62 +432,6 @@ public class MainFrame extends JFrame implements MessageListener {
         renamePanel.add(renameButton, BorderLayout.SOUTH);
         main.add(renamePanel);
         main.setVisible(true);
-    }
-
-    private JPanel getRequestsFriendsPanel() {
-        JPanel requestFriendsPanel = new JPanel(new BorderLayout());
-        requestFriendsPanel.add(new JLabel(dictionary.getRequestFriends()), BorderLayout.NORTH);
-        // Создаем контейнер с вертикальным расположением
-        requestsContainer = new JPanel();
-        requestsContainer.setLayout(new BoxLayout(requestsContainer, BoxLayout.Y_AXIS));
-        // Добавляем скроллинг
-        JScrollPane scrollPane = new JScrollPane(requestsContainer);
-        requestFriendsPanel.add(scrollPane, BorderLayout.CENTER);
-
-        return requestFriendsPanel;
-    }
-
-    private JPanel createRequestItem(FriendDto friendRequest) {
-        JPanel label = new JPanel(new FlowLayout());
-        label.add(new JLabel(friendRequest.getUsername()), FlowLayout.LEFT);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton acceptButton = new JButton("+");
-        acceptButton.setToolTipText(dictionary.getConfirmFriend());
-        acceptButton.addActionListener(e -> handleFriendResponse(friendRequest.getUsername(), true));
-
-        JButton rejectButton = new JButton("-");
-        rejectButton.setToolTipText(dictionary.getRejectedFriend());
-        rejectButton.addActionListener(e -> handleFriendResponse(friendRequest.getUsername(), false));
-
-        buttonPanel.add(acceptButton);
-        buttonPanel.add(rejectButton);
-
-        JPanel itemPanel = new JPanel(new BorderLayout());
-        itemPanel.add(label, BorderLayout.WEST);
-        itemPanel.add(buttonPanel, BorderLayout.EAST);
-
-        return itemPanel;
-    }
-
-    private void handleFriendResponse(String friendName, boolean accept) {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                try {
-                    client.confirmFriend(username, friendName, accept);
-                } catch (Exception ex) {
-                    errorHandler(ex);
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                loadRequestsFriends();
-                loadFriends();
-            }
-        }.execute();
     }
 
     private JPanel getStatusBar() {
@@ -557,7 +456,6 @@ public class MainFrame extends JFrame implements MessageListener {
         JButton newUser = new JButton(dictionary.getChangeUser());
         newUser.addActionListener(e -> {
             dispose();
-            stopBackgroundRequestsFriends();
             Client client = new Client();
             new LoginFrame(client).setVisible(true);
         });
@@ -580,14 +478,11 @@ public class MainFrame extends JFrame implements MessageListener {
         rightPanel.setTopComponent(chatPanel);
         rightPanel.setBottomComponent(messagePanel);
         //Панель друзей
-        JPanel friendsPanel = getFriendPanel();
-        //панель запросов в друзья
-        JPanel requestFriendsPanel = getRequestsFriendsPanel();
+        JPanel chatsPanel = getChatsPanel();
         //Левая панель
         JSplitPane leftPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         leftPanel.setDividerLocation(400);
-        leftPanel.setTopComponent(friendsPanel);
-        leftPanel.setBottomComponent(requestFriendsPanel);
+        leftPanel.setTopComponent(chatsPanel);
 
         JSplitPane mainWindow = new JSplitPane();
         mainWindow.setDividerLocation(200);

@@ -17,22 +17,17 @@ public class DictionaryRU extends BaseDictionary {
     private final String password = "Пароль";
     //Окно чата
     private final String chat = "Чат";
-    private final String friends = "Друзья";
-    private final String requestFriends = "Запросы в друзья";
+    private final String chats = "Чаты";
     //Статус бар
     private final String changeUser = "Сменить пользователя";
-    //Окно друзей
-    private final String addFriendTitle = "Добавить друга";
-    private final String friendName = "Имя друга";
-    //Контекстное меню
-    private final String deleteFriend = "Удалить друга";
-    private final String deleteFriendQuestion = "Вы действительно хотите удалить друга";
-    private final String renameFriend = "Переименовать друга";
+    //Окно чатов
+    private final String addChatTitle = "Добавить чат";
+    private final String chatName = "Название чата";
+    private final String renameChat = "Переименовать чат";
     private final String rename = "Переименовать";
-    //Окно принятия запроса в друзья
-    private final String confirmFriendTitle = "Подтверждение запроса в друзья";
-    private final String confirmFriend = "Принять запрос";
-    private final String rejectedFriend = "Отклонить запрос";
+    //Контекстное меню
+    private final String logoutChat = "Выйти из чата";
+    private final String logoutChatQuestion = "Вы уверены, что хотите выйти из чата?";
     //Окно настроек
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";

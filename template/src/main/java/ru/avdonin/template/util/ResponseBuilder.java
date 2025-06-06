@@ -41,7 +41,9 @@ public class ResponseBuilder {
         if (e instanceof EmptyFileException
                 || e instanceof IncorrectUserDataException
                 || e instanceof IncorrectFriendDataException) return HttpStatus.BAD_REQUEST;
+
         else if (e instanceof FtpClientException) return HttpStatus.EXPECTATION_FAILED;
+
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

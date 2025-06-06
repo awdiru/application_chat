@@ -2,6 +2,7 @@ package ru.avdonin.server.entity_model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 
@@ -24,11 +25,14 @@ public class Message {
     @Column(name = "content")
     private String content;
 
+    @Column(name = "file_name")
+    private String file;
+
     @ManyToOne
-    @JoinColumn(name = "sender")
+    @JoinColumn(name = "sender_id")
     private User sender;
 
     @ManyToOne
-    @JoinColumn(name = "recipient")
-    private User recipient;
+    @JoinColumn(name = "chat_id")
+    private Chat chat;
 }
