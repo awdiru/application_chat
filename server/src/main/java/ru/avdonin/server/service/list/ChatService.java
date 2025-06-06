@@ -3,7 +3,10 @@ package ru.avdonin.server.service.list;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.avdonin.server.entity_model.*;
+import ru.avdonin.server.entity_model.Chat;
+import ru.avdonin.server.entity_model.ChatParticipant;
+import ru.avdonin.server.entity_model.ChatParticipantID;
+import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.ChatParticipantRepository;
 import ru.avdonin.server.repository.ChatRepository;
 import ru.avdonin.server.repository.UserRepository;
@@ -51,11 +54,21 @@ public class ChatService extends AbstractService {
 
     public void createPrivateChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
-            throw new IncorrectChatDataException(getDictionary(chatCreateDto.getLocale())
-                    .getCreateChatIncorrectChatDataException());
+            throw new IncorrectChatDataException(
+                    getDictionary(chatCreateDto.getLocale()).getCreateChatIncorrectChatDataException());
 
         User user = getUser(chatCreateDto.getUsername(), chatCreateDto.getLocale());
         User friend = getUser(chatCreateDto.getChatName(), chatCreateDto.getLocale());
+
+        Chat chatOld = null;
+
+        try {
+            chatOld = getPrivateChat(user.getUsername(), friend.getUsername(), chatCreateDto.getLocale());
+        } catch (Exception ignored) {
+        }
+
+        if (chatOld != null) throw new IncorrectChatDataException(
+                getDictionary(chatCreateDto.getLocale()).getCreatePrivateChatIncorrectChatDataException());
 
         Chat chat = Chat.builder()
                 .id(generateChatId())
@@ -82,6 +95,31 @@ public class ChatService extends AbstractService {
                 .customChatName(chatCreateDto.getUsername())
                 .build();
         chatParticipantRepository.save(chatParticipant2);
+    }
+
+    public void createPersonalChat(ChatCreateDto chatCreateDto) {
+        if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
+            throw new IncorrectChatDataException(
+                    getDictionary(chatCreateDto.getLocale()).getCreateChatIncorrectChatDataException());
+
+        User user = getUser(chatCreateDto.getUsername(), chatCreateDto.getLocale());
+
+        Chat chat = Chat.builder()
+                .id(generateChatId())
+                .chatName(chatCreateDto.getUsername())
+                .admin(user)
+                .privateChat(true)
+                .build();
+        chat = chatRepository.save(chat);
+
+        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
+        ChatParticipant chatParticipant = ChatParticipant.builder()
+                .id(chatParticipantID)
+                .chat(chat)
+                .user(user)
+                .customChatName(getDictionary(chatCreateDto.getLocale()).getPersonal())
+                .build();
+        chatParticipantRepository.save(chatParticipant);
     }
 
     public void addUser(ChatParticipantDto chatParticipantDto) {
@@ -176,19 +214,26 @@ public class ChatService extends AbstractService {
         User user = getUser(userFriendDto.getUsername(), userFriendDto.getLocale());
         User friend = getUser(userFriendDto.getFriendName(), userFriendDto.getLocale());
 
-        String chatName1 = user.getUsername() + " - " + friend.getUsername();
-        String chatName2 = friend.getUsername() + " - " + user.getUsername();
+        Chat chat = getPrivateChat(user.getUsername(), friend.getUsername(), userFriendDto.getLocale());
 
-        Chat chat = chatRepository.findChatByChatName(chatName1, chatName2).stream()
+        return getChatDto(user, chat, userFriendDto.getLocale());
+    }
+
+    public ChatDto getPersonalChat(UserDto userDto) {
+        User user = getUser(userDto.getUsername(), userDto.getLocale());
+        Chat chat = chatRepository.findChatByChatName(userDto.getUsername(), userDto.getUsername()).stream()
                 .findFirst()
-                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(userFriendDto.getLocale())
-                        .getGetPrivateChatIncorrectChatDataException()));
+                .orElseThrow(() -> new IncorrectChatDataException(
+                        getDictionary(userDto.getLocale()).getGetPrivateChatIncorrectChatDataException()));
 
+        return getChatDto(user, chat, userDto.getLocale());
+    }
+
+    private ChatDto getChatDto(User user, Chat chat, String locale) {
         ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
-
         ChatParticipant chatParticipant = chatParticipantRepository.findById(chatParticipantID)
-                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(userFriendDto.getLocale())
-                        .getGetPrivateChatIncorrectChatDataException()));
+                .orElseThrow(() -> new IncorrectChatDataException(
+                        getDictionary(locale).getGetPrivateChatIncorrectChatDataException()));
 
         return ChatDto.builder()
                 .id(chat.getId())
@@ -197,6 +242,16 @@ public class ChatService extends AbstractService {
                 .privateChat(chat.getPrivateChat())
                 .admin(chat.getAdmin().getUsername())
                 .build();
+    }
+
+    private Chat getPrivateChat(String username, String friendName, String locale) {
+        String chatName1 = username + " - " + friendName;
+        String chatName2 = friendName + " - " + username;
+
+        return chatRepository.findChatByChatName(chatName1, chatName2).stream()
+                .findFirst()
+                .orElseThrow(() -> new IncorrectChatDataException(
+                        getDictionary(locale).getGetPrivateChatIncorrectChatDataException()));
     }
 
     private String generateChatId() {

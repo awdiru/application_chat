@@ -226,6 +226,17 @@ public class Client {
         });
     }
 
+    public ChatDto getPersonalChat(String username) throws Exception {
+        UserDto userDto = UserDto.builder()
+                .username(username)
+                .build();
+        String json = objectMapper.writeValueAsString(userDto);
+        String url = BaseURL + "/chat/get/personal";
+        HttpResponse<String> response = get(url, json);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
+
     private HttpResponse<String> get(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
