@@ -12,4 +12,5 @@ public class ChatRenameDto {
     private String username;
     private String chatId;
     private String newChatName;
+    private String locale;
 }

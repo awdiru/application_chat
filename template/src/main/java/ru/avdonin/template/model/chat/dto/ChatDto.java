@@ -13,4 +13,5 @@ public class ChatDto {
     private String chatName;
     private String admin;
     private String customName;
+    private Boolean privateChat;
 }

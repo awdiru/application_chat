@@ -6,10 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.avdonin.server.service.ChatService;
 import ru.avdonin.server.service.MessageService;
 import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.model.chat.dto.ChatCreateDto;
-import ru.avdonin.template.model.chat.dto.ChatDto;
-import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
-import ru.avdonin.template.model.chat.dto.ChatRenameDto;
+import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
@@ -32,7 +29,9 @@ public class ChatController extends AbstractController {
     public ResponseEntity<Object> createChat(@RequestBody ChatCreateDto chatCreateDto) {
         try {
             log.info("chatName: " + chatCreateDto.getChatName() + ", username: " + chatCreateDto.getUsername());
-            chatService.createChat(chatCreateDto);
+            if (chatCreateDto.getPrivateChat())
+                chatService.createPrivateChat(chatCreateDto);
+            else chatService.createPublicChat(chatCreateDto);
             return getOkResponse("The chat was created successfully");
         } catch (Exception e) {
             return getErrorResponse(e);
@@ -40,21 +39,20 @@ public class ChatController extends AbstractController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Object> addUser(@RequestParam String chatId,
-                                          @RequestParam String username) {
+    public ResponseEntity<Object> addUser(@RequestBody ChatParticipantDto chatParticipantDto) {
         try {
-            log.info("user " + username + ", chat id: " + chatId);
-            chatService.addUser(chatId, username);
-            return getOkResponse("User " + username + " has been added to the chat");
+            log.info("user " + chatParticipantDto.getUsername() + ", chat id: " + chatParticipantDto.getChatId());
+            chatService.addUser(chatParticipantDto);
+            return getOkResponse("User " + chatParticipantDto.getUsername() + " has been added to the chat");
         } catch (Exception e) {
             return getErrorResponse(e);
         }
     }
 
     @GetMapping("/get/users")
-    public ResponseEntity<Object> getUsers(@RequestParam String chatId) {
+    public ResponseEntity<Object> getUsers(@RequestBody ChatIdDto chatId) {
         try {
-            log.info("chat id: " + chatId);
+            log.info("chat id: " + chatId.getChatId());
             List<UserDto> users = chatService.getChatUsers(chatId);
             return ResponseEntity.ok().body(users);
         } catch (Exception e) {
@@ -87,11 +85,10 @@ public class ChatController extends AbstractController {
     }
 
     @DeleteMapping("/delete/chat")
-    public ResponseEntity<Object> deleteChat(@RequestParam String chatId,
-                                             @RequestParam String username) {
+    public ResponseEntity<Object> deleteChat(@RequestBody ChatParticipantDto chatParticipantDto) {
         try {
-            log.info("chat id: " + chatId);
-            chatService.deleteChat(chatId, username);
+            log.info("chat id: " + chatParticipantDto.getChatId());
+            chatService.deleteChat(chatParticipantDto);
             return getOkResponse("Chat deleted");
         } catch (Exception e) {
             return getErrorResponse(e);
@@ -99,11 +96,10 @@ public class ChatController extends AbstractController {
     }
 
     @PutMapping("/logout")
-    public ResponseEntity<Object> logoutOfChat(@RequestParam String username,
-                                               @RequestParam String chatId) {
+    public ResponseEntity<Object> logoutOfChat(@RequestBody ChatParticipantDto chatParticipantDto) {
         try {
-            log.info("username: " + username + ", chat id: " + chatId);
-            chatService.logoutOfChat(chatId, username);
+            log.info("username: " + chatParticipantDto.getUsername() + ", chat id: " + chatParticipantDto.getChatId());
+            chatService.logoutOfChat(chatParticipantDto);
             return getOkResponse("The user logged out of the chat");
         } catch (Exception e) {
             return getErrorResponse(e);

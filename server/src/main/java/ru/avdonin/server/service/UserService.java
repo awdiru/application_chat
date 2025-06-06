@@ -5,45 +5,52 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.avdonin.server.entity_model.*;
-import ru.avdonin.server.repository.ChatParticipantRepository;
-import ru.avdonin.server.repository.ChatRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class UserService {
+public class UserService extends AbstractService{
     private final UserRepository userRepository;
     private final PasswordService passwordService;
 
     public void validate(UserAuthenticationDto userDto) {
 
-        User user = searchUserByUsername(userDto.getUsername());
+        User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
 
         if (!passwordService.matches(userDto.getPassword(), user.getPassword()))
-            throw new IncorrectUserDataException("Invalid password");
+            throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
+                    .getValidateIncorrectUserDataException());
     }
 
     @Transactional
     public void save(UserAuthenticationDto userDto) {
         try {
+            if (userDto.getUsername() == null || userDto.getUsername().isEmpty())
+                throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
+                        .getSaveIncorrectLoginException());
+            if (userDto.getPassword() == null || userDto.getPassword().isEmpty())
+                throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
+                        .getSaveIncorrectPasswordException());
+
             User user = User.builder()
                     .username(userDto.getUsername())
                     .password(passwordService.hashPassword(userDto.getPassword()))
                     .icon("new_user.png")
                     .build();
             userRepository.save(user);
+        } catch (IncorrectUserDataException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IncorrectUserDataException("A user with that name has already been registered");
+            throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
+                    .getSaveIncorrectUserDataException());
         }
     }
 
-    public User searchUserByUsername(String username) {
+    public User searchUserByUsername(String username, String locale) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IncorrectUserDataException("User with username " + username + " does not exist"));
+                .orElseThrow(() -> new IncorrectUserDataException(getDictionary(locale)
+                        .getSearchUserByUsernameIncorrectUserDataException(username)));
     }
 }

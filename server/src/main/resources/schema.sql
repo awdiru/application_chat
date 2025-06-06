@@ -14,11 +14,12 @@ CREATE TABLE public.users
 );
 
 CREATE TABLE public.chats (
-	id        varchar(255) NOT NULL,
-	chat_name varchar(255) NOT NULL,
-	admin_id  int8,
+	id           varchar(255) NOT NULL,
+	chat_name    varchar(255) NOT NULL,
+	private_chat bool         NOT NULL,
+	admin_id     int8,
 	CONSTRAINT chats_pk PRIMARY KEY (id),
-	CONSTRAINT chats_users_fk FOREIGN KEY (admin_id) REFERENCES public.users(id)
+	CONSTRAINT chats_users_fk FOREIGN KEY (admin_id) REFERENCES public.users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE public.messages (
@@ -29,7 +30,7 @@ CREATE TABLE public.messages (
 	chat_id     varchar(255)                      NOT NULL,
 	"file_name" varchar,
 	CONSTRAINT messages_pk PRIMARY KEY (id),
-	CONSTRAINT messages_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id),
+	CONSTRAINT messages_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE,
 	CONSTRAINT messages_users_fk FOREIGN KEY (sender_id) REFERENCES public.users(id)
 );
 
@@ -37,7 +38,7 @@ CREATE TABLE public.chat_participants (
 	chat_id varchar NOT NULL,
 	user_id int8    NOT NULL,
 	CONSTRAINT chat_participants_unique UNIQUE (chat_id, user_id),
-	CONSTRAINT chat_participants_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id),
+	CONSTRAINT chat_participants_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE,
 	CONSTRAINT chat_participants_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 

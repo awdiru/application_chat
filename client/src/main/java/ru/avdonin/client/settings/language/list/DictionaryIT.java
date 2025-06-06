@@ -5,56 +5,62 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 
 @Getter
 public class DictionaryIT extends BaseDictionary {
+    private final String locale = "IT";
     private final String customization = "Italiano";
-    private final String yes = "Sí";
+    private final String yes = "Sì";
     private final String no = "No";
     private final String confirmation = "Conferma";
-    //Окно авторизации
+    //Finestra di autorizzazione
     private final String authorization = "Autorizzazione";
     private final String login = "Accedi";
     private final String signup = "Registrati";
     private final String username = "Nome utente";
     private final String password = "Password";
-    //Окно чата
+    //Finestra della chat
     private final String chat = "Chat";
     private final String chats = "Chat";
-    //Статус бар
+    //Barra di stato
     private final String changeUser = "Cambia utente";
-    //Окно чатов
-    private final String addChatTitle = "Aggiungi chat";
+    //Barra di stato della chat
+    private final String participants = "Partecipanti";
+    //Finestra delle chat
+    private final String addChatTitle = "Crea chat";
     private final String chatName = "Nome chat";
-    //Контекстное меню
+    //Menu contestuale
     private final String logoutChat = "Esci dalla chat";
     private final String logoutChatQuestion = "Sei sicuro di voler uscire dalla chat?";
-    private final String renameChat = "Rinomina una chat";
-    private final String rename = "Rinominalo";
-    //Окно настроек
+    private final String renameChatCustom = "Rinomina chat (solo per te)";
+    private final String renameChatAdmin = "Rinomina chat (per tutti)";
+    private final String rename = "Rinomina";
+    private final String addUser = "Aggiungi utente";
+    private final String addUserQuestion = "Nome utente";
+    private final String add = "Aggiungi";
+    //Finestra delle impostazioni
     private final String settingsTitle = "Impostazioni";
     private final String settingsLanguage = "Lingua";
-    private final String settingsTimeZone = "Fuso";
+    private final String settingsTimeZone = "Fuso orario";
     private final String settingsSystem = "Sistema";
-    private final String restartProgram = "Per applicare le modifiche, è necessario riavviare il programma";
+    private final String restartProgram = "Per applicare le modifiche, è necessario riavviare il programma.";
     private final String warning = "Avviso";
-    private final String settingTimeZone = "Fuso";
-    //Сообщения об ошибках
+    //Messaggi di errore
     private final String error = "Errore";
     private final String authorizationError = "Errore di autorizzazione";
     private final String errorCode = "Codice errore";
-    private final String statusCode = "Stato errore";
-    //Месяца
-    private final String january = "Gennaio";
-    private final String february = "Febbraio";
-    private final String march = "Marzo";
-    private final String april = "Aprile";
-    private final String may = "Maggio";
-    private final String june = "Giugno";
-    private final String july = "Luglio";
-    private final String august = "Agosto";
-    private final String september = "Settembre";
-    private final String october = "Ottobre";
-    private final String november = "Novembre";
-    private final String december = "Dicembre";
-    //Дни недели
+    private final String statusCode = "Codice di stato";
+    //Mesi (forma base)
+    private final String january = "gennaio";
+    private final String february = "febbraio";
+    private final String march = "marzo";
+    private final String april = "aprile";
+    private final String may = "maggio";
+    private final String june = "giugno";
+    private final String july = "luglio";
+    private final String august = "agosto";
+    private final String september = "settembre";
+    private final String october = "ottobre";
+    private final String november = "novembre";
+    private final String december = "dicembre";
+    //Giorni della settimana
     private final String monday = "Lun";
     private final String tuesday = "Mar";
     private final String wednesday = "Mer";

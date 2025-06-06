@@ -11,4 +11,6 @@ import lombok.*;
 public class ChatCreateDto {
     private String chatName;
     private String username;
+    private Boolean privateChat;
+    private String locale;
 }

@@ -22,7 +22,7 @@ public class ResponseBuilder {
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
                 .message(message)
-                .status(HttpStatus.OK)
+                .status(HttpStatus.OK.toString())
                 .build();
         return ResponseEntity.ok().body(responseMessage);
     }
@@ -31,7 +31,7 @@ public class ResponseBuilder {
         HttpStatus status = getErrorStatus(e);
         ResponseMessage responseMessage = ResponseMessage.builder()
                 .time(LocalDateTime.now())
-                .status(status)
+                .status(status.toString())
                 .message(e.getMessage())
                 .build();
         return ResponseEntity.status(status).body(responseMessage);

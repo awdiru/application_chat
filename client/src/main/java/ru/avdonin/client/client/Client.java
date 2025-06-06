@@ -13,12 +13,11 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
-import ru.avdonin.template.model.chat.dto.ChatCreateDto;
-import ru.avdonin.template.model.chat.dto.ChatDto;
-import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
+import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.chat.dto.ChatRenameDto;
+import ru.avdonin.template.model.user.dto.UserDto;
+import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
@@ -87,10 +86,11 @@ public class Client {
         UserAuthenticationDto userDto = UserAuthenticationDto.builder()
                 .username(username)
                 .password(password)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
-        String requestBody = objectMapper.writeValueAsString(userDto);
+        String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/user" + path;
-        post(url, requestBody);
+        post(url, json);
     }
 
     public void sendMessage(String content, String username, String chatId) throws IOException {
@@ -98,6 +98,7 @@ public class Client {
                 .sender(username)
                 .chat(chatId)
                 .content(content)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
 
         String json = objectMapper.writeValueAsString(message);
@@ -109,6 +110,7 @@ public class Client {
                 .chatId(chatId)
                 .from(0)
                 .size(10)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
 
         String url = BaseURL + "/chat/get/history";
@@ -125,16 +127,20 @@ public class Client {
     }
 
     public List<ChatDto> getChats(String username) throws Exception {
+        LocaleDto localeDto = new LocaleDto(FactoryLanguage.getFactory().getSettings().getLocale());
+        String json = objectMapper.writeValueAsString(localeDto);
         String url = BaseURL + "/chat/get/all?username=" + username;
-        HttpResponse<String> response = get(url, null);
+        HttpResponse<String> response = get(url, json);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
 
-    public void createChat(String username, String chatName) throws Exception {
+    public void createChat(String username, String chatName, Boolean privateChat) throws Exception {
         ChatCreateDto chatCreateDto = ChatCreateDto.builder()
                 .chatName(chatName)
                 .username(username)
+                .privateChat(privateChat)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
 
         String url = BaseURL + "/chat/create";
@@ -143,8 +149,14 @@ public class Client {
     }
 
     public void logoutOfChat(String username, String chatId) throws Exception {
-        String url = BaseURL + "/chat/logout?username=" + username + "&chatId=" + chatId;
-        post(url, null);
+        ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
+                .chatId(chatId)
+                .username(username)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .build();
+        String url = BaseURL + "/chat/logout";
+        String json = objectMapper.writeValueAsString(chatParticipantDto);
+        put(url, json);
     }
 
     public void renameChatCustom(String username, String chatId, String newChatName) throws Exception {
@@ -152,6 +164,7 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/chat/rename/custom";
@@ -163,10 +176,36 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
                 .build();
-        String requestBody = objectMapper.writeValueAsString(userDto);
+        String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/chat/rename";
-        put(url, requestBody);
+        put(url, json);
+    }
+
+    public void addUserFromChat(String username, String chatId) throws Exception {
+        ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
+                .chatId(chatId)
+                .username(username)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .build();
+        String json = objectMapper.writeValueAsString(chatParticipantDto);
+        String url = BaseURL + "/chat/add";
+        post(url, json);
+    }
+
+    public List<UserDto> getChatParticipants(String chatId) throws Exception {
+        ChatIdDto chatIdDto = ChatIdDto.builder()
+                .chatId(chatId)
+                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .build();
+
+        String json = objectMapper.writeValueAsString(chatIdDto);
+        String url = BaseURL + "/chat/get/users";
+
+        HttpResponse<String> response = get(url, json);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
     }
 
     public boolean isNotConnected() {
@@ -199,7 +238,7 @@ public class Client {
         if (response.statusCode() != 200) errorHandler(response);
     }
 
-    private HttpResponse<String> put(String url, String body) throws Exception {
+    private void put(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
                 .method("PUT", HttpRequest.BodyPublishers.ofString(body))
@@ -208,7 +247,7 @@ public class Client {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        return response;
+        if (response.statusCode() != 200) errorHandler(response);
     }
 
     private void errorHandler(HttpResponse<String> response) throws Exception {
@@ -219,7 +258,7 @@ public class Client {
     private String createErrorMessage(ResponseMessage responseMessage) {
         String time = responseMessage.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
         return time + " " + language.getErrorCode() + "\n"
-                + language.getStatusCode() + ": " + responseMessage.getStatus().toString() + "\n"
+                + language.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
                 + language.getError() + ": " + responseMessage.getMessage();
     }
 }

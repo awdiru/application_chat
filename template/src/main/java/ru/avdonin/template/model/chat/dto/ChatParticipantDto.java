@@ -8,9 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @ToString
-public class ChatGetHistoryDto {
+public class ChatParticipantDto {
     private String chatId;
-    private int from;
-    private int size;
+    private String username;
     private String locale;
 }

@@ -20,4 +20,5 @@ public class MessageDto {
     private String sender;
     private String chat;
     private InputStream file;
+    private String locale;
 }

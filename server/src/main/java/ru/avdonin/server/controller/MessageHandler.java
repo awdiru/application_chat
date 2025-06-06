@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.avdonin.server.service.ChatService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
+import ru.avdonin.template.model.chat.dto.ChatIdDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.server.service.MessageService;
@@ -47,7 +48,7 @@ public class MessageHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         try {
             String username = getUsernameFromSession(session);
-            userService.searchUserByUsername(username);
+            userService.searchUserByUsername(username, "EN");
             sessions.put(username, session);
             log.info("connection established, username: " + username);
         } catch (Exception e) {
@@ -74,7 +75,7 @@ public class MessageHandler extends TextWebSocketHandler {
             MessageDto messageDto = objectMapper.readValue(textMessage.getPayload(), MessageDto.class);
             messageDto = messageService.saveMessage(messageDto);
 
-            List<String> users = chatService.getChatUsers(messageDto.getChat()).stream()
+            List<String> users = chatService.getChatUsers(new ChatIdDto(messageDto.getChat(), messageDto.getLocale())).stream()
                     .map(UserDto::getUsername)
                     .toList();
 
@@ -108,7 +109,7 @@ public class MessageHandler extends TextWebSocketHandler {
             ResponseMessage responseMessage = ResponseMessage.builder()
                     .time(LocalDateTime.now())
                     .message(error)
-                    .status(status)
+                    .status(status.toString())
                     .build();
             String errorJson = objectMapper.writeValueAsString(responseMessage);
             session.sendMessage(new TextMessage(errorJson));

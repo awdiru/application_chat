@@ -21,4 +21,7 @@ public class Chat {
     @ManyToOne
     @JoinColumn(name = "admin_id")
     private User admin;
+
+    @Column(name = "private_chat")
+    private Boolean privateChat;
 }
