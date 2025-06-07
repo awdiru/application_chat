@@ -4,10 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.avdonin.server.entity_model.*;
+import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
+import ru.avdonin.template.model.chat.dto.ChatCreateDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 
 @Service
@@ -15,6 +16,7 @@ import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 public class UserService extends AbstractService {
     private final UserRepository userRepository;
     private final PasswordService passwordService;
+    private final ChatService chatService;
 
     public void validate(UserAuthenticationDto userDto) {
 
@@ -40,7 +42,15 @@ public class UserService extends AbstractService {
                     .password(passwordService.hashPassword(userDto.getPassword()))
                     .icon("new_user.png")
                     .build();
+
             userRepository.save(user);
+            chatService.createPersonalChat(ChatCreateDto.builder()
+                    .chatName(userDto.getUsername())
+                    .username(userDto.getUsername())
+                    .locale(userDto.getLocale())
+                    .privateChat(true)
+                    .build());
+
         } catch (IncorrectUserDataException e) {
             throw e;
         } catch (Exception e) {

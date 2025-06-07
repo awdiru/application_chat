@@ -537,8 +537,13 @@ public class MainFrame extends JFrame implements MessageListener {
             participants.add(userItem);
             userItem.addActionListener(e -> {
                 try {
-                    String chatIdNew = client.getPrivateChat(username, u.getUsername()).getId();
+                    String chatIdNew;
+                    if (!u.getUsername().equals(username))
+                        chatIdNew = client.getPrivateChat(username, u.getUsername()).getId();
+                    else chatIdNew = client.getPersonalChat(username).getId();
+
                     if (chatId.equals(chatIdNew)) return;
+
                     chatId = chatIdNew;
                     loadChatHistory();
                 } catch (Exception ex) {

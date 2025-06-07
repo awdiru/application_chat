@@ -143,4 +143,15 @@ public class ChatController extends AbstractController {
             return getErrorResponse(e);
         }
     }
+
+    @GetMapping("/get/personal")
+    public ResponseEntity<Object> getPersonalChat(@RequestBody UserDto userDto) {
+        try {
+            log.info("username: " + userDto.getUsername());
+            ChatDto chatDto = chatService.getPersonalChat(userDto);
+            return ResponseEntity.ok().body(chatDto);
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
 }

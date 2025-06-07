@@ -16,6 +16,7 @@ public abstract class AbstractDictionary {
     private final String saveIncorrectUserDataException = "A user with that name has already been registered";
     private final String createChatIncorrectChatDataException = "The chat name cannot be empty";
     private final String getPrivateChatIncorrectChatDataException = "There is no chat submitted by the user";
+    private final String createPrivateChatIncorrectChatDataException = "Such a private chat already exists";
 
     public String getSaveMessageIncorrectUserDataException(String sender) {
         return "User with username " + sender + " does not exist";
@@ -40,4 +41,6 @@ public abstract class AbstractDictionary {
     public String getSearchUserByUsernameIncorrectUserDataException(String username) {
         return "User with username " + username + " does not exist";
     }
+
+    private final String personal = "Personal";
 }
