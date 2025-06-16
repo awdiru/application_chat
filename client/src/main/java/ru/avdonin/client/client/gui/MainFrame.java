@@ -8,6 +8,7 @@ import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.ChatDto;
+import ru.avdonin.template.model.chat.dto.InvitationChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
@@ -28,6 +29,7 @@ public class MainFrame extends JFrame implements MessageListener {
     private JTextArea chatArea;
     private JTextField messageField;
     private JPanel chatsContainer;
+    private JPanel invitationsContainer;
     private String chatId;
 
     public MainFrame(Client client, String username) {
@@ -135,6 +137,32 @@ public class MainFrame extends JFrame implements MessageListener {
         }.execute();
     }
 
+    private void loadInvitations() {
+        new SwingWorker<List<InvitationChatDto>, Void>() {
+            @Override
+            protected List<InvitationChatDto> doInBackground() {
+                try {
+                    return client.getInvitationsChats(username);
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+                return List.of();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    invitationsContainer.removeAll();
+                    for (InvitationChatDto inv : get()) chatsContainer.add(createInvitationItem(inv));
+                    chatsContainer.revalidate();
+                    chatsContainer.repaint();
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+            }
+        }.execute();
+    }
+
     private void createChat() {
         JFrame main = new JFrame();
         main.setTitle(dictionary.getAddChatTitle());
@@ -210,24 +238,63 @@ public class MainFrame extends JFrame implements MessageListener {
         return messagePanel;
     }
 
+    private JSplitPane getLeftPanel() {
+        JPanel chatsPanel = getChatsPanel();
+        JPanel invitationsPanel = getInvitationsPanel();
+
+        JSplitPane leftPanel = new JSplitPane();
+        leftPanel.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        leftPanel.setTopComponent(chatsPanel);
+        leftPanel.setBottomComponent(invitationsPanel);
+
+        return leftPanel;
+    }
+
     private JPanel getChatsPanel() {
         chatsContainer = new JPanel();
         chatsContainer.setLayout(new BoxLayout(chatsContainer, BoxLayout.Y_AXIS));
 
-        JScrollPane scrollPane = new JScrollPane(chatsContainer);
+        JScrollPane chatsScrollPane = new JScrollPane(chatsContainer);
 
-        JButton addButton = new JButton(dictionary.getPlus());
-        addButton.addActionListener(e -> createChat());
+        JButton addChatButton = new JButton(dictionary.getPlus());
+        addChatButton.addActionListener(e -> createChat());
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
-        headerPanel.add(addButton, BorderLayout.EAST);
+        JPanel headerChatsPanel = new JPanel(new BorderLayout());
+        headerChatsPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
+        headerChatsPanel.add(addChatButton, BorderLayout.EAST);
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        JPanel chatsPanel = new JPanel(new BorderLayout());
+        chatsPanel.add(headerChatsPanel, BorderLayout.NORTH);
+        chatsPanel.add(chatsScrollPane, BorderLayout.CENTER);
 
-        return panel;
+        return chatsPanel;
+    }
+
+    private JPanel getInvitationsPanel() {
+        invitationsContainer = new JPanel();
+        invitationsContainer.setLayout(new BoxLayout(invitationsContainer, BoxLayout.Y_AXIS));
+
+        JScrollPane invitationsScrollPane = new JScrollPane(invitationsContainer);
+
+        JButton rebootInvitationsButton = new JButton(dictionary.getReboot());
+        rebootInvitationsButton.addActionListener(e -> {
+            try {
+                loadInvitations();
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        });
+
+        JPanel headerInvitationsPanel = new JPanel(new BorderLayout());
+        headerInvitationsPanel.add(new JLabel(dictionary.getInvitations()), BorderLayout.CENTER);
+        headerInvitationsPanel.add(rebootInvitationsButton, BorderLayout.EAST);
+
+        JPanel invitationsPanel = new JPanel(new BorderLayout());
+        invitationsPanel.add(headerInvitationsPanel, BorderLayout.NORTH);
+        invitationsPanel.add(invitationsScrollPane, BorderLayout.CENTER);
+        //invitationsPanel.setMinimumSize(new Dimension(1000, 100));
+
+        return invitationsPanel;
     }
 
     private JPanel createChatItem(ChatDto chat) {
@@ -272,6 +339,27 @@ public class MainFrame extends JFrame implements MessageListener {
         return itemPanel;
     }
 
+    private JPanel createInvitationItem(InvitationChatDto invitation) {
+        JTextArea textArea = new JTextArea(invitation.getChatName());
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setFocusable(false);
+        textArea.setBorder(null);
+
+        JButton menuButton = new JButton(dictionary.getEllipsis());
+        menuButton.addActionListener(e -> showInvitationsContextMenu(menuButton, invitation));
+
+        JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.add(textArea, BorderLayout.CENTER);
+        itemPanel.add(menuButton, BorderLayout.EAST);
+
+        itemPanel.setMaximumSize(new Dimension(10000, 40));
+        itemPanel.setOpaque(true);
+
+        return itemPanel;
+    }
+
     private void showChatContextMenu(JComponent parent, ChatDto chat) {
         JPopupMenu menu = new JPopupMenu();
         if (!chat.getPrivateChat()) {
@@ -302,6 +390,10 @@ public class MainFrame extends JFrame implements MessageListener {
         // TODO Здесь можно добавить другие действия над пользователем
 
         menu.show(parent, 0, parent.getHeight());
+    }
+
+    private void showInvitationsContextMenu(JComponent parent, InvitationChatDto invitationChatDto) {
+
     }
 
     private void addUserFromChat(ChatDto chat) {
@@ -566,10 +658,8 @@ public class MainFrame extends JFrame implements MessageListener {
         rightPanel.add(chatStatusBar, BorderLayout.NORTH);
         rightPanel.add(chatPanel, BorderLayout.CENTER);
         rightPanel.add(messagePanel, BorderLayout.SOUTH);
-        //Панель друзей
-        JPanel chatsPanel = getChatsPanel();
         //Левая панель
-        JPanel leftPanel = getChatsPanel();
+        JSplitPane leftPanel = getLeftPanel();
 
         JSplitPane mainWindow = new JSplitPane();
         mainWindow.setDividerLocation(200);

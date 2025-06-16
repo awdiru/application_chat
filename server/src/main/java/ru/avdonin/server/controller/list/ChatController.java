@@ -11,6 +11,7 @@ import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
+import ru.avdonin.template.model.user.dto.UsernameDto;
 
 import java.util.List;
 
@@ -41,11 +42,11 @@ public class ChatController extends AbstractController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Object> addUser(@RequestBody ChatParticipantDto chatParticipantDto) {
+    public ResponseEntity<Object> addUser(@RequestBody InvitationChatDto invitationChatDto) {
         try {
-            log.info("user " + chatParticipantDto.getUsername() + ", chat id: " + chatParticipantDto.getChatId());
-            chatService.addUser(chatParticipantDto);
-            return getOkResponse("User " + chatParticipantDto.getUsername() + " has been added to the chat");
+            log.info("user " + invitationChatDto.getUsername() + ", chat id: " + invitationChatDto.getChatId());
+            chatService.addUser(invitationChatDto);
+            return getOkResponse("User " + invitationChatDto.getUsername() + " has been added to the chat");
         } catch (Exception e) {
             return getErrorResponse(e);
         }
@@ -57,6 +58,30 @@ public class ChatController extends AbstractController {
             log.info("chat id: " + chatId.getChatId());
             List<UserDto> users = chatService.getChatUsers(chatId);
             return ResponseEntity.ok().body(users);
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @GetMapping("/get/invitations")
+    public ResponseEntity<Object> getInvitations(@RequestBody UsernameDto usernameDto) {
+        try {
+            log.info("username: " + usernameDto.getUsername());
+            List<InvitationChatDto> invitationsChatsDto = chatService.getInvitations(usernameDto);
+            return ResponseEntity.ok().body(invitationsChatsDto);
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @PostMapping("/confirm/invitation")
+    public ResponseEntity<Object> confirmInvitation(@RequestBody InvitationChatDto invitationChatDto) {
+        try {
+            log.info("username: " + invitationChatDto.getUsername()
+                    + ", chat id: " + invitationChatDto.getChatId()
+                    + ", confirmed: " + (invitationChatDto.isConfirmed() ? "CONFIRMED" : "REJECTED"));
+            InvitationChatDto invitationChatDtoResp = chatService.confirmInvitation(invitationChatDto);
+            return ResponseEntity.ok().body(invitationChatDtoResp);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

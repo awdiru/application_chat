@@ -1,7 +1,6 @@
 package ru.avdonin.template.model.user.dto;
 
 import lombok.*;
-import ru.avdonin.template.model.util.BaseDto;
 
 @Getter
 @Setter
@@ -9,8 +8,7 @@ import ru.avdonin.template.model.util.BaseDto;
 @NoArgsConstructor
 @Builder
 @ToString
-public class UserAuthenticationDto {
+public class UsernameDto {
     private String username;
-    private String password;
     private String locale;
 }

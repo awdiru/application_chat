@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 @ToString
 public class UserFriendDto {
-    String username;
-    String friendName;
-    String locale;
+    private String username;
+    private String friendName;
+    private String locale;
 }

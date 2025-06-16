@@ -1,0 +1,4 @@
+encryption:
+  key: 18'XY5W^:@LhW^V8NiEUftJ@+jd|LWOS
+  algorithm: AES
+  transformation: AES/CBC/PKCS5Padding

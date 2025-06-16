@@ -18,6 +18,7 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
+import ru.avdonin.template.model.user.dto.UsernameDto;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
@@ -87,7 +88,7 @@ public class Client {
         UserAuthenticationDto userDto = UserAuthenticationDto.builder()
                 .username(username)
                 .password(password)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/user" + path;
@@ -99,7 +100,7 @@ public class Client {
                 .sender(username)
                 .chat(chatId)
                 .content(content)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
 
         String json = objectMapper.writeValueAsString(message);
@@ -111,7 +112,7 @@ public class Client {
                 .chatId(chatId)
                 .from(0)
                 .size(10)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
 
         String url = BaseURL + "/chat/get/history";
@@ -128,7 +129,7 @@ public class Client {
     }
 
     public List<ChatDto> getChats(String username) throws Exception {
-        LocaleDto localeDto = new LocaleDto(FactoryLanguage.getFactory().getSettings().getLocale());
+        LocaleDto localeDto = new LocaleDto(getLocale());
         String json = objectMapper.writeValueAsString(localeDto);
         String url = BaseURL + "/chat/get/all?username=" + username;
         HttpResponse<String> response = get(url, json);
@@ -141,7 +142,7 @@ public class Client {
                 .chatName(chatName)
                 .username(username)
                 .privateChat(privateChat)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
 
         String url = BaseURL + "/chat/create";
@@ -153,7 +154,7 @@ public class Client {
         ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
                 .chatId(chatId)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String url = BaseURL + "/chat/logout";
         String json = objectMapper.writeValueAsString(chatParticipantDto);
@@ -165,7 +166,7 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/chat/rename/custom";
@@ -177,7 +178,7 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(userDto);
         String url = BaseURL + "/chat/rename";
@@ -188,17 +189,29 @@ public class Client {
         ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
                 .chatId(chatId)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(chatParticipantDto);
         String url = BaseURL + "/chat/add";
         post(url, json);
     }
+    
+    public List<InvitationChatDto> getInvitationsChats(String username) throws Exception {
+        UsernameDto usernameDto = UsernameDto.builder()
+                .username(username)
+                .locale(getLocale())
+                .build();
+        String json = objectMapper.writeValueAsString(usernameDto);
+        String url = BaseURL + "/chat/get/invitations";
+        HttpResponse<String> response = get(url, json);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
 
     public List<UserDto> getChatParticipants(String chatId) throws Exception {
         ChatIdDto chatIdDto = ChatIdDto.builder()
                 .chatId(chatId)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
 
         String json = objectMapper.writeValueAsString(chatIdDto);
@@ -217,7 +230,7 @@ public class Client {
         UserFriendDto userFriendDto = UserFriendDto.builder()
                 .friendName(friendName)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
         String json = objectMapper.writeValueAsString(userFriendDto);
         String url = BaseURL + "/chat/get/private";
@@ -284,5 +297,9 @@ public class Client {
         return time + " " + language.getErrorCode() + "\n"
                 + language.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
                 + language.getError() + ": " + responseMessage.getMessage();
+    }
+    
+    private String getLocale() {
+        return FactoryLanguage.getFactory().getSettings().getLocale();
     }
 }

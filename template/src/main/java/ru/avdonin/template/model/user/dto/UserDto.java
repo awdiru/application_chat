@@ -1,6 +1,7 @@
 package ru.avdonin.template.model.user.dto;
 
 import lombok.*;
+import ru.avdonin.template.model.util.BaseDto;
 
 import java.io.InputStream;
 
