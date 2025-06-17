@@ -32,10 +32,10 @@ public class ChatController extends AbstractController {
     public ResponseEntity<Object> createChat(@RequestBody ChatCreateDto chatCreateDto) {
         try {
             log.info("chatName: " + chatCreateDto.getChatName() + ", username: " + chatCreateDto.getUsername());
-            if (chatCreateDto.getPrivateChat())
-                chatService.createPrivateChat(chatCreateDto);
-            else chatService.createPublicChat(chatCreateDto);
-            return getOkResponse("The chat was created successfully");
+            ChatDto chatDto = chatCreateDto.getPrivateChat()
+                    ? chatService.createPrivateChat(chatCreateDto)
+                    : chatService.createPublicChat(chatCreateDto);
+            return ResponseEntity.ok().body(chatDto);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

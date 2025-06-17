@@ -31,7 +31,7 @@ public class EncryptionKeyStore {
         }
     }
 
-    public String getKey(String roomId, String userId) {
+    public String getKey(String roomId) {
         String sql = """
         select encryption_key from room_keys
         where room_id = ?

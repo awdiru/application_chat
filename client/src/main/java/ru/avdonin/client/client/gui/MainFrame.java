@@ -153,9 +153,9 @@ public class MainFrame extends JFrame implements MessageListener {
             protected void done() {
                 try {
                     invitationsContainer.removeAll();
-                    for (InvitationChatDto inv : get()) chatsContainer.add(createInvitationItem(inv));
-                    chatsContainer.revalidate();
-                    chatsContainer.repaint();
+                    for (InvitationChatDto inv : get()) invitationsContainer.add(createInvitationItem(inv));
+                    invitationsContainer.revalidate();
+                    invitationsContainer.repaint();
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -163,22 +163,21 @@ public class MainFrame extends JFrame implements MessageListener {
         }.execute();
     }
 
-    private void createChat() {
+    private void createChat(boolean isPrivate) {
         JFrame main = new JFrame();
         main.setTitle(dictionary.getAddChatTitle());
         main.setSize(240, 110);
         main.setLocationRelativeTo(null);
 
         JPanel addChatPanel = new JPanel(new BorderLayout());
-        JTextField chatNameField = new JTextField();
-        addChatPanel.add(new JLabel(dictionary.getChatName()), BorderLayout.NORTH);
-        addChatPanel.add(chatNameField, BorderLayout.CENTER);
+        JTextField labelField = new JTextField();
+        addChatPanel.add(new JLabel(isPrivate ? dictionary.getFriendsName() : dictionary.getChatName()), BorderLayout.NORTH);
+        addChatPanel.add(labelField, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new BorderLayout());
-        JButton pubChatButton = new JButton(dictionary.getPublicChat());
+        JButton pubChatButton = new JButton(dictionary.getCreateChat());
         pubChatButton.addActionListener(e -> {
             try {
-                client.createChat(username, chatNameField.getText(), false);
+                client.createChat(username, labelField.getText(), isPrivate);
                 loadChats();
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
@@ -186,23 +185,26 @@ public class MainFrame extends JFrame implements MessageListener {
             main.dispose();
         });
 
-        JButton privateChatButton = new JButton(dictionary.getPrivateChat());
-        privateChatButton.addActionListener(e -> {
-            try {
-                client.createChat(username, chatNameField.getText(), true);
-                loadChats();
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            }
-            main.dispose();
-        });
-
-        buttonPanel.add(pubChatButton, BorderLayout.WEST);
-        buttonPanel.add(privateChatButton, BorderLayout.EAST);
-        addChatPanel.add(buttonPanel, BorderLayout.SOUTH);
+        addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
 
         main.add(addChatPanel);
         main.setVisible(true);
+    }
+
+    private void showCreateChatContextMenu(JComponent parent) {
+        JPopupMenu menu = new JPopupMenu();
+
+        JMenuItem privateChat = new JMenuItem();
+        privateChat.setText(dictionary.getPrivateChat());
+        privateChat.addActionListener(e -> createChat(true));
+        menu.add(privateChat);
+
+        JMenuItem publicChat = new JMenuItem();
+        publicChat.setText(dictionary.getPublicChat());
+        publicChat.addActionListener(e -> createChat(false));
+        menu.add(publicChat);
+
+        menu.show(parent, 0, parent.getHeight());
     }
 
     @Override
@@ -257,7 +259,7 @@ public class MainFrame extends JFrame implements MessageListener {
         JScrollPane chatsScrollPane = new JScrollPane(chatsContainer);
 
         JButton addChatButton = new JButton(dictionary.getPlus());
-        addChatButton.addActionListener(e -> createChat());
+        addChatButton.addActionListener(e -> showCreateChatContextMenu(addChatButton));
 
         JPanel headerChatsPanel = new JPanel(new BorderLayout());
         headerChatsPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
@@ -266,6 +268,7 @@ public class MainFrame extends JFrame implements MessageListener {
         JPanel chatsPanel = new JPanel(new BorderLayout());
         chatsPanel.add(headerChatsPanel, BorderLayout.NORTH);
         chatsPanel.add(chatsScrollPane, BorderLayout.CENTER);
+        chatsPanel.setMinimumSize(new Dimension(1000, 300));
 
         return chatsPanel;
     }
@@ -292,7 +295,6 @@ public class MainFrame extends JFrame implements MessageListener {
         JPanel invitationsPanel = new JPanel(new BorderLayout());
         invitationsPanel.add(headerInvitationsPanel, BorderLayout.NORTH);
         invitationsPanel.add(invitationsScrollPane, BorderLayout.CENTER);
-        //invitationsPanel.setMinimumSize(new Dimension(1000, 100));
 
         return invitationsPanel;
     }
@@ -393,7 +395,35 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private void showInvitationsContextMenu(JComponent parent, InvitationChatDto invitationChatDto) {
+        JPopupMenu menu = new JPopupMenu();
 
+        JMenuItem confirmInvite = new JMenuItem();
+        confirmInvite.setText(dictionary.getConfirmInvite());
+        confirmInvite.addActionListener(e -> {
+            try {
+                client.confirmInvite(invitationChatDto.getChatId(), username, true);
+                loadChats();
+                loadInvitations();
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        });
+        menu.add(confirmInvite);
+
+        JMenuItem rejectInvite = new JMenuItem();
+        rejectInvite.setText(dictionary.getRejectInvite());
+        rejectInvite.addActionListener(e -> {
+            try {
+                client.confirmInvite(invitationChatDto.getChatId(), username, false);
+                loadChats();
+                loadInvitations();
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        });
+        menu.add(rejectInvite);
+
+        menu.show(parent, 0, parent.getHeight());
     }
 
     private void addUserFromChat(ChatDto chat) {
@@ -607,7 +637,7 @@ public class MainFrame extends JFrame implements MessageListener {
         JButton chatUsers = new JButton(dictionary.getParticipants());
         chatUsers.addActionListener(e -> {
             try {
-                getParticipants(chatUsers);
+                showContextMenuParticipant(chatUsers);
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
@@ -618,7 +648,7 @@ public class MainFrame extends JFrame implements MessageListener {
         return chatStatusBar;
     }
 
-    private void getParticipants(JComponent parent) throws Exception {
+    private void showContextMenuParticipant(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
         if (chatId == null || chatId.isEmpty()) return;
 
@@ -646,18 +676,25 @@ public class MainFrame extends JFrame implements MessageListener {
         participants.show(parent, 0, parent.getHeight());
     }
 
-    private JSplitPane getChatAppSplitPane() {
-        //Окно статуса чата
+    private JPanel getRightPanel() {
+        //Панель статуса чата
         JPanel chatStatusBar = getChatStatusBar();
-        //Окно истории сообщений
+        //Панель истории сообщений
         JPanel chatPanel = getChatPanel();
-        //Окно ввода текста
+        //Панель ввода текста
         JPanel messagePanel = getMessagePanel();
-        //Правая панель
+
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.add(chatStatusBar, BorderLayout.NORTH);
         rightPanel.add(chatPanel, BorderLayout.CENTER);
         rightPanel.add(messagePanel, BorderLayout.SOUTH);
+
+        return rightPanel;
+    }
+
+    private JSplitPane getChatAppSplitPane() {
+        //Правая панель
+        JPanel rightPanel = getRightPanel();
         //Левая панель
         JSplitPane leftPanel = getLeftPanel();
 
@@ -680,6 +717,8 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private String getChatName(ChatDto chat) {
-        return chat.getCustomName() == null || chat.getCustomName().isEmpty() ? chat.getChatName() : chat.getCustomName() + " (" + chat.getChatName() + ")";
+        return chat.getCustomName() == null || chat.getCustomName().isEmpty()
+                ? chat.getChatName()
+                : chat.getCustomName() + " (" + chat.getChatName() + ")";
     }
 }

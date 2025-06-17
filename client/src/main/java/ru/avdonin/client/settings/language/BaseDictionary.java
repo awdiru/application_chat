@@ -29,9 +29,11 @@ public abstract class BaseDictionary extends BaseSettings {
     //Chats window
     private final String addChatTitle = "Add chat";
     private final String chatName = "Chat name";
+    private final String friendsName = "Friend's name";
     private final String privateChat = "Private chat";
     private final String publicChat = "Public chat";
-    //Context menu
+    private final String createChat = "Create chat";
+    //Chat context menu
     private final String logoutChat = "Log out of the chat";
     private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
     private final String renameChatCustom = "Rename the chat (at home)";
@@ -41,6 +43,9 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String addUserQuestion = "Username";
     private final String add = "Add";
     private final String deleteChat = "Delete chat";
+    //invite context menu
+    private final String confirmInvite = "Accept the invitation";
+    private final String rejectInvite = "Decline the invitation";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";

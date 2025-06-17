@@ -1,26 +1,29 @@
     package ru.avdonin.client.encript;
 
     import org.springframework.beans.factory.annotation.Value;
+    import org.yaml.snakeyaml.Yaml;
 
     import javax.crypto.Cipher;
     import javax.crypto.spec.IvParameterSpec;
     import javax.crypto.spec.SecretKeySpec;
+    import java.io.InputStream;
     import java.nio.charset.StandardCharsets;
     import java.security.SecureRandom;
     import java.util.Arrays;
     import java.util.Base64;
+    import java.util.Map;
 
     public class EncryptionService {
         private static final int IV_LENGTH = 16;
+        private static final int CHAT_KEYS_LENGTH = 32;
 
-        @Value("${encryption.transformation}")
         private String transformation;
-
-        @Value("${encryption.algorithm}")
         private String algorithm;
-
-        @Value("${encryption.key}")
         private String secretKey;
+
+        public EncryptionService() {
+            loadPropertiesFromYaml();
+        }
 
         private SecretKeySpec getSecretKeySpec() {
             if (secretKey == null || secretKey.length() != 32) {
@@ -101,11 +104,11 @@
         }
 
         public String generateKey() {
-            return new String(generateRandomByteArray());
+            return new String(generateRandomByteArray(CHAT_KEYS_LENGTH), StandardCharsets.UTF_8);
         }
 
         private IvParameterSpec generateIv() {
-            return new IvParameterSpec(generateRandomByteArray());
+            return new IvParameterSpec(generateRandomByteArray(IV_LENGTH));
         }
 
         private byte[] concatenateByteArrays(byte[] a, byte[] b) {
@@ -115,9 +118,29 @@
             return result;
         }
 
-        private byte[] generateRandomByteArray() {
-            byte[] array = new byte[IV_LENGTH];
+        private byte[] generateRandomByteArray(int length) {
+            byte[] array = new byte[length];
             new SecureRandom().nextBytes(array);
             return array;
+        }
+
+        private void loadPropertiesFromYaml() {
+            Yaml yaml = new Yaml();
+            InputStream inputStream = getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("application.yml");
+
+            if (inputStream == null) {
+                throw new RuntimeException("Файл application.yml не найден!");
+            }
+            Map<String, Object> yamlMap = yaml.load(inputStream);
+            Map<String, Object> encryptionConfig = (Map<String, Object>) yamlMap.get("encryption");
+            if (encryptionConfig != null) {
+                this.transformation = (String) encryptionConfig.get("transformation");
+                this.algorithm = (String) encryptionConfig.get("algorithm");
+                this.secretKey = (String) encryptionConfig.get("key");
+            } else {
+                throw new RuntimeException("Раздел 'encryption' отсутствует в application.yml");
+            }
         }
     }

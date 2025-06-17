@@ -29,7 +29,7 @@ public class ChatService extends AbstractService {
     private final InvitationsRepository invitationsRepository;
     private final FtpService ftpService;
 
-    public void createPublicChat(ChatCreateDto chatCreateDto) {
+    public ChatDto createPublicChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
             throw new IncorrectChatDataException(getDictionary(chatCreateDto.getLocale())
                     .getCreateChatIncorrectChatDataException());
@@ -51,9 +51,13 @@ public class ChatService extends AbstractService {
                 .user(user)
                 .build();
         chatParticipantRepository.save(chatParticipant);
+
+        return ChatDto.builder()
+                .id(chat.getId())
+                .build();
     }
 
-    public void createPrivateChat(ChatCreateDto chatCreateDto) {
+    public ChatDto createPrivateChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
             throw new IncorrectChatDataException(
                     getDictionary(chatCreateDto.getLocale()).getCreateChatIncorrectChatDataException());
@@ -96,6 +100,10 @@ public class ChatService extends AbstractService {
                 .customChatName(chatCreateDto.getUsername())
                 .build();
         chatParticipantRepository.save(chatParticipant2);
+
+        return ChatDto.builder()
+                .id(chat.getId())
+                .build();
     }
 
     public void createPersonalChat(ChatCreateDto chatCreateDto) {
@@ -177,7 +185,6 @@ public class ChatService extends AbstractService {
             return InvitationChatDto.builder()
                     .chatId(chat.getId())
                     .username(user.getUsername())
-                    .confirmed(false)
                     .build();
         }
     }

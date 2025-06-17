@@ -9,6 +9,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
+import ru.avdonin.client.encript.EncryptionKeyStore;
+import ru.avdonin.client.encript.EncryptionService;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
@@ -41,6 +43,8 @@ public class Client {
     @Getter
     private BaseDictionary language = FactoryLanguage.getFactory().getSettings();
 
+    private final EncryptionService encryptionService = new EncryptionService();
+    private final EncryptionKeyStore encryptionKeyStore = new EncryptionKeyStore();
     private final String BaseURL = "http://localhost:8080";
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -72,11 +76,14 @@ public class Client {
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                 )));
+        String chatKey = encryptionKeyStore.getKey(messageDto.getChat());
+        String decryptedContent = encryptionService.decrypt(messageDto.getContent(), chatKey);
+        messageDto.setContent(decryptedContent);
         messageListener.onMessageReceived(messageDto);
     }
 
     @OnClose
-    public void onClose(CloseReason closeReason) {
+    public void onClose(CloseReason closeReason) throws IOException {
     }
 
     @OnError
@@ -96,10 +103,13 @@ public class Client {
     }
 
     public void sendMessage(String content, String username, String chatId) throws IOException {
+        String chatKey = encryptionKeyStore.getKey(chatId);
+        String encryptedContent = encryptionService.encrypt(content, chatKey);
+
         MessageDto message = MessageDto.builder()
                 .sender(username)
                 .chat(chatId)
-                .content(content)
+                .content(encryptedContent)
                 .locale(getLocale())
                 .build();
 
@@ -147,7 +157,11 @@ public class Client {
 
         String url = BaseURL + "/chat/create";
         String json = objectMapper.writeValueAsString(chatCreateDto);
-        post(url, json);
+        HttpResponse<String> response = post(url, json);
+        ChatDto chatDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+        String chatKey = encryptionService.generateKey();
+        encryptionKeyStore.saveKey(chatDto.getId(), chatKey);
     }
 
     public void logoutOfChat(String username, String chatId) throws Exception {
@@ -186,12 +200,14 @@ public class Client {
     }
 
     public void addUserFromChat(String username, String chatId) throws Exception {
-        ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
+        String chatKey = encryptionKeyStore.getKey(chatId);
+        InvitationChatDto invitationChatDto = InvitationChatDto.builder()
                 .chatId(chatId)
                 .username(username)
+                .roomKey(chatKey)
                 .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(chatParticipantDto);
+        String json = objectMapper.writeValueAsString(invitationChatDto);
         String url = BaseURL + "/chat/add";
         post(url, json);
     }
@@ -206,6 +222,15 @@ public class Client {
         HttpResponse<String> response = get(url, json);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+    }
+
+    public InvitationChatDto confirmInvite(String chatId, String username, boolean isConfirmed) {
+        InvitationChatDto invitationChatDto = InvitationChatDto.builder()
+                .chatId(chatId)
+                .username(username)
+                .confirmed(isConfirmed)
+                .build();
+
     }
 
     public List<UserDto> getChatParticipants(String chatId) throws Exception {
@@ -262,7 +287,7 @@ public class Client {
         return response;
     }
 
-    private void post(String url, String body) throws Exception {
+    private HttpResponse<String> post(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -273,9 +298,10 @@ public class Client {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
-    private void put(String url, String body) throws Exception {
+    private HttpResponse<String> put(String url, String body) throws Exception {
         if (body == null) body = "";
         HttpRequest request = HttpRequest.newBuilder()
                 .method("PUT", HttpRequest.BodyPublishers.ofString(body))
@@ -285,6 +311,7 @@ public class Client {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
     private void errorHandler(HttpResponse<String> response) throws Exception {
