@@ -75,7 +75,7 @@ public class MessageHandler extends TextWebSocketHandler {
             MessageDto messageDto = objectMapper.readValue(textMessage.getPayload(), MessageDto.class);
             messageDto = messageService.saveMessage(messageDto);
 
-            List<String> users = chatService.getChatUsers(new ChatIdDto(messageDto.getChat(), messageDto.getLocale())).stream()
+            List<String> users = chatService.getChatUsers(new ChatIdDto(messageDto.getChatId(), messageDto.getLocale())).stream()
                     .map(UserDto::getUsername)
                     .toList();
 

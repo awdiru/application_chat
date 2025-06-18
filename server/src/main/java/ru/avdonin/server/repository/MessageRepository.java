@@ -16,6 +16,4 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             order by time desc
             """)
     List<Message> findAllMessagesChat(String chatId, Pageable page);
-
-    void deleteAllByChatId(String chatId);
 }

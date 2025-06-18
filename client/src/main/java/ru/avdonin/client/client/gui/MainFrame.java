@@ -17,9 +17,12 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 public class MainFrame extends JFrame implements MessageListener {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -31,6 +34,8 @@ public class MainFrame extends JFrame implements MessageListener {
     private JPanel chatsContainer;
     private JPanel invitationsContainer;
     private String chatId;
+    private int chatHistoryCount = 1;
+    private List<MessageDto> messages = new ArrayList<>();
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -40,6 +45,7 @@ public class MainFrame extends JFrame implements MessageListener {
 
         initUi();
         loadChats();
+        loadInvitations();
     }
 
     private void initUi() {
@@ -90,25 +96,58 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected void done() {
                 try {
-                    chatArea.setText("");
-                    OffsetDateTime oldDate = get().getFirst().getTime();
-                    MainFrameHelper.addDate(oldDate, chatArea, dictionary);
-
-                    for (MessageDto m : get()) {
-                        if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
-                            MainFrameHelper.addDate(m.getTime(), chatArea, dictionary);
-                            oldDate = m.getTime();
-                        }
-
-                        onMessageReceived(m);
-                    }
+                    fillChatArea(get());
+                    messages = new ArrayList<>(get());
                     chatArea.setCaretPosition(chatArea.getDocument().getLength());
-
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
             }
         }.execute();
+    }
+
+    private void loadChatHistory(int from) {
+        new SwingWorker<List<MessageDto>, Void>() {
+            @Override
+            protected List<MessageDto> doInBackground() {
+                try {
+                    return client.getChatHistory(chatId, from);
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+                return List.of();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (get().isEmpty()) return;
+                    chatHistoryCount++;
+                    messages.addAll(get());
+                    messages = new ArrayList<>(messages.stream()
+                            .sorted(Comparator.comparing(MessageDto::getTime))
+                            .toList());
+                    fillChatArea(messages);
+                    chatArea.setCaretPosition(chatArea.getDocument().getLength());
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+            }
+        }.execute();
+    }
+
+    private void fillChatArea(List<MessageDto> messages) {
+        chatArea.setText("");
+        OffsetDateTime oldDate = messages.getFirst().getTime();
+        MainFrameHelper.addDate(oldDate, chatArea, dictionary);
+        for (MessageDto m : messages) {
+            if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
+                MainFrameHelper.addDate(m.getTime(), chatArea, dictionary);
+                oldDate = m.getTime();
+            }
+
+            onMessageReceived(m);
+        }
     }
 
     private void loadChats() {
@@ -209,7 +248,7 @@ public class MainFrame extends JFrame implements MessageListener {
 
     @Override
     public void onMessageReceived(MessageDto message) {
-        if (!message.getChat().equals(chatId)) return;
+        if (!message.getChatId().equals(chatId)) return;
         MainFrameHelper.addTime(message.getTime(), chatArea);
         SwingUtilities.invokeLater(() -> {
             String formatted = String.format("%s: %s\n", message.getSender(), message.getContent());
@@ -305,6 +344,7 @@ public class MainFrame extends JFrame implements MessageListener {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
                     chatId = chat.getId();
+                    chatHistoryCount = 1;
                     loadChatHistory();
                 }
             }
@@ -634,17 +674,30 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private JPanel getChatStatusBar() {
-        JButton chatUsers = new JButton(dictionary.getParticipants());
-        chatUsers.addActionListener(e -> {
+        JPanel buttonsPanel = new JPanel();
+
+        JButton messagesButton = new JButton(dictionary.getUpArrow());
+        messagesButton.addActionListener(e -> {
             try {
-                showContextMenuParticipant(chatUsers);
+                loadChatHistory(chatHistoryCount);
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
         });
+        buttonsPanel.add(messagesButton);
+
+        JButton chatUsersButton = new JButton(dictionary.getParticipants());
+        chatUsersButton.addActionListener(e -> {
+            try {
+                showContextMenuParticipant(chatUsersButton);
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        });
+        buttonsPanel.add(chatUsersButton);
 
         JPanel chatStatusBar = new JPanel(new BorderLayout());
-        chatStatusBar.add(chatUsers, BorderLayout.EAST);
+        chatStatusBar.add(buttonsPanel, BorderLayout.EAST);
         return chatStatusBar;
     }
 

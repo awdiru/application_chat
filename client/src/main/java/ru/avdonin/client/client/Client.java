@@ -10,8 +10,6 @@ import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.yaml.snakeyaml.Yaml;
-import ru.avdonin.client.repository.EncryptionKeyRepository;
-import ru.avdonin.client.encript.EncryptionService;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
@@ -48,8 +46,6 @@ public class Client {
 
     private String httpURI;
     private String wsURI;
-    private final EncryptionService encryptionService = new EncryptionService();
-    private final EncryptionKeyRepository encryptionKeyRepository = new EncryptionKeyRepository();
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -81,9 +77,6 @@ public class Client {
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                 )));
-        String chatKey = encryptionKeyRepository.getKey(messageDto.getChat());
-        String decryptedContent = encryptionService.decrypt(messageDto.getContent(), chatKey);
-        messageDto.setContent(decryptedContent);
         messageListener.onMessageReceived(messageDto);
     }
 
@@ -106,13 +99,10 @@ public class Client {
     }
 
     public void sendMessage(String content, String username, String chatId) throws IOException {
-        String chatKey = encryptionKeyRepository.getKey(chatId);
-        String encryptedContent = encryptionService.encrypt(content, chatKey);
-
         MessageDto message = MessageDto.builder()
                 .sender(username)
-                .chat(chatId)
-                .content(encryptedContent)
+                .chatId(chatId)
+                .content(content)
                 .locale(getLocale())
                 .build();
 
@@ -121,24 +111,25 @@ public class Client {
     }
 
     public List<MessageDto> getChatHistory(String chatId) throws Exception {
+        return getChatHistory(chatId, 0);
+    }
+
+    public List<MessageDto> getChatHistory(String chatId, int from) throws Exception {
         ChatGetHistoryDto chatGetHistoryDto = ChatGetHistoryDto.builder()
                 .chatId(chatId)
-                .from(0)
+                .from(from)
                 .size(10)
                 .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/history", chatGetHistoryDto);
         List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
-        String chatKey = encryptionKeyRepository.getKey(chatId);
         return messages.stream()
                 .peek(message -> {
                     message.setTime(message.getTime()
                             .withOffsetSameInstant(ZoneOffset.ofHours(
                                     FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                             )));
-                    String decryptedContent = encryptionService.decrypt(message.getContent(), chatKey);
-                    message.setContent(decryptedContent);
                 })
                 .toList();
     }
@@ -157,11 +148,7 @@ public class Client {
                 .privateChat(privateChat)
                 .locale(getLocale())
                 .build();
-        HttpResponse<String> response = post("/chat/create", chatCreateDto);
-        ChatDto chatDto = objectMapper.readValue(response.body(), new TypeReference<>() {
-        });
-        String chatKey = encryptionService.generateKey();
-        encryptionKeyRepository.saveKey(chatDto.getId(), chatKey);
+        post("/chat/create", chatCreateDto);
     }
 
     public void logoutOfChat(String username, String chatId) throws Exception {
@@ -194,11 +181,9 @@ public class Client {
     }
 
     public void addUserFromChat(String username, String chatId) throws Exception {
-        String chatKey = encryptionKeyRepository.getKey(chatId);
         InvitationChatDto invitationChatDto = InvitationChatDto.builder()
                 .chatId(chatId)
                 .username(username)
-                .chatKey(chatKey)
                 .locale(getLocale())
                 .build();
         post("/chat/add", invitationChatDto);
@@ -221,11 +206,7 @@ public class Client {
                 .confirmed(isConfirmed)
                 .build();
 
-        HttpResponse<String> response = post("/chat/confirm/invitation", invitationChatDto);
-        InvitationChatDto responseInvite = objectMapper.readValue(response.body(), new TypeReference<>() {
-        });
-        if (responseInvite.getChatKey() != null)
-            encryptionKeyRepository.saveKey(invitationChatDto.getChatId(), responseInvite.getChatKey());
+        post("/chat/confirm/invitation", invitationChatDto);
     }
 
     public List<UserDto> getChatParticipants(String chatId) throws Exception {

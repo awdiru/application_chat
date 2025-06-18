@@ -33,6 +33,7 @@ public class UserService extends AbstractService {
             if (userDto.getUsername() == null || userDto.getUsername().isEmpty())
                 throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
                         .getSaveIncorrectLoginException());
+
             if (userDto.getPassword() == null || userDto.getPassword().isEmpty())
                 throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
                         .getSaveIncorrectPasswordException());
