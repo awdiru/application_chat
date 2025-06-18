@@ -9,6 +9,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.yaml.snakeyaml.Yaml;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
@@ -18,10 +19,12 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
+import ru.avdonin.template.model.user.dto.UsernameDto;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -30,6 +33,7 @@ import java.net.http.HttpResponse;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @ClientEndpoint
 public class Client {
@@ -40,7 +44,8 @@ public class Client {
     @Getter
     private BaseDictionary language = FactoryLanguage.getFactory().getSettings();
 
-    private final String BaseURL = "http://localhost:8080";
+    private String httpURI;
+    private String wsURI;
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -48,15 +53,16 @@ public class Client {
 
     public Client(MessageListener messageListener) {
         this.messageListener = messageListener;
+        loadPropertiesFromYaml();
     }
 
     public Client() {
+        loadPropertiesFromYaml();
     }
 
     public void connect(String username) throws URISyntaxException, IOException, DeploymentException {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-        String uri = "ws://localhost:8080/chat?username=" + username;
-        container.connectToServer(this, new URI(uri));
+        container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
     }
 
     @OnOpen
@@ -75,7 +81,7 @@ public class Client {
     }
 
     @OnClose
-    public void onClose(CloseReason closeReason) {
+    public void onClose(CloseReason closeReason) throws IOException {
     }
 
     @OnError
@@ -87,19 +93,17 @@ public class Client {
         UserAuthenticationDto userDto = UserAuthenticationDto.builder()
                 .username(username)
                 .password(password)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/user" + path;
-        post(url, json);
+        post("/user" + path, userDto);
     }
 
     public void sendMessage(String content, String username, String chatId) throws IOException {
         MessageDto message = MessageDto.builder()
                 .sender(username)
-                .chat(chatId)
+                .chatId(chatId)
                 .content(content)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
 
         String json = objectMapper.writeValueAsString(message);
@@ -107,31 +111,32 @@ public class Client {
     }
 
     public List<MessageDto> getChatHistory(String chatId) throws Exception {
+        return getChatHistory(chatId, 0);
+    }
+
+    public List<MessageDto> getChatHistory(String chatId, int from) throws Exception {
         ChatGetHistoryDto chatGetHistoryDto = ChatGetHistoryDto.builder()
                 .chatId(chatId)
-                .from(0)
+                .from(from)
                 .size(10)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-
-        String url = BaseURL + "/chat/get/history";
-        String json = objectMapper.writeValueAsString(chatGetHistoryDto);
-        HttpResponse<String> response = get(url, json);
+        HttpResponse<String> response = get("/chat/get/history", chatGetHistoryDto);
         List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
         return messages.stream()
-                .peek(message -> message.setTime(message.getTime()
-                        .withOffsetSameInstant(ZoneOffset.ofHours(
-                                FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
-                        ))))
+                .peek(message -> {
+                    message.setTime(message.getTime()
+                            .withOffsetSameInstant(ZoneOffset.ofHours(
+                                    FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                            )));
+                })
                 .toList();
     }
 
     public List<ChatDto> getChats(String username) throws Exception {
-        LocaleDto localeDto = new LocaleDto(FactoryLanguage.getFactory().getSettings().getLocale());
-        String json = objectMapper.writeValueAsString(localeDto);
-        String url = BaseURL + "/chat/get/all?username=" + username;
-        HttpResponse<String> response = get(url, json);
+        LocaleDto localeDto = new LocaleDto(getLocale());
+        HttpResponse<String> response = get("/chat/get/all?username=" + username, localeDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
@@ -141,23 +146,18 @@ public class Client {
                 .chatName(chatName)
                 .username(username)
                 .privateChat(privateChat)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-
-        String url = BaseURL + "/chat/create";
-        String json = objectMapper.writeValueAsString(chatCreateDto);
-        post(url, json);
+        post("/chat/create", chatCreateDto);
     }
 
     public void logoutOfChat(String username, String chatId) throws Exception {
         ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
                 .chatId(chatId)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String url = BaseURL + "/chat/logout";
-        String json = objectMapper.writeValueAsString(chatParticipantDto);
-        put(url, json);
+        put("/chat/logout", chatParticipantDto);
     }
 
     public void renameChatCustom(String username, String chatId, String newChatName) throws Exception {
@@ -165,11 +165,9 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/chat/rename/custom";
-        put(url, json);
+        put("/chat/rename/custom", userDto);
     }
 
     public void renameChatAdmin(String username, String chatId, String newChatName) throws Exception {
@@ -177,34 +175,46 @@ public class Client {
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/chat/rename";
-        put(url, json);
+        put("/chat/rename", userDto);
     }
 
     public void addUserFromChat(String username, String chatId) throws Exception {
-        ChatParticipantDto chatParticipantDto = ChatParticipantDto.builder()
+        InvitationChatDto invitationChatDto = InvitationChatDto.builder()
                 .chatId(chatId)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(chatParticipantDto);
-        String url = BaseURL + "/chat/add";
-        post(url, json);
+        post("/chat/add", invitationChatDto);
+    }
+
+    public List<InvitationChatDto> getInvitationsChats(String username) throws Exception {
+        UsernameDto usernameDto = UsernameDto.builder()
+                .username(username)
+                .locale(getLocale())
+                .build();
+        HttpResponse<String> response = get("/chat/get/invitations", usernameDto);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
+
+    public void confirmInvite(String chatId, String username, boolean isConfirmed) throws Exception {
+        InvitationChatDto invitationChatDto = InvitationChatDto.builder()
+                .chatId(chatId)
+                .username(username)
+                .confirmed(isConfirmed)
+                .build();
+
+        post("/chat/confirm/invitation", invitationChatDto);
     }
 
     public List<UserDto> getChatParticipants(String chatId) throws Exception {
         ChatIdDto chatIdDto = ChatIdDto.builder()
                 .chatId(chatId)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-
-        String json = objectMapper.writeValueAsString(chatIdDto);
-        String url = BaseURL + "/chat/get/users";
-
-        HttpResponse<String> response = get(url, json);
+        HttpResponse<String> response = get("/chat/get/users", chatIdDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
@@ -217,11 +227,9 @@ public class Client {
         UserFriendDto userFriendDto = UserFriendDto.builder()
                 .friendName(friendName)
                 .username(username)
-                .locale(FactoryLanguage.getFactory().getSettings().getLocale())
+                .locale(getLocale())
                 .build();
-        String json = objectMapper.writeValueAsString(userFriendDto);
-        String url = BaseURL + "/chat/get/private";
-        HttpResponse<String> response = get(url, json);
+        HttpResponse<String> response = get("/chat/get/private", userFriendDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
@@ -230,18 +238,15 @@ public class Client {
         UserDto userDto = UserDto.builder()
                 .username(username)
                 .build();
-        String json = objectMapper.writeValueAsString(userDto);
-        String url = BaseURL + "/chat/get/personal";
-        HttpResponse<String> response = get(url, json);
+        HttpResponse<String> response = get("/chat/get/personal", userDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }
 
-    private HttpResponse<String> get(String url, String body) throws Exception {
-        if (body == null) body = "";
+    private HttpResponse<String> get(String method, Object body) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .method("GET", HttpRequest.BodyPublishers.ofString(body))
-                .uri(URI.create(url))
+                .method("GET", getBody(body))
+                .uri(getURI(method))
                 .header("Content-Type", "application/json")
                 .build();
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -249,29 +254,29 @@ public class Client {
         return response;
     }
 
-    private void post(String url, String body) throws Exception {
-        if (body == null) body = "";
+    private HttpResponse<String> post(String method, Object body) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .uri(URI.create(url))
+                .POST(getBody(body))
+                .uri(getURI(method))
                 .header("Content-Type", "application/json")
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
-    private void put(String url, String body) throws Exception {
-        if (body == null) body = "";
+    private HttpResponse<String> put(String method, Object body) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .method("PUT", HttpRequest.BodyPublishers.ofString(body))
-                .uri(URI.create(url))
+                .method("PUT", getBody(body))
+                .uri(getURI(method))
                 .header("Content-Type", "application/json")
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) errorHandler(response);
+        return response;
     }
 
     private void errorHandler(HttpResponse<String> response) throws Exception {
@@ -284,5 +289,39 @@ public class Client {
         return time + " " + language.getErrorCode() + "\n"
                 + language.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
                 + language.getError() + ": " + responseMessage.getMessage();
+    }
+
+    private String getLocale() {
+        return FactoryLanguage.getFactory().getSettings().getLocale();
+    }
+
+    private URI getURI(String method) {
+        return URI.create(httpURI + method);
+    }
+
+    private HttpRequest.BodyPublisher getBody(Object obj) throws JsonProcessingException {
+        String json = obj == null ? "" : objectMapper.writeValueAsString(obj);
+        return HttpRequest.BodyPublishers.ofString(json);
+    }
+
+    private void loadPropertiesFromYaml() {
+        Yaml yaml = new Yaml();
+        InputStream inputStream = getClass()
+                .getClassLoader()
+                .getResourceAsStream("application.yml");
+
+        if (inputStream == null) {
+            throw new RuntimeException("Файл application.yml не найден!");
+        }
+        Map<String, Object> yamlMap = yaml.load(inputStream);
+        Map<String, Object> encryptionConfig = (Map<String, Object>) yamlMap.get("connection");
+        if (encryptionConfig != null) {
+            String property = (String) encryptionConfig.get("http-uri");
+            this.httpURI = property == null ? "http://localhost:8080" : property;
+            property = (String) encryptionConfig.get("ws-uri");
+            this.wsURI = property == null ? "ws://localhost:8080" : property;
+        } else {
+            throw new RuntimeException("Раздел 'connection' отсутствует в application.yml");
+        }
     }
 }

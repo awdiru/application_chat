@@ -3,19 +3,19 @@ package ru.avdonin.server.service.list;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.avdonin.server.entity_model.Chat;
-import ru.avdonin.server.entity_model.ChatParticipant;
-import ru.avdonin.server.entity_model.ChatParticipantID;
-import ru.avdonin.server.entity_model.User;
+import ru.avdonin.server.entity_model.*;
 import ru.avdonin.server.repository.ChatParticipantRepository;
 import ru.avdonin.server.repository.ChatRepository;
+import ru.avdonin.server.repository.InvitationsRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
+import ru.avdonin.template.exceptions.IncorrectInvitationChatException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
+import ru.avdonin.template.model.user.dto.UsernameDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,9 +26,10 @@ public class ChatService extends AbstractService {
     private final ChatRepository chatRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final UserRepository userRepository;
+    private final InvitationsRepository invitationsRepository;
     private final FtpService ftpService;
 
-    public void createPublicChat(ChatCreateDto chatCreateDto) {
+    public ChatDto createPublicChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
             throw new IncorrectChatDataException(getDictionary(chatCreateDto.getLocale())
                     .getCreateChatIncorrectChatDataException());
@@ -50,9 +51,13 @@ public class ChatService extends AbstractService {
                 .user(user)
                 .build();
         chatParticipantRepository.save(chatParticipant);
+
+        return ChatDto.builder()
+                .id(chat.getId())
+                .build();
     }
 
-    public void createPrivateChat(ChatCreateDto chatCreateDto) {
+    public ChatDto createPrivateChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
             throw new IncorrectChatDataException(
                     getDictionary(chatCreateDto.getLocale()).getCreateChatIncorrectChatDataException());
@@ -95,6 +100,10 @@ public class ChatService extends AbstractService {
                 .customChatName(chatCreateDto.getUsername())
                 .build();
         chatParticipantRepository.save(chatParticipant2);
+
+        return ChatDto.builder()
+                .id(chat.getId())
+                .build();
     }
 
     public void createPersonalChat(ChatCreateDto chatCreateDto) {
@@ -122,21 +131,61 @@ public class ChatService extends AbstractService {
         chatParticipantRepository.save(chatParticipant);
     }
 
-    public void addUser(ChatParticipantDto chatParticipantDto) {
-        Chat chat = getChat(chatParticipantDto.getChatId(), chatParticipantDto.getLocale());
-        User user = getUser(chatParticipantDto.getUsername(), chatParticipantDto.getLocale());
+    public void addUser(InvitationChatDto invitationChatDto) {
+        Chat chat = getChat(invitationChatDto.getChatId(), invitationChatDto.getLocale());
+        User user = getUser(invitationChatDto.getUsername(), invitationChatDto.getLocale());
 
         if (chat.getPrivateChat())
-            throw new IncorrectChatDataException(getDictionary(chatParticipantDto.getLocale())
+            throw new IncorrectChatDataException(getDictionary(invitationChatDto.getLocale())
                     .getAddUserIncorrectChatDataException());
 
-        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
-        ChatParticipant chatParticipant = ChatParticipant.builder()
-                .id(chatParticipantID)
+        InvitationChat invitationChat = InvitationChat.builder()
                 .chat(chat)
                 .user(user)
                 .build();
-        chatParticipantRepository.save(chatParticipant);
+        invitationsRepository.save(invitationChat);
+    }
+
+    public List<InvitationChatDto> getInvitations(UsernameDto usernameDto) {
+        User user = getUser(usernameDto.getUsername(), usernameDto.getLocale());
+        List<InvitationChat> invitationsChats = invitationsRepository.findAllByUsername(user.getUsername());
+        return invitationsChats.stream()
+                .map(inv -> InvitationChatDto.builder()
+                        .chatId(inv.getChat().getId())
+                        .username(inv.getUser().getUsername())
+                        .chatName(inv.getChat().getChatName())
+                        .build())
+                .toList();
+    }
+
+    public InvitationChatDto confirmInvitation (InvitationChatDto invitationChatDto) {
+        User user = getUser(invitationChatDto.getUsername(), invitationChatDto.getLocale());
+        Chat chat = getChat(invitationChatDto.getChatId(), invitationChatDto.getLocale());
+        InvitationChat invitationChat = invitationsRepository.findByUsernameAndChatId(user.getUsername(), chat.getId())
+                .orElseThrow(() -> new IncorrectInvitationChatException(getDictionary(invitationChatDto.getLocale())
+                        .getConfirmInvitationIncorrectInvitationChatException()));
+
+        invitationsRepository.deleteById(invitationChat.getId());
+
+        if (invitationChatDto.isConfirmed()) {
+            ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
+            ChatParticipant chatParticipant = ChatParticipant.builder()
+                    .id(chatParticipantID)
+                    .chat(chat)
+                    .user(user)
+                    .build();
+            chatParticipantRepository.save(chatParticipant);
+            return InvitationChatDto.builder()
+                    .chatId(chat.getId())
+                    .username(user.getUsername())
+                    .confirmed(true)
+                    .build();
+        } else {
+            return InvitationChatDto.builder()
+                    .chatId(chat.getId())
+                    .username(user.getUsername())
+                    .build();
+        }
     }
 
     public List<UserDto> getChatUsers(ChatIdDto chatIdDto) {

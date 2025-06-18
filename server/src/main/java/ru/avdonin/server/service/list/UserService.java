@@ -15,16 +15,16 @@ import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserService extends AbstractService {
     private final UserRepository userRepository;
-    private final PasswordService passwordService;
+    private final EncryptionService encryptionService;
     private final ChatService chatService;
 
     public void validate(UserAuthenticationDto userDto) {
 
         User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
-
-        if (!passwordService.matches(userDto.getPassword(), user.getPassword()))
-            throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
-                    .getValidateIncorrectUserDataException());
+        String decryptedPassword = encryptionService.decrypt(user.getPassword(), user.getUsername(), userDto.getLocale());
+        if (!decryptedPassword.equals(userDto.getPassword()))
+            throw new IncorrectUserDataException(
+                    getDictionary(userDto.getLocale()).getValidateIncorrectUserDataException());
     }
 
     @Transactional
@@ -33,13 +33,19 @@ public class UserService extends AbstractService {
             if (userDto.getUsername() == null || userDto.getUsername().isEmpty())
                 throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
                         .getSaveIncorrectLoginException());
+
             if (userDto.getPassword() == null || userDto.getPassword().isEmpty())
                 throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
                         .getSaveIncorrectPasswordException());
 
+            String encryptedPassword = encryptionService.encrypt(
+                    userDto.getPassword(),
+                    userDto.getUsername(),
+                    userDto.getLocale());
+
             User user = User.builder()
                     .username(userDto.getUsername())
-                    .password(passwordService.hashPassword(userDto.getPassword()))
+                    .password(encryptedPassword)
                     .icon("new_user.png")
                     .build();
 

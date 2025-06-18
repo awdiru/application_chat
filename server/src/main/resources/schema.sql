@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS public.invitation_chat;
 DROP TABLE IF EXISTS public.chat_participants;
 DROP TABLE IF EXISTS public.messages;
 DROP TABLE IF EXISTS public.chats;
@@ -6,7 +7,7 @@ DROP TABLE IF EXISTS public.users;
 CREATE TABLE public.users
 (
     id             int8 GENERATED ALWAYS AS IDENTITY ( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL,
-    username       varchar(255)                                                                                                         NOT NULL,
+    username       varchar(32)                                                                                                          NOT NULL,
     "password"     varchar(255)                                                                                                         NOT NULL,
     icon varchar(255)                                                                                                                   NOT NULL,
     CONSTRAINT users_pk PRIMARY KEY (id),
@@ -40,6 +41,15 @@ CREATE TABLE public.chat_participants (
 	CONSTRAINT chat_participants_unique UNIQUE (chat_id, user_id),
 	CONSTRAINT chat_participants_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE,
 	CONSTRAINT chat_participants_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.invitation_chat (
+	id int8 GENERATED ALWAYS AS IDENTITY NOT NULL,
+	chat_id varchar                      NOT NULL,
+	user_id int8                         NOT NULL,
+	CONSTRAINT invitation_chat_pk PRIMARY KEY (id),
+	CONSTRAINT invitation_chat_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id),
+	CONSTRAINT invitation_chat_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
 

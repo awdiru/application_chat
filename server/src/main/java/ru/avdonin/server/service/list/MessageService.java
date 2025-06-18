@@ -17,8 +17,7 @@ import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.time.*;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 
 @Service
@@ -29,44 +28,77 @@ public class MessageService extends AbstractService {
     private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
     private final FtpService ftpService;
+    private final Map<String, List<Message>> chatsMessages = new HashMap<>();
 
     public MessageDto saveMessage(MessageDto messageDto) {
+
         User sender = userRepository.findByUsername(messageDto.getSender())
                 .orElseThrow(() -> new IncorrectUserDataException(getDictionary(messageDto.getLocale())
                         .getSaveMessageIncorrectUserDataException(messageDto.getSender())));
-        Chat chat = chatRepository.findChatById(messageDto.getChat())
+        Chat chat = chatRepository.findChatById(messageDto.getChatId())
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new IncorrectChatDataException(getDictionary(messageDto.getLocale())
                         .getSaveMessageIncorrectChatDataException()));
 
-        Message message = Message.builder()
+        Message saved = Message.builder()
                 .time(Instant.now())
-                .content(encryptionService.encrypt(messageDto.getContent(), messageDto.getLocale()))
+                .content(encryptionService.encrypt(messageDto.getContent(), sender.getUsername(), messageDto.getLocale()))
                 .sender(sender)
                 .chat(chat)
                 .build();
 
-        Message saved = messageRepository.save(message);
+        List<Message> messages = chatsMessages.computeIfAbsent(chat.getId(), k -> new ArrayList<>());
+        messages.add(saved);
+        if (messages.size() >= 5) {
+            messageRepository.saveAll(messages);
+            messages.clear();
+        }
+
         return MessageDto.builder()
                 .time(saved.getTime().atOffset(ZoneOffset.UTC))
                 .content(messageDto.getContent())
                 .sender(messageDto.getSender())
-                .chat(messageDto.getChat())
+                .chatId(messageDto.getChatId())
                 .build();
     }
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
-        return messageRepository.findAllMessagesChat(chatGetHistoryDto.getChatId(), PageRequest.of(chatGetHistoryDto.getFrom(), chatGetHistoryDto.getSize())).stream()
-                .map(message -> MessageDto.builder()
-                        .time(message.getTime().atOffset(ZoneOffset.UTC))
-                        .content(encryptionService.decrypt(message.getContent(), chatGetHistoryDto.getLocale()))
-                        .sender(message.getSender().getUsername())
-                        .chat(message.getChat().getId())
-                        .file(ftpService.getFile(message.getFile()))
-                        .build())
+        int from = chatGetHistoryDto.getFrom();
+        List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatGetHistoryDto.getChatId(), k -> new ArrayList<>());
+
+        if (from == 0 && !unsavedHistory.isEmpty())
+            return unsavedHistory.stream()
+                    .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
+                    .sorted(Comparator.comparing(MessageDto::getTime))
+                    .toList();
+
+        if (!unsavedHistory.isEmpty()) from--;
+
+        List<Message> savedHistory = messageRepository.findAllMessagesChat(chatGetHistoryDto.getChatId(),
+                PageRequest.of(from, chatGetHistoryDto.getSize()));
+
+       // savedHistory.addAll(unsavedHistory);
+
+        return savedHistory.stream()
+                .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
                 .sorted(Comparator.comparing(MessageDto::getTime))
                 .toList();
+    }
+
+    private MessageDto getMessageDto(Message message, String locale) {
+        return MessageDto.builder()
+                .time(message.getTime().atOffset(ZoneOffset.UTC))
+                .content(
+                        encryptionService.decrypt(
+                                message.getContent(),
+                                message.getSender().getUsername(),
+                                locale
+                        ))
+                .sender(message.getSender().getUsername())
+                .chatId(message.getChat().getId())
+                .file(ftpService.getFile(message.getFile()))
+                .build();
     }
 }
 

@@ -11,12 +11,13 @@ public abstract class AbstractDictionary {
     private final String getSecretKeySpecIllegalArgumentException = "Invalid key. Must be 32 chars";
     private final String saveMessageIncorrectChatDataException = "This chat does not exist";
     private final String validateIncorrectUserDataException = "Invalid password";
-    private final String saveIncorrectLoginException = "The username cannot be empty";
+    private final String saveIncorrectLoginException = "The username cannot be empty and is longer than 32 characters";
     private final String saveIncorrectPasswordException = "The password cannot be empty";
     private final String saveIncorrectUserDataException = "A user with that name has already been registered";
     private final String createChatIncorrectChatDataException = "The chat name cannot be empty";
     private final String getPrivateChatIncorrectChatDataException = "There is no chat submitted by the user";
     private final String createPrivateChatIncorrectChatDataException = "Such a private chat already exists";
+    private final String confirmInvitationIncorrectInvitationChatException = "You were not invited to this chat";
 
     public String getSaveMessageIncorrectUserDataException(String sender) {
         return "User with username " + sender + " does not exist";

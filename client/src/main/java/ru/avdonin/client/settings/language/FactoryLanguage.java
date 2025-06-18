@@ -8,7 +8,7 @@ import java.util.Locale;
 public class FactoryLanguage extends BaseFactory {
     private static FactoryLanguage factory;
     private static FrameLanguage language;
-    private static final String LANGUAGE_YML = "language";
+    private static final String LANGUAGE_CONFIG = "language";
 
     private FactoryLanguage() {
     }
@@ -25,15 +25,15 @@ public class FactoryLanguage extends BaseFactory {
     @Override
     public FrameLanguage getFrameSettings() {
         if (language == null) {
-            if (getPropertyFromYml(LANGUAGE_YML).equals("SYSTEM")) language = getLanguageSystem();
-            else language = FrameLanguage.valueOf(getPropertyFromYml(LANGUAGE_YML));
+            if (getProperty(LANGUAGE_CONFIG).equals("SYSTEM")) language = getLanguageSystem();
+            else language = FrameLanguage.valueOf(getProperty(LANGUAGE_CONFIG));
         }
         return language;
     }
 
     public void setLanguage(FrameLanguage newLanguage) {
         try {
-            updateProperty(LANGUAGE_YML, newLanguage.name());
+            updateProperty(LANGUAGE_CONFIG, newLanguage.name());
             if (newLanguage == FrameLanguage.SYSTEM) language = getLanguageSystem();
             else language = newLanguage;
         } catch (Exception e) {
