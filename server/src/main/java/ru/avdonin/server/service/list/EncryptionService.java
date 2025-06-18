@@ -33,12 +33,40 @@
             return new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), algorithm);
         }
 
+        private SecretKeySpec getSecretKeySpec(String salt, String locale) {
+            String key = secretKey.substring(0, secretKey.length() - salt.length()) + salt;
+
+            if (key.length() != 32) {
+                throw new IllegalArgumentException(getDictionary(locale)
+                        .getGetSecretKeySpecIllegalArgumentException());
+            }
+            return new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), algorithm);
+        }
+
+
         public String encrypt(String input, String locale) {
             try {
                 Cipher cipher = Cipher.getInstance(transformation);
                 IvParameterSpec ivSpec = generateIv();
 
                 cipher.init(Cipher.ENCRYPT_MODE, getSecretKeySpec(locale), ivSpec);
+                byte[] encrypted = cipher.doFinal(input.getBytes(StandardCharsets.UTF_8));
+
+                return Base64.getEncoder().encodeToString(
+                        concatenateByteArrays(ivSpec.getIV(), encrypted)
+                );
+            } catch (Exception e) {
+                throw new RuntimeException(getDictionary(locale)
+                        .getEncryptRuntimeException(e.getMessage()));
+            }
+        }
+
+        public String encrypt(String input, String salt, String locale) {
+            try {
+                Cipher cipher = Cipher.getInstance(transformation);
+                IvParameterSpec ivSpec = generateIv();
+
+                cipher.init(Cipher.ENCRYPT_MODE, getSecretKeySpec(salt, locale), ivSpec);
                 byte[] encrypted = cipher.doFinal(input.getBytes(StandardCharsets.UTF_8));
 
                 return Base64.getEncoder().encodeToString(
@@ -59,6 +87,23 @@
 
                 Cipher cipher = Cipher.getInstance(transformation);
                 cipher.init(Cipher.DECRYPT_MODE, getSecretKeySpec(locale), new IvParameterSpec(iv));
+
+                return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                throw new RuntimeException(getDictionary(locale)
+                        .getDecryptRuntimeException(e.getMessage()));
+            }
+        }
+
+        public String decrypt(String input, String salt, String locale) {
+            try {
+                byte[] decoded = Base64.getDecoder().decode(input);
+
+                byte[] iv = Arrays.copyOfRange(decoded, 0, IV_LENGTH);
+                byte[] cipherText = Arrays.copyOfRange(decoded, IV_LENGTH, decoded.length);
+
+                Cipher cipher = Cipher.getInstance(transformation);
+                cipher.init(Cipher.DECRYPT_MODE, getSecretKeySpec(salt, locale), new IvParameterSpec(iv));
 
                 return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
             } catch (Exception e) {
