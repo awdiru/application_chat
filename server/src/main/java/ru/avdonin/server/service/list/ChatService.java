@@ -142,7 +142,7 @@ public class ChatService extends AbstractService {
         InvitationChat invitationChat = InvitationChat.builder()
                 .chat(chat)
                 .user(user)
-                .roomKey(invitationChatDto.getRoomKey())
+                .roomKey(invitationChatDto.getChatKey())
                 .build();
         invitationsRepository.save(invitationChat);
     }
@@ -179,7 +179,8 @@ public class ChatService extends AbstractService {
             return InvitationChatDto.builder()
                     .chatId(chat.getId())
                     .username(user.getUsername())
-                    .roomKey(invitationChat.getRoomKey())
+                    .chatKey(invitationChat.getRoomKey())
+                    .confirmed(true)
                     .build();
         } else {
             return InvitationChatDto.builder()

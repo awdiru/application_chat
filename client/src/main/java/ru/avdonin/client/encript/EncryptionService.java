@@ -1,6 +1,5 @@
     package ru.avdonin.client.encript;
 
-    import org.springframework.beans.factory.annotation.Value;
     import org.yaml.snakeyaml.Yaml;
 
     import javax.crypto.Cipher;
@@ -12,6 +11,7 @@
     import java.util.Arrays;
     import java.util.Base64;
     import java.util.Map;
+    import java.util.concurrent.ThreadLocalRandom;
 
     public class EncryptionService {
         private static final int IV_LENGTH = 16;
@@ -104,11 +104,17 @@
         }
 
         public String generateKey() {
-            return new String(generateRandomByteArray(CHAT_KEYS_LENGTH), StandardCharsets.UTF_8);
+            return ThreadLocalRandom.current()
+                    .ints(32, 127)
+                    .limit(CHAT_KEYS_LENGTH)
+                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                    .toString();
         }
 
         private IvParameterSpec generateIv() {
-            return new IvParameterSpec(generateRandomByteArray(IV_LENGTH));
+            byte[] array = new byte[IV_LENGTH];
+            new SecureRandom().nextBytes(array);
+            return new IvParameterSpec(array);
         }
 
         private byte[] concatenateByteArrays(byte[] a, byte[] b) {
@@ -116,12 +122,6 @@
             System.arraycopy(a, 0, result, 0, a.length);
             System.arraycopy(b, 0, result, a.length, b.length);
             return result;
-        }
-
-        private byte[] generateRandomByteArray(int length) {
-            byte[] array = new byte[length];
-            new SecureRandom().nextBytes(array);
-            return array;
         }
 
         private void loadPropertiesFromYaml() {
@@ -136,9 +136,9 @@
             Map<String, Object> yamlMap = yaml.load(inputStream);
             Map<String, Object> encryptionConfig = (Map<String, Object>) yamlMap.get("encryption");
             if (encryptionConfig != null) {
-                this.transformation = (String) encryptionConfig.get("transformation");
-                this.algorithm = (String) encryptionConfig.get("algorithm");
-                this.secretKey = (String) encryptionConfig.get("key");
+                transformation = (String) encryptionConfig.get("transformation");
+                algorithm = (String) encryptionConfig.get("algorithm");
+                secretKey = (String) encryptionConfig.get("key");
             } else {
                 throw new RuntimeException("Раздел 'encryption' отсутствует в application.yml");
             }

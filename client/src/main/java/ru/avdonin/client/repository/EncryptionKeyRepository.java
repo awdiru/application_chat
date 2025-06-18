@@ -1,28 +1,38 @@
-package ru.avdonin.client.encript;
+package ru.avdonin.client.repository;
+
+import ru.avdonin.client.encript.EncryptionService;
 
 import java.sql.*;
 
-public class EncryptionKeyStore {
-    private static final String DB_URL = "jdbc:sqlite:keys.db";
+public class EncryptionKeyRepository extends BaseRepository {
     private final EncryptionService encryptionService = new EncryptionService();
 
-    public EncryptionKeyStore() {
-        initializeDatabase();
+    public EncryptionKeyRepository() {
+        String sql = """
+                create table if not exists chat_keys (
+                    chat_id text not null,
+                    encryption_key blob not null,
+                    primary key (chat_id)
+                );
+                """;
+        execute(sql);
     }
 
-    public void saveKey(String roomId, String key) {
+    public void saveKey(String chatId, String key) {
+        String oldKey = getKey(chatId);
+        if (key.equals(oldKey)) return;
+
         String sql = """
-                insert or replace into room_keys (room_id, encryption_key)
+                insert or replace into chat_keys (chat_id, encryption_key)
                 values (?, ?)
                 """;
-
 
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             byte[] encryptKey = encryptionService.encrypt(key).getBytes();
-            pstmt.setString(1, roomId);
+            pstmt.setString(1, chatId);
             pstmt.setBytes(2, encryptKey);
             pstmt.executeUpdate();
 
@@ -31,18 +41,17 @@ public class EncryptionKeyStore {
         }
     }
 
-    public String getKey(String roomId) {
+    public String getKey(String chatId) {
         String sql = """
-        select encryption_key from room_keys
-        where room_id = ?
-        """;
+                select encryption_key from chat_keys
+                where chat_id = ?
+                """;
         String key = null;
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, roomId);
-
+            pstmt.setString(1, chatId);
             try (ResultSet rs = pstmt.executeQuery()) {
 
                 if (rs.next()) {
@@ -56,20 +65,5 @@ public class EncryptionKeyStore {
         return key;
     }
 
-    private void initializeDatabase() {
-        String sql = """
-                create table if not exists room_keys (
-                    room_id text not null,
-                    encryption_key blob not null,
-                    primary key (room_id)
-                );
-                """;
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             Statement stmt = conn.createStatement()) {
 
-            stmt.execute(sql);
-        } catch (Exception e) {
-            throw new RuntimeException("Database initialization failed", e);
-        }
-    }
 }

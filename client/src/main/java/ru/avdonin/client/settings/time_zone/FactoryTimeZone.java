@@ -9,7 +9,7 @@ import java.time.ZoneId;
 public class FactoryTimeZone extends BaseFactory {
     private static FactoryTimeZone factory;
     private static FrameTimeZone timeZone;
-    private static final String TIME_ZONE_YML = "time_zone";
+    private static final String TIME_ZONE_CONFIG = "time_zone";
 
     private FactoryTimeZone() {
     }
@@ -26,7 +26,7 @@ public class FactoryTimeZone extends BaseFactory {
     @Override
     public FrameTimeZone getFrameSettings() {
         if (timeZone == null) {
-            timeZone = FrameTimeZone.valueOf(getPropertyFromYml(TIME_ZONE_YML));
+            timeZone = FrameTimeZone.valueOf(getProperty(TIME_ZONE_CONFIG));
             if (timeZone == FrameTimeZone.SYSTEM) timeZone = getSystemTimeZone();
         }
         return timeZone;
@@ -34,7 +34,7 @@ public class FactoryTimeZone extends BaseFactory {
 
     public void setTimeZone(FrameTimeZone newTimeZone) {
         try {
-            updateProperty(TIME_ZONE_YML, newTimeZone.name());
+            updateProperty(TIME_ZONE_CONFIG, newTimeZone.name());
             timeZone = newTimeZone;
         } catch (Exception e) {
             throw new FactoryException("Failed to set time zone", e);
