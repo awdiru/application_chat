@@ -27,7 +27,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
 @Getter
 public class MainFrame extends JFrame implements MessageListener {
@@ -40,9 +39,10 @@ public class MainFrame extends JFrame implements MessageListener {
     protected JPanel chatsContainer;
     protected JScrollPane chatScroll;
     protected JPanel invitationsContainer;
-    protected String chatId;
-    protected int chatHistoryCount = 1;
+    protected ChatDto chat;
+    protected Integer chatHistoryCount = 1;
     protected List<MessageDto> messages = new ArrayList<>();
+    protected JTextArea chatName = new JTextArea();
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -74,7 +74,7 @@ public class MainFrame extends JFrame implements MessageListener {
                             throw new NoConnectionServerException("There is no connection to the server");
                     }
 
-                    client.sendMessage(messageField.getText(), username, chatId);
+                    client.sendMessage(messageField.getText(), username, chat.getId());
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -93,7 +93,7 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
-                    return client.getChatHistory(chatId);
+                    return client.getChatHistory(chat.getId());
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -118,7 +118,7 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
-                    return client.getChatHistory(chatId, from);
+                    return client.getChatHistory(chat.getId(), from);
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -157,7 +157,7 @@ public class MainFrame extends JFrame implements MessageListener {
         }
     }
 
-    protected void loadChats() {
+    public void loadChats() {
         new SwingWorker<List<ChatDto>, Void>() {
             @Override
             protected List<ChatDto> doInBackground() {
@@ -214,12 +214,12 @@ public class MainFrame extends JFrame implements MessageListener {
 
         JMenuItem privateChat = new JMenuItem();
         privateChat.setText(dictionary.getPrivateChat());
-        privateChat.addActionListener(e -> new CreateChatFrame(MainFrame.this,true));
+        privateChat.addActionListener(e -> new CreateChatFrame(MainFrame.this, true));
         menu.add(privateChat);
 
         JMenuItem publicChat = new JMenuItem();
         publicChat.setText(dictionary.getPublicChat());
-        publicChat.addActionListener(e -> new CreateChatFrame(MainFrame.this,false));
+        publicChat.addActionListener(e -> new CreateChatFrame(MainFrame.this, false));
         menu.add(publicChat);
 
         menu.show(parent, 0, parent.getHeight());
@@ -227,7 +227,7 @@ public class MainFrame extends JFrame implements MessageListener {
 
     @Override
     public void onMessageReceived(MessageDto message) {
-        if (!message.getChatId().equals(chatId)) return;
+        if (!message.getChatId().equals(chat.getId())) return;
         MainFrameHelper.addTime(message.getTime(), chatArea);
         SwingUtilities.invokeLater(() -> {
             String formatted = String.format("%s: %s\n", message.getSender(), message.getContent());
@@ -322,7 +322,8 @@ public class MainFrame extends JFrame implements MessageListener {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
-                    chatId = chat.getId();
+                    MainFrame.this.chat = chat;
+                    chatName.setText(MainFrameHelper.getChatName(chat));
                     chatHistoryCount = 1;
                     loadChatHistory();
                 }
@@ -385,7 +386,7 @@ public class MainFrame extends JFrame implements MessageListener {
         JPopupMenu menu = new JPopupMenu();
         if (!chat.getPrivateChat()) {
             JMenuItem addUserItem = new JMenuItem(dictionary.getAddUser());
-            addUserItem.addActionListener(e -> addUserFromChat(chat));
+            addUserItem.addActionListener(e -> new AddUserFromChatFrame(MainFrame.this, chat));
             menu.add(addUserItem);
         }
         if (chat.getAdmin().equals(username) && !chat.getPrivateChat()) {
@@ -445,53 +446,17 @@ public class MainFrame extends JFrame implements MessageListener {
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void addUserFromChat(ChatDto chat) {
-        new SwingWorker<Void, Void>() {
-
-            @Override
-            protected Void doInBackground() throws Exception {
-                new AddUserFromChatFrame(MainFrame.this, chat).setVisible(true);
-                return null;
-            }
-        }.execute();
-    }
-
     private void logoutChat(ChatDto deleteChat) {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                new LogoutChatFrame(MainFrame.this, deleteChat).setVisible(true);
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                loadChats();
-                if (deleteChat.getId().equals(chatId)) {
-                    chatArea.setText("");
-                }
-                chatsContainer.revalidate();
-                chatsContainer.repaint();
-            }
-        }.execute();
+        new LogoutChatFrame(MainFrame.this, deleteChat);
+        if (chat != null && deleteChat.getId().equals(chat.getId())) chatArea.setText("");
+        chatsContainer.revalidate();
+        chatsContainer.repaint();
     }
 
     private void renameChat(ChatDto chat, boolean isAdmin) {
-        new SwingWorker<Void, Void>() {
-
-            @Override
-            protected Void doInBackground() {
-                new RenameChatFrame(MainFrame.this, chat, isAdmin).setVisible(true);
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                loadChats();
-                chatsContainer.revalidate();
-                chatsContainer.repaint();
-            }
-        }.execute();
+        new RenameChatFrame(MainFrame.this, chat, isAdmin);
+        chatsContainer.revalidate();
+        chatsContainer.repaint();
     }
 
     private JPanel getStatusBar() {
@@ -512,7 +477,7 @@ public class MainFrame extends JFrame implements MessageListener {
         newUser.addActionListener(e -> {
             dispose();
             Client client = new Client();
-            new LoginFrame(client).setVisible(true);
+            new LoginFrame(client);
         });
         buttonsPanel.add(newUser);
 
@@ -545,30 +510,39 @@ public class MainFrame extends JFrame implements MessageListener {
         });
         buttonsPanel.add(chatUsersButton);
 
+        chatName = new JTextArea();
+        chatName.setText(MainFrameHelper.getChatName(chat));
+        chatName.setLineWrap(true);
+        chatName.setWrapStyleWord(true);
+        chatName.setEditable(false);
+        chatName.setFocusable(false);
+        chatName.setBorder(null);
+
         JPanel chatStatusBar = new JPanel(new BorderLayout());
+        chatStatusBar.add(chatName, BorderLayout.WEST);
         chatStatusBar.add(buttonsPanel, BorderLayout.EAST);
         return chatStatusBar;
     }
 
     private void showContextMenuParticipant(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
-        if (chatId == null || chatId.isEmpty()) return;
+        if (chat == null || chat.getId().isEmpty()) return;
 
-        List<UserDto> users = client.getChatParticipants(chatId);
+        List<UserDto> users = client.getChatParticipants(chat.getId());
         for (UserDto u : users) {
             JMenuItem userItem = new JMenuItem();
             userItem.setText(u.getUsername());
             participants.add(userItem);
             userItem.addActionListener(e -> {
                 try {
-                    String chatIdNew;
+                    ChatDto newChat;
                     if (!u.getUsername().equals(username))
-                        chatIdNew = client.getPrivateChat(username, u.getUsername()).getId();
-                    else chatIdNew = client.getPersonalChat(username).getId();
+                        newChat = client.getPrivateChat(username, u.getUsername());
+                    else newChat = client.getPersonalChat(username);
 
-                    if (chatId.equals(chatIdNew)) return;
+                    if (chat.equals(newChat)) return;
 
-                    chatId = chatIdNew;
+                    chat = newChat;
                     loadChatHistory();
                 } catch (Exception ex) {
                     MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
@@ -626,8 +600,9 @@ public class MainFrame extends JFrame implements MessageListener {
         chatsContainer = mainFrame.chatsContainer;
         chatScroll = mainFrame.chatScroll;
         invitationsContainer = mainFrame.invitationsContainer;
-        chatId = mainFrame.chatId;
+        chat = mainFrame.chat;
         chatHistoryCount = mainFrame.chatHistoryCount;
         messages = mainFrame.messages;
+        chatName = mainFrame.chatName;
     }
 }

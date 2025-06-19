@@ -7,8 +7,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class CreateChatFrame extends MainFrame {
-    public CreateChatFrame(MainFrame mainFrame, boolean isPrivate) {
-        super(mainFrame);
+    public CreateChatFrame(MainFrame parent, boolean isPrivate) {
+        super(parent);
         setTitle(dictionary.getAddChatTitle());
         setSize(240, 110);
         setLocationRelativeTo(null);
@@ -22,7 +22,7 @@ public class CreateChatFrame extends MainFrame {
         pubChatButton.addActionListener(e -> {
             try {
                 client.createChat(username, labelField.getText(), isPrivate);
-                loadChats();
+                parent.loadChats();
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, CreateChatFrame.this);
             }
@@ -30,7 +30,7 @@ public class CreateChatFrame extends MainFrame {
         });
 
         addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
-
         add(addChatPanel);
+        setVisible(true);
     }
 }

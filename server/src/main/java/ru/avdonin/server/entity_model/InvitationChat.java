@@ -23,7 +23,4 @@ public class InvitationChat {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-
-    @Column(name = "room_key")
-    private String roomKey;
 }

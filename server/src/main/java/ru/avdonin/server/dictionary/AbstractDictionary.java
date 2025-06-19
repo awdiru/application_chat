@@ -19,6 +19,14 @@ public abstract class AbstractDictionary {
     private final String createPrivateChatIncorrectChatDataException = "Such a private chat already exists";
     private final String confirmInvitationIncorrectInvitationChatException = "You were not invited to this chat";
 
+    public String getChatParticipantIncorrectChatDataException(String username, String chatName) {
+        return "User " + username + " is not a member of chat " + chatName;
+    }
+
+    public String getAddUserIncorrectInvitationException(String username, String chatName) {
+        return "User " + username + " is already a member of chat " + chatName;
+    }
+
     public String getSaveMessageIncorrectUserDataException(String sender) {
         return "User with username " + sender + " does not exist";
     }

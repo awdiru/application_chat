@@ -14,7 +14,6 @@ public class RenameChatFrame extends MainFrame {
         setSize(250, 150);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-        //add(getMainWindow());
 
         JTextField renameField = new JTextField();
 
@@ -22,9 +21,10 @@ public class RenameChatFrame extends MainFrame {
         renameButton.setText(dictionary.getRename());
         renameButton.addActionListener(e -> {
             try {
-                if (isAdmin)
-                    client.renameChatAdmin(username, renameChat.getId(), renameField.getText());
-                else client.renameChatCustom(username, renameChat.getId(), renameField.getText());
+                if (!renameField.getText().equals(renameChat.getChatName())) {
+                    client.renameChat(username, renameChat.getId(), renameField.getText(), isAdmin);
+                    parent.loadChats();
+                }
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, parent);
             } finally {
@@ -36,5 +36,6 @@ public class RenameChatFrame extends MainFrame {
         renamePanel.add(renameField, BorderLayout.NORTH);
         renamePanel.add(renameButton, BorderLayout.SOUTH);
         add(renamePanel);
+        setVisible(true);
     }
 }

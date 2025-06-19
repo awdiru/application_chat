@@ -160,24 +160,14 @@ public class Client {
         put("/chat/logout", chatParticipantDto);
     }
 
-    public void renameChatCustom(String username, String chatId, String newChatName) throws Exception {
+    public void renameChat(String username, String chatId, String newChatName, boolean isAdmin) throws Exception {
         ChatRenameDto userDto = ChatRenameDto.builder()
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
                 .locale(getLocale())
                 .build();
-        put("/chat/rename/custom", userDto);
-    }
-
-    public void renameChatAdmin(String username, String chatId, String newChatName) throws Exception {
-        ChatRenameDto userDto = ChatRenameDto.builder()
-                .username(username)
-                .chatId(chatId)
-                .newChatName(newChatName)
-                .locale(getLocale())
-                .build();
-        put("/chat/rename", userDto);
+        put("/chat/rename" + (isAdmin ? "" : "/custom"), userDto);
     }
 
     public void addUserFromChat(String username, String chatId) throws Exception {

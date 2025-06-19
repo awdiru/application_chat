@@ -9,14 +9,15 @@ import java.awt.*;
 
 public class LoginFrame extends JFrame {
     private final Client client;
+    private final BaseDictionary language;
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private BaseDictionary language;
 
     public LoginFrame(Client client) {
         this.client = client;
         language = FactoryLanguage.getFactory().getSettings();
         initUi();
+        setVisible(true);
     }
 
     private void initUi() {

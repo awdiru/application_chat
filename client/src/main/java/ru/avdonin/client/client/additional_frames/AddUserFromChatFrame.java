@@ -14,7 +14,6 @@ public class AddUserFromChatFrame extends MainFrame {
         setSize(250, 150);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-       // add(getMainWindow());
 
         String question = dictionary.getAddUser() + " " + MainFrameHelper.getChatName(chat);
         JLabel addLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
@@ -27,6 +26,7 @@ public class AddUserFromChatFrame extends MainFrame {
         addPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(addPanel);
+        setVisible(true);
     }
 
     private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main) {

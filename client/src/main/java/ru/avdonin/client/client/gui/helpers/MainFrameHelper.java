@@ -69,6 +69,7 @@ public class MainFrameHelper {
     }
 
     public static String getChatName(ChatDto chat) {
+        if (chat == null) return "";
         return chat.getCustomName() == null || chat.getCustomName().isEmpty()
                 ? chat.getChatName()
                 : chat.getCustomName() + " (" + chat.getChatName() + ")";

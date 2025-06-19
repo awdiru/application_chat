@@ -8,13 +8,14 @@ import javax.swing.*;
 import java.awt.*;
 
 public class LogoutChatFrame extends MainFrame {
+    private final MainFrame parent;
     public LogoutChatFrame(MainFrame parent, ChatDto deleteChat) {
         super(parent);
+        this.parent = parent;
         setTitle(dictionary.getLogoutChat());
         setSize(250, 150);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
-       // add(getMainWindow());
 
         String question = dictionary.getLogoutChatQuestion() + " " + MainFrameHelper.getChatName(deleteChat);
         JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
@@ -26,6 +27,7 @@ public class LogoutChatFrame extends MainFrame {
         deletePanel.add(deleteLabel, BorderLayout.NORTH);
         deletePanel.add(buttonPanel, BorderLayout.SOUTH);
         add(deletePanel);
+        setVisible(true);
     }
 
     private JPanel getLogoutChatButtonPanel(String deleteChatId, JFrame main) {
@@ -34,6 +36,7 @@ public class LogoutChatFrame extends MainFrame {
         yesButton.addActionListener(e -> {
             try {
                 client.logoutOfChat(username, deleteChatId);
+                parent.loadChats();
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, LogoutChatFrame.this);
             } finally {
