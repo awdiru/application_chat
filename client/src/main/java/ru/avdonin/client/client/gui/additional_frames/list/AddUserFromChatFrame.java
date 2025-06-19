@@ -1,5 +1,6 @@
-package ru.avdonin.client.client.additional_frames;
+package ru.avdonin.client.client.gui.additional_frames.list;
 
+import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.template.model.chat.dto.ChatDto;
@@ -7,15 +8,16 @@ import ru.avdonin.template.model.chat.dto.ChatDto;
 import javax.swing.*;
 import java.awt.*;
 
-public class AddUserFromChatFrame extends MainFrame {
-    public AddUserFromChatFrame(MainFrame parent, ChatDto chat) {
-        super(parent);
-        setTitle(dictionary.getLogoutChat());
-        setSize(250, 150);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
+public class AddUserFromChatFrame extends BaseAdditionalFrame {
+    private final MainFrame parent;
 
-        String question = dictionary.getAddUser() + " " + MainFrameHelper.getChatName(chat);
+    public AddUserFromChatFrame(MainFrame parent, ChatDto chat) {
+        this.parent = parent;
+
+        initFrame(parent.getDictionary().getLogoutChat(),
+                new Dimension(250, 150));
+
+        String question = parent.getDictionary().getAddUser() + " " + MainFrameHelper.getChatName(chat);
         JLabel addLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         addLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -37,14 +39,14 @@ public class AddUserFromChatFrame extends MainFrame {
 
         addButton.addActionListener(e -> {
             try {
-                client.addUserFromChat(addUserField.getText(), chatId);
+                parent.getClient().addUserFromChat(addUserField.getText(), chatId);
             } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, AddUserFromChatFrame.this);
+                MainFrameHelper.errorHandler(ex, parent.getDictionary(), AddUserFromChatFrame.this);
             } finally {
                 main.dispose();
             }
         });
-        addButton.setText(dictionary.getAdd());
+        addButton.setText(parent.getDictionary().getAdd());
         buttonPanel.add(addButton);
 
         JPanel wrapperPanel = new JPanel(new GridBagLayout());

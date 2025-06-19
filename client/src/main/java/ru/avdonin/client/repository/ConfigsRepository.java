@@ -7,6 +7,11 @@ import java.sql.ResultSet;
 import java.util.Map;
 
 public class ConfigsRepository extends BaseRepository {
+    private final Map<String, String> configs = Map.of(
+            "language", "SYSTEM",
+            "time_zone", "SYSTEM"
+    );
+
     public ConfigsRepository() {
         String sql = """
                 create table if not exists configs (
@@ -54,11 +59,6 @@ public class ConfigsRepository extends BaseRepository {
     }
 
     private void createConfigsIfNotExist(){
-        Map<String, String> configs = Map.of(
-                "language", "SYSTEM",
-                "time_zone", "SYSTEM"
-        );
-
         for (String configName : configs.keySet()) {
             if (getConfig(configName) == null)
                 updateOrCreateConfig(configName, configs.get(configName));

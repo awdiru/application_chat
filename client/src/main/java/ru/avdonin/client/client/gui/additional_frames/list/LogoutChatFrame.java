@@ -1,5 +1,6 @@
-package ru.avdonin.client.client.additional_frames;
+package ru.avdonin.client.client.gui.additional_frames.list;
 
+import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.template.model.chat.dto.ChatDto;
@@ -7,17 +8,16 @@ import ru.avdonin.template.model.chat.dto.ChatDto;
 import javax.swing.*;
 import java.awt.*;
 
-public class LogoutChatFrame extends MainFrame {
+public class LogoutChatFrame extends BaseAdditionalFrame {
     private final MainFrame parent;
-    public LogoutChatFrame(MainFrame parent, ChatDto deleteChat) {
-        super(parent);
-        this.parent = parent;
-        setTitle(dictionary.getLogoutChat());
-        setSize(250, 150);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
 
-        String question = dictionary.getLogoutChatQuestion() + " " + MainFrameHelper.getChatName(deleteChat);
+    public LogoutChatFrame(MainFrame parent, ChatDto deleteChat) {
+        this.parent = parent;
+
+        initFrame(parent.getDictionary().getLogoutChat(),
+                new Dimension(250, 150));
+
+        String question = parent.getDictionary().getLogoutChatQuestion() + " " + MainFrameHelper.getChatName(deleteChat);
         JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -35,19 +35,19 @@ public class LogoutChatFrame extends MainFrame {
         JButton yesButton = new JButton();
         yesButton.addActionListener(e -> {
             try {
-                client.logoutOfChat(username, deleteChatId);
+                parent.getClient().logoutOfChat(parent.getUsername(), deleteChatId);
                 parent.loadChats();
             } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, LogoutChatFrame.this);
+                MainFrameHelper.errorHandler(ex, parent.getDictionary(), parent);
             } finally {
                 main.dispose();
             }
         });
-        yesButton.setText(dictionary.getYes());
+        yesButton.setText(parent.getDictionary().getYes());
 
         JButton noButton = new JButton();
         noButton.addActionListener(e -> main.dispose());
-        noButton.setText(dictionary.getNo());
+        noButton.setText(parent.getDictionary().getNo());
 
         buttonPanel.add(yesButton, BorderLayout.WEST);
         buttonPanel.add(noButton, BorderLayout.EAST);

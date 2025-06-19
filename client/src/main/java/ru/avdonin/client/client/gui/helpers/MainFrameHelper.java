@@ -48,7 +48,7 @@ public class MainFrameHelper {
     public static void restart(JFrame parent, Client client, String username) {
         parent.dispose();
         MainFrame mainFrame = new MainFrame(client, username);
-        client.setMessageListener(mainFrame);
+        client.setGui(mainFrame);
         mainFrame.setVisible(true);
     }
 

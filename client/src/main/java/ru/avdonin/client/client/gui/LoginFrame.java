@@ -62,7 +62,7 @@ public class LoginFrame extends JFrame {
                 } catch (Exception e) {
                     errorHandler(e);
                     dispose();
-                    new LoginFrame(client).setVisible(true);
+                    new LoginFrame(client);
                 }
                 return false;
             }
@@ -73,7 +73,7 @@ public class LoginFrame extends JFrame {
                     if (!get()) return;
                     dispose();
                     client.connect(username);
-                    new MainFrame(client, username).setVisible(true);
+                    new MainFrame(client, username);
                 } catch (Exception e) {
                     errorHandler(e);
                 }

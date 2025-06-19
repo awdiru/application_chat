@@ -10,6 +10,7 @@ import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.yaml.snakeyaml.Yaml;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
@@ -26,7 +27,6 @@ import ru.avdonin.template.model.util.ResponseMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -38,7 +38,7 @@ import java.util.Map;
 @ClientEndpoint
 public class Client {
     @Setter
-    private MessageListener messageListener;
+    private GUI gui;
     private Session session;
     @Setter
     @Getter
@@ -51,8 +51,8 @@ public class Client {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    public Client(MessageListener messageListener) {
-        this.messageListener = messageListener;
+    public Client(MainFrame gui) {
+        this.gui = gui;
         loadPropertiesFromYaml();
     }
 
@@ -60,7 +60,7 @@ public class Client {
         loadPropertiesFromYaml();
     }
 
-    public void connect(String username) throws URISyntaxException, IOException, DeploymentException {
+    public void connect(String username) throws IOException, DeploymentException {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
     }
@@ -77,11 +77,11 @@ public class Client {
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                 )));
-        messageListener.onMessageReceived(messageDto);
+        gui.onMessageReceived(messageDto);
     }
 
     @OnClose
-    public void onClose(CloseReason closeReason) throws IOException {
+    public void onClose(CloseReason closeReason) {
     }
 
     @OnError

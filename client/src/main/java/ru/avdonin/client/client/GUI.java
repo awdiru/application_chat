@@ -1,9 +1,8 @@
 package ru.avdonin.client.client;
 
-
 import ru.avdonin.template.model.message.dto.MessageDto;
 
-public interface MessageListener {
-    void start();
+public interface GUI {
     void onMessageReceived(MessageDto message);
+    void loadChats();
 }
