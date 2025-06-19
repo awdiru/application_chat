@@ -15,6 +15,7 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -31,7 +32,7 @@ public class MainFrame extends JFrame implements GUI {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Client client;
     private final String username;
-    private JTextArea chatArea;
+    private JPanel chatArea;
     private JTextField messageField;
     private JPanel chatsContainer;
     private JScrollPane chatScroll;
@@ -56,11 +57,16 @@ public class MainFrame extends JFrame implements GUI {
     @Override
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(chat.getId())) return;
-        MainFrameHelper.addTime(message.getTime(), chatArea);
-        SwingUtilities.invokeLater(() -> {
-            String formatted = String.format("%s: %s\n", message.getSender(), message.getContent());
-            chatArea.append(formatted);
-        });
+        if (chatArea.getComponentCount() > 0) {
+            Component last = chatArea.getComponent(chatArea.getComponentCount() - 1);
+            if (last instanceof Box.Filler) chatArea.remove(last);
+        }
+        chatArea.add(createMessageItem(message));
+        chatArea.add(Box.createVerticalGlue());
+        JScrollBar vertical = chatScroll.getVerticalScrollBar();
+        vertical.setValue(vertical.getMaximum());
+        chatArea.revalidate();
+        chatArea.repaint();
     }
 
     @Override
@@ -92,7 +98,7 @@ public class MainFrame extends JFrame implements GUI {
 
     private void initUi() {
         setTitle(dictionary.getChat() + " - " + username);
-        setSize(800, 600);
+        setSize(500, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         add(getMainWindow());
@@ -140,7 +146,9 @@ public class MainFrame extends JFrame implements GUI {
                 try {
                     fillChatArea(get());
                     messages = new ArrayList<>(get());
-                    chatArea.setCaretPosition(chatArea.getDocument().getLength());
+                    for (MessageDto message : messages) {
+                        onMessageReceived(message);
+                    }
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -170,7 +178,6 @@ public class MainFrame extends JFrame implements GUI {
                             .sorted(Comparator.comparing(MessageDto::getTime))
                             .toList());
                     fillChatArea(messages);
-                    chatArea.setCaretPosition(chatArea.getDocument().getLength());
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -179,15 +186,8 @@ public class MainFrame extends JFrame implements GUI {
     }
 
     private void fillChatArea(List<MessageDto> messages) {
-        chatArea.setText("");
-        OffsetDateTime oldDate = messages.getFirst().getTime();
-        MainFrameHelper.addDate(oldDate, chatArea, dictionary);
+        chatArea.removeAll();
         for (MessageDto m : messages) {
-            if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
-                MainFrameHelper.addDate(m.getTime(), chatArea, dictionary);
-                oldDate = m.getTime();
-            }
-
             onMessageReceived(m);
         }
     }
@@ -236,11 +236,16 @@ public class MainFrame extends JFrame implements GUI {
 
 
     private JPanel getChatPanel() {
-        JPanel chatPanel = new JPanel(new BorderLayout());
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
+        chatArea = new JPanel();
+        chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
+        chatArea.setBackground(backgroungColor);
+        chatArea.add(Box.createVerticalGlue());
+
         chatScroll = new JScrollPane(chatArea);
         chatScroll.setPreferredSize(new Dimension(600, 500));
+        chatScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel chatPanel = new JPanel(new BorderLayout());
         chatPanel.add(chatScroll, BorderLayout.CENTER);
         return chatPanel;
     }
@@ -382,6 +387,89 @@ public class MainFrame extends JFrame implements GUI {
         return itemPanel;
     }
 
+    private JPanel createMessageItem(MessageDto messageDto) {
+        Color selfMessage = new Color(255, 230, 166);
+        Color friendMessage = new Color(255, 165, 165);
+
+        JTextArea title = new JTextArea();
+        title.setLineWrap(true);
+        title.setWrapStyleWord(true);
+        title.setEditable(false);
+        title.setFocusable(false);
+
+        MainFrameHelper.addTime(messageDto.getTime(), title);
+        title.append(messageDto.getSender());
+
+        JTextArea content = new JTextArea();
+        content.setLineWrap(true);
+        content.setWrapStyleWord(true);
+        content.setEditable(false);
+        content.setFocusable(false);
+        content.setText(messageDto.getContent());
+
+        JPanel message = new JPanel(new BorderLayout());
+        message.add(title, BorderLayout.NORTH);
+        message.add(content, BorderLayout.SOUTH);
+        message.setBorder(new LineBorder(new Color(0, 0, 0)));
+        message.setMinimumSize(new Dimension(400, 50));
+        message.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
+
+        if (messageDto.getSender().equals(username)) {
+            title.setBackground(selfMessage);
+            content.setBackground(selfMessage);
+            message.setBackground(selfMessage);
+        } else {
+            title.setBackground(friendMessage);
+            content.setBackground(friendMessage);
+            message.setBackground(friendMessage);
+        }
+
+        JPanel container = new JPanel(new BorderLayout());
+        container.setBackground(backgroungColor);
+        container.setOpaque(false);
+
+        if (messageDto.getSender().equals(username))
+            container.add(message, BorderLayout.EAST);
+        else container.add(message, BorderLayout.WEST);
+
+        JPanel paddingWrapper = new JPanel(new BorderLayout());
+        paddingWrapper.add(container, BorderLayout.CENTER);
+        paddingWrapper.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
+        paddingWrapper.setBackground(backgroungColor);
+        paddingWrapper.setOpaque(false);
+
+        return paddingWrapper;
+    }
+
+    private JPanel createTextMessageItem(String text) {
+        if (text == null || text.isEmpty())
+            return new JPanel();
+
+        JTextArea textArea = new JTextArea(text);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setFocusable(false);
+        textArea.setBackground(backgroungColor);
+        textArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
+        container.add(Box.createHorizontalGlue());
+        container.add(textArea);
+        container.add(Box.createHorizontalGlue());
+        container.setBackground(backgroungColor);
+        container.setOpaque(false);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(container, BorderLayout.CENTER);
+        wrapper.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
+        wrapper.setBackground(backgroungColor);
+        wrapper.setOpaque(false);
+
+        return wrapper;
+    }
+
     private JTextArea getTextArea(String title, MouseAdapter selectListener) {
         JTextArea textArea = new JTextArea(title);
         textArea.setLineWrap(true);
@@ -460,7 +548,8 @@ public class MainFrame extends JFrame implements GUI {
 
     private void logoutChat(ChatDto deleteChat) {
         AdditionalFrameFactory.getLogoutChatFrame(MainFrame.this, deleteChat);
-        if (chat != null && deleteChat.getId().equals(chat.getId())) chatArea.setText("");
+        if (chat != null && deleteChat.getId().equals(chat.getId()))
+            chatArea.removeAll();
         chatsContainer.revalidate();
         chatsContainer.repaint();
     }
@@ -485,9 +574,13 @@ public class MainFrame extends JFrame implements GUI {
         //Сменить пользователя
         JButton newUser = new JButton(dictionary.getChangeUser());
         newUser.addActionListener(e -> {
-            dispose();
-            // Client client = new Client();
-            new LoginFrame(client);
+            try {
+                dispose();
+                client.disconnect();
+                new LoginFrame(client);
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
         });
         buttonsPanel.add(newUser);
 

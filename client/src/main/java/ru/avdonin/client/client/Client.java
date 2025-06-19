@@ -65,6 +65,10 @@ public class Client {
         container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
     }
 
+    public void disconnect() throws IOException {
+        session.close();
+    }
+
     @OnOpen
     public void onOpen(Session session) {
         this.session = session;
