@@ -3,6 +3,7 @@ package ru.avdonin.client.client.gui.helpers;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.settings.language.BaseDictionary;
+import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
 import java.time.OffsetDateTime;
@@ -65,5 +66,11 @@ public class MainFrameHelper {
             String time = dateTime.format(DateTimeFormatter.ofPattern("HH:mm "));
             chatArea.append(time);
         });
+    }
+
+    public static String getChatName(ChatDto chat) {
+        return chat.getCustomName() == null || chat.getCustomName().isEmpty()
+                ? chat.getChatName()
+                : chat.getCustomName() + " (" + chat.getChatName() + ")";
     }
 }
