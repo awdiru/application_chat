@@ -9,11 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>ru.avdonin</groupId>
-	<artifactId>testWebSocket</artifactId>
+	<artifactId>application_chat</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>testWebSocket</name>
-	<description>testing web socket</description>
+	<name>application_chat</name>
 	<url/>
 	<licenses>
 		<license/>

@@ -1,15 +1,14 @@
 package ru.avdonin.client.repository;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.Map;
 
 public class ConfigsRepository extends BaseRepository {
     private final Map<String, String> configs = Map.of(
             "language", "SYSTEM",
-            "time_zone", "SYSTEM"
+            "time_zone", "SYSTEM",
+            "http-uri", "http://localhost:8080",
+            "ws-uri", "ws://localhost:8080"
     );
 
     public ConfigsRepository() {
@@ -29,18 +28,8 @@ public class ConfigsRepository extends BaseRepository {
                 select config_value from configs
                 where config_name = ?
                 """;
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            String configValue = null;
-            pstmt.setString(1, configName);
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) configValue = rs.getString("config_value");
-            }
-            return configValue;
-        } catch (Exception e) {
-            throw new RuntimeException("Config retrieval failed", e);
-        }
+        return executeSelect(sql, "config_value", configName);
     }
 
     public void updateOrCreateConfig(String configName, String configValue) {
@@ -48,17 +37,10 @@ public class ConfigsRepository extends BaseRepository {
                 insert or replace into configs (config_name, config_value)
                 values (?, ?)
                 """;
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, configName);
-                pstmt.setString(2, configValue);
-                pstmt.executeUpdate();
-        } catch (Exception e) {
-            throw new RuntimeException("Config save failed", e);
-        }
+        execute(sql, configName, configValue);
     }
 
-    private void createConfigsIfNotExist(){
+    protected void createConfigsIfNotExist(){
         for (String configName : configs.keySet()) {
             if (getConfig(configName) == null)
                 updateOrCreateConfig(configName, configs.get(configName));

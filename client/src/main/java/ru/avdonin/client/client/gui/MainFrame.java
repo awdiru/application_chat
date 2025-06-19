@@ -15,11 +15,11 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -57,14 +57,12 @@ public class MainFrame extends JFrame implements GUI {
     @Override
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(chat.getId())) return;
-        if (chatArea.getComponentCount() > 0) {
-            Component last = chatArea.getComponent(chatArea.getComponentCount() - 1);
-            if (last instanceof Box.Filler) chatArea.remove(last);
-        }
+
         chatArea.add(createMessageItem(message));
-        chatArea.add(Box.createVerticalGlue());
+
         JScrollBar vertical = chatScroll.getVerticalScrollBar();
         vertical.setValue(vertical.getMaximum());
+
         chatArea.revalidate();
         chatArea.repaint();
     }
@@ -98,7 +96,7 @@ public class MainFrame extends JFrame implements GUI {
 
     private void initUi() {
         setTitle(dictionary.getChat() + " - " + username);
-        setSize(500, 600);
+        setSize(600, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         add(getMainWindow());
@@ -146,9 +144,6 @@ public class MainFrame extends JFrame implements GUI {
                 try {
                     fillChatArea(get());
                     messages = new ArrayList<>(get());
-                    for (MessageDto message : messages) {
-                        onMessageReceived(message);
-                    }
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -239,10 +234,11 @@ public class MainFrame extends JFrame implements GUI {
         chatArea = new JPanel();
         chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
         chatArea.setBackground(backgroungColor);
+
         chatArea.add(Box.createVerticalGlue());
 
         chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(600, 500));
+        chatScroll.setPreferredSize(new Dimension(500, 500));
         chatScroll.getVerticalScrollBar().setUnitIncrement(16);
 
         JPanel chatPanel = new JPanel(new BorderLayout());
@@ -388,86 +384,51 @@ public class MainFrame extends JFrame implements GUI {
     }
 
     private JPanel createMessageItem(MessageDto messageDto) {
-        Color selfMessage = new Color(255, 230, 166);
-        Color friendMessage = new Color(255, 165, 165);
+        Color selfMessage = new Color(205, 214, 244);
+        Color friendMessage = new Color(157, 180, 239);
 
-        JTextArea title = new JTextArea();
-        title.setLineWrap(true);
-        title.setWrapStyleWord(true);
-        title.setEditable(false);
-        title.setFocusable(false);
+        JTextPane title = getTextPane();
 
-        MainFrameHelper.addTime(messageDto.getTime(), title);
-        title.append(messageDto.getSender());
+        String formattedTitle = "<html><div style='padding:2px'>"
+                + MainFrameHelper.formatTime(messageDto.getTime())
+                + " <b>" + messageDto.getSender() + "</b></div></html>";
+        title.setText(formattedTitle);
 
-        JTextArea content = new JTextArea();
-        content.setLineWrap(true);
-        content.setWrapStyleWord(true);
-        content.setEditable(false);
-        content.setFocusable(false);
+        JTextPane content = getTextPane();
         content.setText(messageDto.getContent());
+        content.setSize(new Dimension(250, Short.MAX_VALUE));
+        int height = content.getPreferredSize().height;
 
         JPanel message = new JPanel(new BorderLayout());
         message.add(title, BorderLayout.NORTH);
-        message.add(content, BorderLayout.SOUTH);
-        message.setBorder(new LineBorder(new Color(0, 0, 0)));
-        message.setMinimumSize(new Dimension(400, 50));
-        message.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
+        message.add(content, BorderLayout.CENTER);
+        message.setBorder(new EmptyBorder(5, 5, 5, 5));
+        message.setPreferredSize(new Dimension(250, height + 50));
 
-        if (messageDto.getSender().equals(username)) {
-            title.setBackground(selfMessage);
-            content.setBackground(selfMessage);
-            message.setBackground(selfMessage);
-        } else {
-            title.setBackground(friendMessage);
-            content.setBackground(friendMessage);
-            message.setBackground(friendMessage);
-        }
+        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
+        message.setBackground(bgColor);
+        title.setBackground(bgColor);
+        content.setBackground(bgColor);
 
-        JPanel container = new JPanel(new BorderLayout());
+        JPanel container = new JPanel();
         container.setBackground(backgroungColor);
         container.setOpaque(false);
 
         if (messageDto.getSender().equals(username))
-            container.add(message, BorderLayout.EAST);
-        else container.add(message, BorderLayout.WEST);
-
-        JPanel paddingWrapper = new JPanel(new BorderLayout());
-        paddingWrapper.add(container, BorderLayout.CENTER);
-        paddingWrapper.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
-        paddingWrapper.setBackground(backgroungColor);
-        paddingWrapper.setOpaque(false);
-
-        return paddingWrapper;
+            container.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        else container.setLayout(new FlowLayout(FlowLayout.LEFT));
+        container.add(message);
+        return container;
     }
 
-    private JPanel createTextMessageItem(String text) {
-        if (text == null || text.isEmpty())
-            return new JPanel();
-
-        JTextArea textArea = new JTextArea(text);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setEditable(false);
-        textArea.setFocusable(false);
-        textArea.setBackground(backgroungColor);
-        textArea.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JPanel container = new JPanel();
-        container.setLayout(new BoxLayout(container, BoxLayout.X_AXIS));
-        container.add(Box.createHorizontalGlue());
-        container.add(textArea);
-        container.add(Box.createHorizontalGlue());
-        container.setBackground(backgroungColor);
-        container.setOpaque(false);
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.add(container, BorderLayout.CENTER);
-        wrapper.add(Box.createVerticalStrut(10), BorderLayout.SOUTH);
-        wrapper.setBackground(backgroungColor);
-        wrapper.setOpaque(false);
-
-        return wrapper;
+    private JTextPane getTextPane() {
+        JTextPane textPane = new JTextPane();
+        textPane.setContentType("text/html");
+        textPane.setEditable(false);
+        textPane.setOpaque(false);
+        textPane.setBorder(null);
+        textPane.setMargin(new Insets(0, 0, 0, 0));
+        return textPane;
     }
 
     private JTextArea getTextArea(String title, MouseAdapter selectListener) {
