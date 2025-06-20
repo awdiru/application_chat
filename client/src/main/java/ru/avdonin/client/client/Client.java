@@ -103,11 +103,12 @@ public class Client {
         post("/user" + path, userDto);
     }
 
-    public void sendMessage(String content, String username, String chatId) throws IOException {
+    public void sendMessage(String content, String username, String chatId, String imageBase64) throws IOException {
         MessageDto message = MessageDto.builder()
-                .sender(username)
                 .chatId(chatId)
+                .sender(username)
                 .textContent(content)
+                .imageBase64(imageBase64)
                 .locale(getLocale())
                 .build();
 

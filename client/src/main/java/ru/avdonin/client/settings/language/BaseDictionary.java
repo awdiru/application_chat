@@ -22,11 +22,6 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String chat = "Chat";
     private final String chats = "Chats";
     private final String invitations = "Invitations";
-    //Status bar
-    private final String changeUser = "Change User";
-    private final String changeAvatar = "Change avatar";
-    //Chat status bar
-    private final String participants = "Participants";
     //Chats window
     private final String addChatTitle = "Add chat";
     private final String chatName = "Chat name";
@@ -34,6 +29,8 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String privateChat = "Private chat";
     private final String publicChat = "Public chat";
     private final String createChat = "Create chat";
+    private final String attachImage = "Attach image";
+    private final String images = "Images";
     //Chat context menu
     private final String logoutChat = "Log out of the chat";
     private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
@@ -88,4 +85,10 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon reboot = new ImageIcon("data/reboot-icon.png");
     private final ImageIcon upArrow = new ImageIcon("data/up-arrow-icon.png");
     private final ImageIcon burger = new ImageIcon("data/burger-icon.png");
+    private final ImageIcon newChat = new ImageIcon("data/new-chat-icon.png");
+    private final ImageIcon exit = new ImageIcon("data/exit-icon.png");
+    private final ImageIcon changeAvatar = new ImageIcon("data/change-avatar-icon.png");
+    private final ImageIcon participants = new ImageIcon("data/participants-chat-icon.png");
+    private final ImageIcon paperClip = new ImageIcon("data/paper-clip-icon.png");
+    private final ImageIcon defaultImage = new ImageIcon("data/default-icon.png");
 }

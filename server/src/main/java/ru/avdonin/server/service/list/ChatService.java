@@ -330,7 +330,7 @@ public class ChatService extends AbstractService {
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .avatarBase64(avatarFtpService.downloadAvatar(user.getUsername(), user.getAvatarFileName()))
+                .avatarBase64(avatarFtpService.download(user.getUsername(), user.getAvatarFileName()))
                 .build();
     }
 }

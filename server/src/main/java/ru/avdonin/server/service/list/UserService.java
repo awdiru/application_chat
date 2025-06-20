@@ -22,6 +22,7 @@ public class UserService extends AbstractService {
     private final EncryptionService encryptionService;
     private final ChatService chatService;
     private final AvatarFtpService avatarFtpService;
+    private final MessageService messageService;
 
     public void validate(UserAuthenticationDto userDto) {
 
@@ -51,10 +52,10 @@ public class UserService extends AbstractService {
             User user = User.builder()
                     .username(userDto.getUsername())
                     .password(encryptedPassword)
-                    .avatarFileName(AvatarFtpService.DEFAULT_AVATAR_FILE_NAME)
+                    .avatarFileName(avatarFtpService.getDefaultFileName())
                     .build();
 
-            avatarFtpService.createUserDirectory(user.getUsername());
+            avatarFtpService.createDirectory(user.getUsername());
 
             userRepository.save(user);
             chatService.createPersonalChat(ChatCreateDto.builder()
@@ -79,7 +80,8 @@ public class UserService extends AbstractService {
                 + ".png";
         user.setAvatarFileName(newAvatarName);
         User saved = userRepository.save(user);
-        avatarFtpService.uploadAvatar(saved.getUsername(), saved.getAvatarFileName(), userDto.getAvatarBase64());
+        avatarFtpService.upload(saved.getUsername(), saved.getAvatarFileName(), userDto.getAvatarBase64());
+        messageService.getUsersAvatar().put(user.getUsername(), userDto.getAvatarBase64());
     }
 
     public UserDto getUserByUsername(UserDto userDto) {
@@ -87,7 +89,7 @@ public class UserService extends AbstractService {
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .avatarBase64(avatarFtpService.downloadAvatar(user.getUsername(), user.getAvatarFileName()))
+                .avatarBase64(avatarFtpService.download(user.getUsername(), user.getAvatarFileName()))
                 .build();
     }
 

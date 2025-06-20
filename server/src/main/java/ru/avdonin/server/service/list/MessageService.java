@@ -1,5 +1,6 @@
 package ru.avdonin.server.service.list;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +18,7 @@ import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -28,8 +30,11 @@ public class MessageService extends AbstractService {
     private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
     private final AvatarFtpService avatarFtpService;
+    private final ImageFtpService imageFtpService;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
+    @Getter
     private final Map<String, String> usersAvatar = new HashMap<>();
+    private final Map<Long, String> messagesImages = new HashMap<>();
 
     public MessageDto saveMessage(MessageDto messageDto) {
 
@@ -42,12 +47,14 @@ public class MessageService extends AbstractService {
                 .orElseThrow(() -> new IncorrectChatDataException(getDictionary(messageDto.getLocale())
                         .getSaveMessageIncorrectChatDataException()));
 
+
         Message saved = Message.builder()
                 .time(Instant.now())
                 .content(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
                 .sender(sender)
                 .chat(chat)
                 .build();
+        //TODO Дописать сохранение картинок
 
         List<Message> messages = chatsMessages.computeIfAbsent(chat.getId(), k -> new ArrayList<>());
         messages.add(saved);
@@ -55,14 +62,14 @@ public class MessageService extends AbstractService {
             messageRepository.saveAll(messages);
             messages.clear();
         }
-        String avatar = usersAvatar.computeIfAbsent(messageDto.getSender(),
-                k -> avatarFtpService.downloadAvatar(sender.getUsername(), sender.getAvatarFileName()));
+        String avatar = getAvatar(sender);
 
         return MessageDto.builder()
                 .time(saved.getTime().atOffset(ZoneOffset.UTC))
                 .textContent(messageDto.getTextContent())
                 .sender(messageDto.getSender())
                 .avatarBase64(avatar)
+                .imageBase64(messageDto.getImageBase64())
                 .chatId(messageDto.getChatId())
                 .build();
     }
@@ -84,6 +91,7 @@ public class MessageService extends AbstractService {
     }
 
     private MessageDto getMessageDto(Message message, String locale) {
+        String avatar = getAvatar(message.getSender());
         return MessageDto.builder()
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
                 .textContent(
@@ -93,10 +101,19 @@ public class MessageService extends AbstractService {
                                 locale
                         ))
                 .sender(message.getSender().getUsername())
-                .avatarBase64(avatarFtpService.downloadAvatar(message.getSender().getUsername(), message.getSender().getAvatarFileName()))
+                .avatarBase64(avatar)
                 .chatId(message.getChat().getId())
                 .imageBase64(null)
                 .build();
+    }
+
+    private String getAvatar(User user) {
+        return usersAvatar.computeIfAbsent(user.getUsername(),
+                k -> avatarFtpService.download(user.getUsername(), user.getAvatarFileName()));
+    }
+
+    private String getFileName() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy|HH-mm-ss-SSS"));
     }
 }
 

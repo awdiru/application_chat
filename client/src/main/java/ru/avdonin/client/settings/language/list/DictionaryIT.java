@@ -19,10 +19,6 @@ public class DictionaryIT extends BaseDictionary {
     //Finestra della chat
     private final String chat = "Chat";
     private final String chats = "Chat";
-    //Barra di stato
-    private final String changeUser = "Cambia utente";
-    //Barra di stato della chat
-    private final String participants = "Partecipanti";
     //Finestra delle chat
     private final String addChatTitle = "Crea chat";
     private final String chatName = "Nome chat";
