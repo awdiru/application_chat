@@ -29,6 +29,7 @@ public class MessageService extends AbstractService {
     private final ChatRepository chatRepository;
     private final AvatarFtpService avatarFtpService;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
+    private final Map<String, String> usersAvatar = new HashMap<>();
 
     public MessageDto saveMessage(MessageDto messageDto) {
 
@@ -43,7 +44,7 @@ public class MessageService extends AbstractService {
 
         Message saved = Message.builder()
                 .time(Instant.now())
-                .content(encryptionService.encrypt(messageDto.getContent(), sender.getUsername(), messageDto.getLocale()))
+                .content(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
                 .sender(sender)
                 .chat(chat)
                 .build();
@@ -54,11 +55,14 @@ public class MessageService extends AbstractService {
             messageRepository.saveAll(messages);
             messages.clear();
         }
+        String avatar = usersAvatar.computeIfAbsent(messageDto.getSender(),
+                k -> avatarFtpService.downloadAvatar(sender.getUsername(), sender.getAvatarFileName()));
 
         return MessageDto.builder()
                 .time(saved.getTime().atOffset(ZoneOffset.UTC))
-                .content(messageDto.getContent())
+                .textContent(messageDto.getTextContent())
                 .sender(messageDto.getSender())
+                .avatarBase64(avatar)
                 .chatId(messageDto.getChatId())
                 .build();
     }
@@ -82,16 +86,16 @@ public class MessageService extends AbstractService {
     private MessageDto getMessageDto(Message message, String locale) {
         return MessageDto.builder()
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
-                .content(
+                .textContent(
                         encryptionService.decrypt(
                                 message.getContent(),
                                 message.getSender().getUsername(),
                                 locale
                         ))
                 .sender(message.getSender().getUsername())
+                .avatarBase64(avatarFtpService.downloadAvatar(message.getSender().getUsername(), message.getSender().getAvatarFileName()))
                 .chatId(message.getChat().getId())
-                .file(null)
-                .avatar(avatarFtpService.downloadAvatar(message.getSender().getUsername(), message.getSender().getAvatarFileName()))
+                .imageBase64(null)
                 .build();
     }
 }

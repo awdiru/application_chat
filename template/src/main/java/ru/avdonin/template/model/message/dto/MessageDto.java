@@ -2,7 +2,6 @@ package ru.avdonin.template.model.message.dto;
 
 import lombok.*;
 
-import java.io.InputStream;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -13,11 +12,13 @@ import java.time.OffsetDateTime;
 @ToString
 public class MessageDto {
     private OffsetDateTime time;
-    @ToString.Exclude
-    private String content;
-    private String sender;
     private String chatId;
-    private String file;
-    private String avatar;
+    private String sender;
+    @ToString.Exclude
+    private String avatarBase64;
+    @ToString.Exclude
+    private String textContent;
+    @ToString.Exclude
+    private String imageBase64;
     private String locale;
 }

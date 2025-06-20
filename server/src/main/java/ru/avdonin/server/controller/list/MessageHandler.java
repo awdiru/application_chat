@@ -86,7 +86,7 @@ public class MessageHandler extends TextWebSocketHandler {
         } catch (JsonProcessingException | IncorrectUserDataException e) {
             sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             sendError(session, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -113,7 +113,8 @@ public class MessageHandler extends TextWebSocketHandler {
                     .build();
             String errorJson = objectMapper.writeValueAsString(responseMessage);
             session.sendMessage(new TextMessage(errorJson));
-        } catch (IOException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             log.error(e.getMessage());
         }
     }

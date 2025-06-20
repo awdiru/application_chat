@@ -121,6 +121,7 @@ public class AvatarFtpService {
     private void uploadDefaultAvatar() {
         Resource defaultAvatar = new ClassPathResource("static/" + DEFAULT_AVATAR_FILE_NAME);
         try (InputStream is = defaultAvatar.getInputStream()) {
+            connectFtp();
             ftp.enterLocalPassiveMode();
 
             ftp.makeDirectory(AVATAR_BASE_PATH);
@@ -132,6 +133,8 @@ public class AvatarFtpService {
             ftp.storeFile(DEFAULT_AVATAR_FILE_NAME, is);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            disconnectFtp();
         }
     }
 

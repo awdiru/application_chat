@@ -107,7 +107,7 @@ public class Client {
         MessageDto message = MessageDto.builder()
                 .sender(username)
                 .chatId(chatId)
-                .content(content)
+                .textContent(content)
                 .locale(getLocale())
                 .build();
 
@@ -232,8 +232,29 @@ public class Client {
     public ChatDto getPersonalChat(String username) throws Exception {
         UserDto userDto = UserDto.builder()
                 .username(username)
+                .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/personal", userDto);
+        return objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+    }
+
+    public void avatarChange(String username, String avatarBase64) throws Exception {
+        UserDto userDto = UserDto.builder()
+                .username(username)
+                .avatarBase64(avatarBase64)
+                .locale(getLocale())
+                .build();
+        post("/user/avatar/change", userDto);
+    }
+
+    public UserDto getUserDto(String username) throws Exception {
+        UserDto userDto = UserDto.builder()
+                .username(username)
+                .locale(getLocale())
+                .build();
+
+        HttpResponse<String> response = get("/user/get", userDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }

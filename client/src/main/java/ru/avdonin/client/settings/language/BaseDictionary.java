@@ -24,6 +24,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String invitations = "Invitations";
     //Status bar
     private final String changeUser = "Change User";
+    private final String changeAvatar = "Change avatar";
     //Chat status bar
     private final String participants = "Participants";
     //Chats window

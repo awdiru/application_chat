@@ -16,11 +16,14 @@ import ru.avdonin.template.model.user.dto.UserDto;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -276,7 +279,16 @@ public class MainFrame extends JFrame implements GUI {
         addChatButton.addActionListener(e -> showCreateChatContextMenu(addChatButton));
 
         JPanel headerChatsPanel = new JPanel(new BorderLayout());
-        headerChatsPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
+
+        ImageIcon avatarIcon = getAvatarIcon();
+
+        String spase;
+        if (avatarIcon != null) {
+            headerChatsPanel.add(new JLabel(avatarIcon), BorderLayout.WEST);
+            spase = " ";
+        } else spase = "";
+
+        headerChatsPanel.add(new JLabel(spase + username), BorderLayout.CENTER);
         headerChatsPanel.add(addChatButton, BorderLayout.EAST);
 
         JPanel chatsPanel = new JPanel(new BorderLayout());
@@ -285,6 +297,22 @@ public class MainFrame extends JFrame implements GUI {
         chatsPanel.setMinimumSize(new Dimension(1000, 300));
 
         return chatsPanel;
+    }
+
+    private ImageIcon getAvatarIcon() {
+        try {
+            UserDto userDto = client.getUserDto(username);
+            if (userDto != null && userDto.getAvatarBase64() != null
+                    && !userDto.getAvatarBase64().isEmpty()) {
+
+                byte[] imageData = Base64.getDecoder().decode(userDto.getAvatarBase64());
+                ImageIcon avatarIcon = new ImageIcon(imageData);
+                Image scaledImage = avatarIcon.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaledImage);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private JPanel getInvitationsPanel() {
@@ -387,20 +415,40 @@ public class MainFrame extends JFrame implements GUI {
         Color selfMessage = new Color(205, 214, 244);
         Color friendMessage = new Color(157, 180, 239);
 
+        ImageIcon avatarIcon = null;
+        if (messageDto.getAvatarBase64() != null && !messageDto.getAvatarBase64().isEmpty()) {
+            try {
+                byte[] imageData = Base64.getDecoder().decode(messageDto.getAvatarBase64());
+                avatarIcon = new ImageIcon(imageData);
+                Image scaledImage = avatarIcon.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+                avatarIcon = new ImageIcon(scaledImage);
+            } catch (Exception e) {
+            }
+        }
+        JPanel headerPanel = new JPanel(new BorderLayout(5, 0));
+        headerPanel.setOpaque(false);
+
+        if (avatarIcon != null) {
+            JLabel avatarLabel = new JLabel(avatarIcon);
+            avatarLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+            headerPanel.add(avatarLabel, BorderLayout.WEST);
+        }
+
         JTextPane title = getTextPane();
 
         String formattedTitle = "<html><div style='padding:2px'>"
                 + MainFrameHelper.formatTime(messageDto.getTime())
                 + " <b>" + messageDto.getSender() + "</b></div></html>";
         title.setText(formattedTitle);
+        headerPanel.add(title, BorderLayout.CENTER);
 
         JTextPane content = getTextPane();
-        content.setText(messageDto.getContent());
+        content.setText(messageDto.getTextContent());
         content.setSize(new Dimension(250, Short.MAX_VALUE));
         int height = content.getPreferredSize().height;
 
         JPanel message = new JPanel(new BorderLayout());
-        message.add(title, BorderLayout.NORTH);
+        message.add(headerPanel, BorderLayout.NORTH);
         message.add(content, BorderLayout.CENTER);
         message.setBorder(new EmptyBorder(5, 5, 5, 5));
         message.setPreferredSize(new Dimension(250, height + 50));
@@ -528,6 +576,10 @@ public class MainFrame extends JFrame implements GUI {
         JButton restart = new JButton(dictionary.getReboot());
         restart.addActionListener(e -> MainFrameHelper.restart(MainFrame.this, client, username));
         buttonsPanel.add(restart);
+        //Сменить аватар
+        JButton changeAvatarButton = new JButton(dictionary.getChangeAvatar());
+        changeAvatarButton.addActionListener(e -> changeAvatar());
+        buttonsPanel.add(changeAvatarButton);
         //Настройки
         JButton settings = new JButton(dictionary.getSettings());
         settings.addActionListener(e -> Settings.getFrameSettings());
@@ -549,6 +601,26 @@ public class MainFrame extends JFrame implements GUI {
         statusBar.setSize(new Dimension(800, 100));
         statusBar.add(buttonsPanel, BorderLayout.WEST);
         return statusBar;
+    }
+
+    private void changeAvatar() {
+        JFileChooser fileChooser = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+                "Image Files", "jpg", "jpeg", "png");
+        fileChooser.setFileFilter(filter);
+
+        int result = fileChooser.showOpenDialog(MainFrame.this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                byte[] fileContent = Files.readAllBytes(selectedFile.toPath());
+                String base64Image = Base64.getEncoder().encodeToString(fileContent);
+
+                client.avatarChange(username, base64Image);
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        }
     }
 
     private JPanel getChatStatusBar() {

@@ -82,8 +82,8 @@ public class UserService extends AbstractService {
         avatarFtpService.uploadAvatar(saved.getUsername(), saved.getAvatarFileName(), userDto.getAvatarBase64());
     }
 
-    public UserDto getUserByUsername(String username) {
-        User user = searchUserByUsername(username, "ru");
+    public UserDto getUserByUsername(UserDto userDto) {
+        User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())

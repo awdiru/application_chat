@@ -56,10 +56,10 @@ public class UserController extends AbstractController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<Object> getUser(@RequestParam String username) {
+    public ResponseEntity<Object> getUser(@RequestBody UserDto userDto) {
         try {
-            UserDto userDto = userService.getUserByUsername(username);
-            return ResponseEntity.ok().body(userDto);
+            UserDto respDto = userService.getUserByUsername(userDto);
+            return ResponseEntity.ok().body(respDto);
         } catch (Exception e) {
             return getErrorResponse(e);
         }
