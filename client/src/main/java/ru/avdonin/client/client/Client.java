@@ -9,7 +9,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.websocket.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.yaml.snakeyaml.Yaml;
+import ru.avdonin.client.client.gui.MainFrame;
+import ru.avdonin.client.repository.ConfigsRepository;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
 import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
@@ -24,45 +25,49 @@ import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 @ClientEndpoint
 public class Client {
     @Setter
-    private MessageListener messageListener;
+    private GUI gui;
     private Session session;
     @Setter
     @Getter
-    private BaseDictionary language = FactoryLanguage.getFactory().getSettings();
-
+    private BaseDictionary language ;
     private String httpURI;
     private String wsURI;
+
+    private final ConfigsRepository configsRepository = new ConfigsRepository();
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    public Client(MessageListener messageListener) {
-        this.messageListener = messageListener;
-        loadPropertiesFromYaml();
+    public Client(MainFrame gui) {
+        this.gui = gui;
+        loadProperties();
+        language = FactoryLanguage.getFactory().getSettings();
     }
 
     public Client() {
-        loadPropertiesFromYaml();
+        loadProperties();
+        language = FactoryLanguage.getFactory().getSettings();
     }
 
-    public void connect(String username) throws URISyntaxException, IOException, DeploymentException {
+    public void connect(String username) throws IOException, DeploymentException {
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
         container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
+    }
+
+    public void disconnect() throws IOException {
+        session.close();
     }
 
     @OnOpen
@@ -77,11 +82,11 @@ public class Client {
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                 )));
-        messageListener.onMessageReceived(messageDto);
+        gui.onMessageReceived(messageDto);
     }
 
     @OnClose
-    public void onClose(CloseReason closeReason) throws IOException {
+    public void onClose(CloseReason closeReason) {
     }
 
     @OnError
@@ -160,24 +165,14 @@ public class Client {
         put("/chat/logout", chatParticipantDto);
     }
 
-    public void renameChatCustom(String username, String chatId, String newChatName) throws Exception {
+    public void renameChat(String username, String chatId, String newChatName, boolean isAdmin) throws Exception {
         ChatRenameDto userDto = ChatRenameDto.builder()
                 .username(username)
                 .chatId(chatId)
                 .newChatName(newChatName)
                 .locale(getLocale())
                 .build();
-        put("/chat/rename/custom", userDto);
-    }
-
-    public void renameChatAdmin(String username, String chatId, String newChatName) throws Exception {
-        ChatRenameDto userDto = ChatRenameDto.builder()
-                .username(username)
-                .chatId(chatId)
-                .newChatName(newChatName)
-                .locale(getLocale())
-                .build();
-        put("/chat/rename", userDto);
+        put("/chat/rename" + (isAdmin ? "" : "/custom"), userDto);
     }
 
     public void addUserFromChat(String username, String chatId) throws Exception {
@@ -304,24 +299,8 @@ public class Client {
         return HttpRequest.BodyPublishers.ofString(json);
     }
 
-    private void loadPropertiesFromYaml() {
-        Yaml yaml = new Yaml();
-        InputStream inputStream = getClass()
-                .getClassLoader()
-                .getResourceAsStream("application.yml");
-
-        if (inputStream == null) {
-            throw new RuntimeException("Файл application.yml не найден!");
-        }
-        Map<String, Object> yamlMap = yaml.load(inputStream);
-        Map<String, Object> encryptionConfig = (Map<String, Object>) yamlMap.get("connection");
-        if (encryptionConfig != null) {
-            String property = (String) encryptionConfig.get("http-uri");
-            this.httpURI = property == null ? "http://localhost:8080" : property;
-            property = (String) encryptionConfig.get("ws-uri");
-            this.wsURI = property == null ? "ws://localhost:8080" : property;
-        } else {
-            throw new RuntimeException("Раздел 'connection' отсутствует в application.yml");
-        }
+    private void loadProperties() {
+        this.httpURI = configsRepository.getConfig("http-uri");
+        this.wsURI = configsRepository.getConfig("ws-uri");
     }
 }

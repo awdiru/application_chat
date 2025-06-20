@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>ru.avdonin</groupId>
-        <artifactId>testWebSocket</artifactId>
+        <artifactId>application_chat</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -27,11 +27,6 @@
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.44.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.33</version>
         </dependency>
     </dependencies>
 

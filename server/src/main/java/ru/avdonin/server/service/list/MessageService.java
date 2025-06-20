@@ -65,22 +65,15 @@ public class MessageService extends AbstractService {
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
         int from = chatGetHistoryDto.getFrom();
-        List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatGetHistoryDto.getChatId(), k -> new ArrayList<>());
-
-        if (from == 0 && !unsavedHistory.isEmpty())
-            return unsavedHistory.stream()
-                    .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
-                    .sorted(Comparator.comparing(MessageDto::getTime))
-                    .toList();
-
-        if (!unsavedHistory.isEmpty()) from--;
-
-        List<Message> savedHistory = messageRepository.findAllMessagesChat(chatGetHistoryDto.getChatId(),
+        List<Message> history = messageRepository.findAllMessagesChat(chatGetHistoryDto.getChatId(),
                 PageRequest.of(from, chatGetHistoryDto.getSize()));
 
-       // savedHistory.addAll(unsavedHistory);
+        if (from == 0) {
+            List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatGetHistoryDto.getChatId(), k -> new ArrayList<>());
+            history.addAll(unsavedHistory);
+        }
 
-        return savedHistory.stream()
+        return history.stream()
                 .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
                 .sorted(Comparator.comparing(MessageDto::getTime))
                 .toList();

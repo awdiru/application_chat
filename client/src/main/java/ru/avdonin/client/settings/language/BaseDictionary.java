@@ -86,4 +86,5 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon ellipsis = new ImageIcon("data/ellipsis-icon.png");
     private final ImageIcon reboot = new ImageIcon("data/reboot-icon.png");
     private final ImageIcon upArrow = new ImageIcon("data/up-arrow-icon.png");
+    private final ImageIcon burger = new ImageIcon("data/burger-icon.png");
 }

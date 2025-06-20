@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>ru.avdonin</groupId>
-        <artifactId>testWebSocket</artifactId>
+        <artifactId>application_chat</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 

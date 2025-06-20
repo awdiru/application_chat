@@ -1,7 +1,9 @@
 package ru.avdonin.client.client.gui;
 
+import lombok.Getter;
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.MessageListener;
+import ru.avdonin.client.client.GUI;
+import ru.avdonin.client.client.gui.additional_frames.AdditionalFrameFactory;
 import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
@@ -13,144 +15,60 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
-public class MainFrame extends JFrame implements MessageListener {
+@Getter
+public class MainFrame extends JFrame implements GUI {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Client client;
     private final String username;
-    private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
-    private JTextArea chatArea;
+    private JPanel chatArea;
     private JTextField messageField;
     private JPanel chatsContainer;
+    private JScrollPane chatScroll;
     private JPanel invitationsContainer;
-    private String chatId;
-    private int chatHistoryCount = 1;
+    private ChatDto chat;
+    private Integer chatHistoryCount = 1;
     private List<MessageDto> messages = new ArrayList<>();
+    private JTextArea chatName = new JTextArea();
 
     public MainFrame(Client client, String username) {
         this.client = client;
         this.username = username;
 
-        client.setMessageListener(this);
+        client.setGui(this);
 
         initUi();
         loadChats();
         loadInvitations();
+        setVisible(true);
     }
 
-    private void initUi() {
-        setTitle(dictionary.getChat() + " - " + username);
-        setSize(800, 600);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        add(getMainWindow());
+    @Override
+    public void onMessageReceived(MessageDto message) {
+        if (!message.getChatId().equals(chat.getId())) return;
+
+        chatArea.add(createMessageItem(message));
+
+        JScrollBar vertical = chatScroll.getVerticalScrollBar();
+        vertical.setValue(vertical.getMaximum());
+
+        chatArea.revalidate();
+        chatArea.repaint();
     }
 
-    private void sendMessage() {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                try {
-                    if (client.isNotConnected()) {
-                        client.connect(username);
-                        if (client.isNotConnected())
-                            throw new NoConnectionServerException("There is no connection to the server");
-                    }
-
-                    client.sendMessage(messageField.getText(), username, chatId);
-                } catch (Exception e) {
-                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                messageField.setText("");
-            }
-        }.execute();
-    }
-
-    private void loadChatHistory() {
-        new SwingWorker<List<MessageDto>, Void>() {
-            @Override
-            protected List<MessageDto> doInBackground() {
-                try {
-                    return client.getChatHistory(chatId);
-                } catch (Exception e) {
-                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-                return List.of();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    fillChatArea(get());
-                    messages = new ArrayList<>(get());
-                    chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                } catch (Exception e) {
-                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-            }
-        }.execute();
-    }
-
-    private void loadChatHistory(int from) {
-        new SwingWorker<List<MessageDto>, Void>() {
-            @Override
-            protected List<MessageDto> doInBackground() {
-                try {
-                    return client.getChatHistory(chatId, from);
-                } catch (Exception e) {
-                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-                return List.of();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    if (get().isEmpty()) return;
-                    chatHistoryCount++;
-                    messages.addAll(get());
-                    messages = new ArrayList<>(messages.stream()
-                            .sorted(Comparator.comparing(MessageDto::getTime))
-                            .toList());
-                    fillChatArea(messages);
-                    chatArea.setCaretPosition(chatArea.getDocument().getLength());
-                } catch (Exception e) {
-                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-            }
-        }.execute();
-    }
-
-    private void fillChatArea(List<MessageDto> messages) {
-        chatArea.setText("");
-        OffsetDateTime oldDate = messages.getFirst().getTime();
-        MainFrameHelper.addDate(oldDate, chatArea, dictionary);
-        for (MessageDto m : messages) {
-            if (m.getTime().toLocalDate().isAfter(oldDate.toLocalDate())) {
-                MainFrameHelper.addDate(m.getTime(), chatArea, dictionary);
-                oldDate = m.getTime();
-            }
-
-            onMessageReceived(m);
-        }
-    }
-
-    private void loadChats() {
+    @Override
+    public void loadChats() {
         new SwingWorker<List<ChatDto>, Void>() {
             @Override
             protected List<ChatDto> doInBackground() {
@@ -174,6 +92,99 @@ public class MainFrame extends JFrame implements MessageListener {
                 }
             }
         }.execute();
+    }
+
+    private void initUi() {
+        setTitle(dictionary.getChat() + " - " + username);
+        setSize(600, 600);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        add(getMainWindow());
+    }
+
+    private void sendMessage() {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    if (client.isNotConnected()) {
+                        client.connect(username);
+                        if (client.isNotConnected())
+                            throw new NoConnectionServerException("There is no connection to the server");
+                    }
+
+                    client.sendMessage(messageField.getText(), username, chat.getId());
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                messageField.setText("");
+            }
+        }.execute();
+    }
+
+    private void loadChatHistory() {
+        new SwingWorker<List<MessageDto>, Void>() {
+            @Override
+            protected List<MessageDto> doInBackground() {
+                try {
+                    return client.getChatHistory(chat.getId());
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+                return List.of();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    fillChatArea(get());
+                    messages = new ArrayList<>(get());
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+            }
+        }.execute();
+    }
+
+    private void loadChatHistory(int from) {
+        new SwingWorker<List<MessageDto>, Void>() {
+            @Override
+            protected List<MessageDto> doInBackground() {
+                try {
+                    return client.getChatHistory(chat.getId(), from);
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+                return List.of();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (get().isEmpty()) return;
+                    chatHistoryCount++;
+                    messages.addAll(get());
+                    messages = new ArrayList<>(messages.stream()
+                            .sorted(Comparator.comparing(MessageDto::getTime))
+                            .toList());
+                    fillChatArea(messages);
+                } catch (Exception e) {
+                    MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
+                }
+            }
+        }.execute();
+    }
+
+    private void fillChatArea(List<MessageDto> messages) {
+        chatArea.removeAll();
+        for (MessageDto m : messages) {
+            onMessageReceived(m);
+        }
     }
 
     private void loadInvitations() {
@@ -202,71 +213,35 @@ public class MainFrame extends JFrame implements MessageListener {
         }.execute();
     }
 
-    private void createChat(boolean isPrivate) {
-        JFrame main = new JFrame();
-        main.setTitle(dictionary.getAddChatTitle());
-        main.setSize(240, 110);
-        main.setLocationRelativeTo(null);
-
-        JPanel addChatPanel = new JPanel(new BorderLayout());
-        JTextField labelField = new JTextField();
-        addChatPanel.add(new JLabel(isPrivate ? dictionary.getFriendsName() : dictionary.getChatName()), BorderLayout.NORTH);
-        addChatPanel.add(labelField, BorderLayout.CENTER);
-
-        JButton pubChatButton = new JButton(dictionary.getCreateChat());
-        pubChatButton.addActionListener(e -> {
-            try {
-                client.createChat(username, labelField.getText(), isPrivate);
-                loadChats();
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            }
-            main.dispose();
-        });
-
-        addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
-
-        main.add(addChatPanel);
-        main.setVisible(true);
-    }
-
     private void showCreateChatContextMenu(JComponent parent) {
         JPopupMenu menu = new JPopupMenu();
 
         JMenuItem privateChat = new JMenuItem();
         privateChat.setText(dictionary.getPrivateChat());
-        privateChat.addActionListener(e -> createChat(true));
+        privateChat.addActionListener(e -> AdditionalFrameFactory.getCreateChatFrame(MainFrame.this, true));
         menu.add(privateChat);
 
         JMenuItem publicChat = new JMenuItem();
         publicChat.setText(dictionary.getPublicChat());
-        publicChat.addActionListener(e -> createChat(false));
+        publicChat.addActionListener(e -> AdditionalFrameFactory.getCreateChatFrame(MainFrame.this, false));
         menu.add(publicChat);
 
         menu.show(parent, 0, parent.getHeight());
     }
 
-    @Override
-    public void onMessageReceived(MessageDto message) {
-        if (!message.getChatId().equals(chatId)) return;
-        MainFrameHelper.addTime(message.getTime(), chatArea);
-        SwingUtilities.invokeLater(() -> {
-            String formatted = String.format("%s: %s\n", message.getSender(), message.getContent());
-            chatArea.append(formatted);
-        });
-    }
-
-    @Override
-    public void start() {
-        //не используется
-    }
 
     private JPanel getChatPanel() {
+        chatArea = new JPanel();
+        chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
+        chatArea.setBackground(backgroungColor);
+
+        chatArea.add(Box.createVerticalGlue());
+
+        chatScroll = new JScrollPane(chatArea);
+        chatScroll.setPreferredSize(new Dimension(500, 500));
+        chatScroll.getVerticalScrollBar().setUnitIncrement(16);
+
         JPanel chatPanel = new JPanel(new BorderLayout());
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(600, 500));
         chatPanel.add(chatScroll, BorderLayout.CENTER);
         return chatPanel;
     }
@@ -338,12 +313,16 @@ public class MainFrame extends JFrame implements MessageListener {
         return invitationsPanel;
     }
 
+    private final Color mouseEnteredItemColor = new Color(183, 250, 211);
+    private final Color backgroungColor = UIManager.getColor("Panel.background");
+
     private JPanel createChatItem(ChatDto chat) {
         MouseAdapter selectListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
-                    chatId = chat.getId();
+                    MainFrame.this.chat = chat;
+                    chatName.setText(MainFrameHelper.getChatName(chat));
                     chatHistoryCount = 1;
                     loadChatHistory();
                 }
@@ -351,23 +330,17 @@ public class MainFrame extends JFrame implements MessageListener {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                e.getComponent().setBackground(new Color(183, 250, 211));
+                e.getComponent().setBackground(mouseEnteredItemColor);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                e.getComponent().setBackground(UIManager.getColor("Panel.background"));
+                e.getComponent().setBackground(backgroungColor);
             }
         };
-        JTextArea textArea = new JTextArea(getChatName(chat));
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setEditable(false);
-        textArea.setFocusable(false);
-        textArea.setBorder(null);
-        textArea.addMouseListener(selectListener);
+        JTextArea textArea = getTextArea(MainFrameHelper.getChatName(chat), selectListener);
 
-        JButton menuButton = new JButton(dictionary.getEllipsis());
+        JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showChatContextMenu(menuButton, chat));
 
         JPanel itemPanel = new JPanel(new BorderLayout());
@@ -382,14 +355,21 @@ public class MainFrame extends JFrame implements MessageListener {
     }
 
     private JPanel createInvitationItem(InvitationChatDto invitation) {
-        JTextArea textArea = new JTextArea(invitation.getChatName());
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setEditable(false);
-        textArea.setFocusable(false);
-        textArea.setBorder(null);
+        MouseAdapter selectListener = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                e.getComponent().setBackground(mouseEnteredItemColor);
+            }
 
-        JButton menuButton = new JButton(dictionary.getEllipsis());
+            @Override
+            public void mouseExited(MouseEvent e) {
+                e.getComponent().setBackground(backgroungColor);
+            }
+        };
+
+        JTextArea textArea = getTextArea(invitation.getChatName(), selectListener);
+
+        JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showInvitationsContextMenu(menuButton, invitation));
 
         JPanel itemPanel = new JPanel(new BorderLayout());
@@ -397,16 +377,77 @@ public class MainFrame extends JFrame implements MessageListener {
         itemPanel.add(menuButton, BorderLayout.EAST);
 
         itemPanel.setMaximumSize(new Dimension(10000, 40));
+        itemPanel.addMouseListener(selectListener);
         itemPanel.setOpaque(true);
 
         return itemPanel;
+    }
+
+    private JPanel createMessageItem(MessageDto messageDto) {
+        Color selfMessage = new Color(205, 214, 244);
+        Color friendMessage = new Color(157, 180, 239);
+
+        JTextPane title = getTextPane();
+
+        String formattedTitle = "<html><div style='padding:2px'>"
+                + MainFrameHelper.formatTime(messageDto.getTime())
+                + " <b>" + messageDto.getSender() + "</b></div></html>";
+        title.setText(formattedTitle);
+
+        JTextPane content = getTextPane();
+        content.setText(messageDto.getContent());
+        content.setSize(new Dimension(250, Short.MAX_VALUE));
+        int height = content.getPreferredSize().height;
+
+        JPanel message = new JPanel(new BorderLayout());
+        message.add(title, BorderLayout.NORTH);
+        message.add(content, BorderLayout.CENTER);
+        message.setBorder(new EmptyBorder(5, 5, 5, 5));
+        message.setPreferredSize(new Dimension(250, height + 50));
+
+        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
+        message.setBackground(bgColor);
+        title.setBackground(bgColor);
+        content.setBackground(bgColor);
+
+        JPanel container = new JPanel();
+        container.setBackground(backgroungColor);
+        container.setOpaque(false);
+
+        if (messageDto.getSender().equals(username))
+            container.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        else container.setLayout(new FlowLayout(FlowLayout.LEFT));
+        container.add(message);
+        return container;
+    }
+
+    private JTextPane getTextPane() {
+        JTextPane textPane = new JTextPane();
+        textPane.setContentType("text/html");
+        textPane.setEditable(false);
+        textPane.setOpaque(false);
+        textPane.setBorder(null);
+        textPane.setMargin(new Insets(0, 0, 0, 0));
+        return textPane;
+    }
+
+    private JTextArea getTextArea(String title, MouseAdapter selectListener) {
+        JTextArea textArea = new JTextArea(title);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setFocusable(false);
+        textArea.setBorder(null);
+        textArea.setBackground(backgroungColor);
+        textArea.addMouseListener(selectListener);
+        return textArea;
     }
 
     private void showChatContextMenu(JComponent parent, ChatDto chat) {
         JPopupMenu menu = new JPopupMenu();
         if (!chat.getPrivateChat()) {
             JMenuItem addUserItem = new JMenuItem(dictionary.getAddUser());
-            addUserItem.addActionListener(e -> addUserFromChat(chat));
+            addUserItem.addActionListener(e -> AdditionalFrameFactory.getAddUserFromChatFrame(MainFrame.this, chat));
             menu.add(addUserItem);
         }
         if (chat.getAdmin().equals(username) && !chat.getPrivateChat()) {
@@ -466,183 +507,18 @@ public class MainFrame extends JFrame implements MessageListener {
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void addUserFromChat(ChatDto chat) {
-        new SwingWorker<Void, Void>() {
-
-            @Override
-            protected Void doInBackground() throws Exception {
-                addUserFromChatFrame(chat);
-                return null;
-            }
-        }.execute();
-    }
-
-    private void addUserFromChatFrame(ChatDto chat) {
-        JFrame main = new JFrame();
-        main.setTitle(dictionary.getLogoutChat());
-        main.setSize(250, 150);
-        main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        main.setLocationRelativeTo(null);
-        main.add(getMainWindow());
-
-        String question = dictionary.getAddUser() + " " + getChatName(chat);
-        JLabel addLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
-        addLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JPanel buttonPanel = getAddUserFromChatButtonPanel(chat.getId(), main);
-
-        JPanel addPanel = new JPanel(new BorderLayout());
-        addPanel.add(addLabel, BorderLayout.NORTH);
-        addPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        main.add(addPanel);
-        main.setVisible(true);
-    }
-
-    private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main) {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        JButton addButton = new JButton();
-
-        JTextField addUserField = new JTextField();
-
-        addButton.addActionListener(e -> {
-            try {
-                client.addUserFromChat(addUserField.getText(), chatId);
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            } finally {
-                main.dispose();
-            }
-        });
-        addButton.setText(dictionary.getAdd());
-        buttonPanel.add(addButton);
-
-        JPanel wrapperPanel = new JPanel(new GridBagLayout());
-        wrapperPanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 20, 40));
-        wrapperPanel.add(buttonPanel);
-
-        JPanel endPanel = new JPanel(new BorderLayout());
-        endPanel.add(addUserField, BorderLayout.NORTH);
-        endPanel.add(wrapperPanel, BorderLayout.SOUTH);
-        return endPanel;
-    }
-
     private void logoutChat(ChatDto deleteChat) {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                logoutChatFrame(deleteChat);
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                loadChats();
-                if (deleteChat.getId().equals(chatId)) {
-                    chatArea.setText("");
-                }
-                chatsContainer.revalidate();
-                chatsContainer.repaint();
-            }
-        }.execute();
+        AdditionalFrameFactory.getLogoutChatFrame(MainFrame.this, deleteChat);
+        if (chat != null && deleteChat.getId().equals(chat.getId()))
+            chatArea.removeAll();
+        chatsContainer.revalidate();
+        chatsContainer.repaint();
     }
 
-    private void logoutChatFrame(ChatDto deleteChat) {
-        JFrame main = new JFrame();
-        main.setTitle(dictionary.getLogoutChat());
-        main.setSize(250, 150);
-        main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        main.setLocationRelativeTo(null);
-        main.add(getMainWindow());
-
-        String question = dictionary.getLogoutChatQuestion() + " " + getChatName(deleteChat);
-        JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
-        deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JPanel buttonPanel = getLogoutChatButtonPanel(deleteChat.getId(), main);
-
-        JPanel deletePanel = new JPanel(new BorderLayout());
-        deletePanel.add(deleteLabel, BorderLayout.NORTH);
-        deletePanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        main.add(deletePanel);
-        main.setVisible(true);
-    }
-
-    private JPanel getLogoutChatButtonPanel(String deleteChatId, JFrame main) {
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
-        JButton yesButton = new JButton();
-        yesButton.addActionListener(e -> {
-            try {
-                client.logoutOfChat(username, deleteChatId);
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            } finally {
-                main.dispose();
-            }
-        });
-        yesButton.setText(dictionary.getYes());
-
-        JButton noButton = new JButton();
-        noButton.addActionListener(e -> main.dispose());
-        noButton.setText(dictionary.getNo());
-
-        buttonPanel.add(yesButton, BorderLayout.WEST);
-        buttonPanel.add(noButton, BorderLayout.EAST);
-
-        JPanel wrapperPanel = new JPanel(new GridBagLayout());
-        wrapperPanel.setBorder(BorderFactory.createEmptyBorder(0, 40, 20, 40));
-        wrapperPanel.add(buttonPanel);
-        return wrapperPanel;
-    }
-
-    private void renameChat(ChatDto chat, boolean admin) {
-        new SwingWorker<Void, Void>() {
-
-            @Override
-            protected Void doInBackground() {
-                renameChatFrame(chat, admin);
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                loadChats();
-                chatsContainer.revalidate();
-                chatsContainer.repaint();
-            }
-        }.execute();
-    }
-
-    private void renameChatFrame(ChatDto renameChat, boolean admin) {
-        JFrame main = new JFrame();
-        main.setTitle(dictionary.getRenameChatCustom() + " " + getChatName(renameChat));
-        main.setSize(250, 150);
-        main.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        main.setLocationRelativeTo(null);
-        main.add(getMainWindow());
-
-        JTextField renameField = new JTextField();
-
-        JButton renameButton = new JButton();
-        renameButton.setText(dictionary.getRename());
-        renameButton.addActionListener(e -> {
-            try {
-                if (admin)
-                    client.renameChatAdmin(username, renameChat.getId(), renameField.getText());
-                else client.renameChatCustom(username, renameChat.getId(), renameField.getText());
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            } finally {
-                main.dispose();
-            }
-        });
-
-        JPanel renamePanel = new JPanel(new BorderLayout());
-        renamePanel.add(renameField, BorderLayout.NORTH);
-        renamePanel.add(renameButton, BorderLayout.SOUTH);
-        main.add(renamePanel);
-        main.setVisible(true);
+    private void renameChat(ChatDto chat, boolean isAdmin) {
+        AdditionalFrameFactory.getRenameChatFrame(MainFrame.this, chat, isAdmin);
+        chatsContainer.revalidate();
+        chatsContainer.repaint();
     }
 
     private JPanel getStatusBar() {
@@ -654,16 +530,18 @@ public class MainFrame extends JFrame implements MessageListener {
         buttonsPanel.add(restart);
         //Настройки
         JButton settings = new JButton(dictionary.getSettings());
-        settings.addActionListener(e -> {
-            Settings.getFrameSettings();
-        });
+        settings.addActionListener(e -> Settings.getFrameSettings());
         buttonsPanel.add(settings);
         //Сменить пользователя
         JButton newUser = new JButton(dictionary.getChangeUser());
         newUser.addActionListener(e -> {
-            dispose();
-            Client client = new Client();
-            new LoginFrame(client).setVisible(true);
+            try {
+                dispose();
+                client.disconnect();
+                new LoginFrame(client);
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
         });
         buttonsPanel.add(newUser);
 
@@ -696,30 +574,34 @@ public class MainFrame extends JFrame implements MessageListener {
         });
         buttonsPanel.add(chatUsersButton);
 
+        chatName = getTextArea(MainFrameHelper.getChatName(chat), null);
+
         JPanel chatStatusBar = new JPanel(new BorderLayout());
+        chatStatusBar.add(chatName, BorderLayout.WEST);
         chatStatusBar.add(buttonsPanel, BorderLayout.EAST);
         return chatStatusBar;
     }
 
     private void showContextMenuParticipant(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
-        if (chatId == null || chatId.isEmpty()) return;
+        if (chat == null || chat.getId().isEmpty()) return;
 
-        List<UserDto> users = client.getChatParticipants(chatId);
+        List<UserDto> users = client.getChatParticipants(chat.getId());
         for (UserDto u : users) {
             JMenuItem userItem = new JMenuItem();
             userItem.setText(u.getUsername());
             participants.add(userItem);
             userItem.addActionListener(e -> {
                 try {
-                    String chatIdNew;
+                    ChatDto newChat;
                     if (!u.getUsername().equals(username))
-                        chatIdNew = client.getPrivateChat(username, u.getUsername()).getId();
-                    else chatIdNew = client.getPersonalChat(username).getId();
+                        newChat = client.getPrivateChat(username, u.getUsername());
+                    else newChat = client.getPersonalChat(username);
 
-                    if (chatId.equals(chatIdNew)) return;
+                    if (chat.equals(newChat)) return;
 
-                    chatId = chatIdNew;
+                    chat = newChat;
+                    chatName.setText(MainFrameHelper.getChatName(chat));
                     loadChatHistory();
                 } catch (Exception ex) {
                     MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
@@ -767,11 +649,5 @@ public class MainFrame extends JFrame implements MessageListener {
         main.setTopComponent(statusBar);
         main.setBottomComponent(mainWindow);
         return main;
-    }
-
-    private String getChatName(ChatDto chat) {
-        return chat.getCustomName() == null || chat.getCustomName().isEmpty()
-                ? chat.getChatName()
-                : chat.getCustomName() + " (" + chat.getChatName() + ")";
     }
 }

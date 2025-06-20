@@ -44,9 +44,8 @@ public class ChatService extends AbstractService {
                 .build();
         chat = chatRepository.save(chat);
 
-        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
         ChatParticipant chatParticipant = ChatParticipant.builder()
-                .id(chatParticipantID)
+                .id(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
                 .chat(chat)
                 .user(user)
                 .build();
@@ -83,18 +82,16 @@ public class ChatService extends AbstractService {
                 .build();
         chat = chatRepository.save(chat);
 
-        ChatParticipantID chatParticipantID1 = new ChatParticipantID(chat.getId(), user.getId());
         ChatParticipant chatParticipant1 = ChatParticipant.builder()
-                .id(chatParticipantID1)
+                .id(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
                 .chat(chat)
                 .user(user)
                 .customChatName(chatCreateDto.getChatName())
                 .build();
         chatParticipantRepository.save(chatParticipant1);
 
-        ChatParticipantID chatParticipantID2 = new ChatParticipantID(chat.getId(), friend.getId());
         ChatParticipant chatParticipant2 = ChatParticipant.builder()
-                .id(chatParticipantID2)
+                .id(new ChatParticipant.ChatParticipantID(chat.getId(), friend.getId()))
                 .chat(chat)
                 .user(friend)
                 .customChatName(chatCreateDto.getUsername())
@@ -121,9 +118,8 @@ public class ChatService extends AbstractService {
                 .build();
         chat = chatRepository.save(chat);
 
-        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
         ChatParticipant chatParticipant = ChatParticipant.builder()
-                .id(chatParticipantID)
+                .id(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
                 .chat(chat)
                 .user(user)
                 .customChatName(getDictionary(chatCreateDto.getLocale()).getPersonal())
@@ -138,6 +134,14 @@ public class ChatService extends AbstractService {
         if (chat.getPrivateChat())
             throw new IncorrectChatDataException(getDictionary(invitationChatDto.getLocale())
                     .getAddUserIncorrectChatDataException());
+
+        ChatParticipant chatParticipant = chatParticipantRepository
+                .findById(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
+                .orElse(null);
+
+        if (chatParticipant != null)
+            throw new IncorrectInvitationChatException(getDictionary(invitationChatDto.getLocale())
+                    .getAddUserIncorrectInvitationException(user.getUsername(), chat.getChatName()));
 
         InvitationChat invitationChat = InvitationChat.builder()
                 .chat(chat)
@@ -158,7 +162,7 @@ public class ChatService extends AbstractService {
                 .toList();
     }
 
-    public InvitationChatDto confirmInvitation (InvitationChatDto invitationChatDto) {
+    public InvitationChatDto confirmInvitation(InvitationChatDto invitationChatDto) {
         User user = getUser(invitationChatDto.getUsername(), invitationChatDto.getLocale());
         Chat chat = getChat(invitationChatDto.getChatId(), invitationChatDto.getLocale());
         InvitationChat invitationChat = invitationsRepository.findByUsernameAndChatId(user.getUsername(), chat.getId())
@@ -168,9 +172,8 @@ public class ChatService extends AbstractService {
         invitationsRepository.deleteById(invitationChat.getId());
 
         if (invitationChatDto.isConfirmed()) {
-            ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
             ChatParticipant chatParticipant = ChatParticipant.builder()
-                    .id(chatParticipantID)
+                    .id(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
                     .chat(chat)
                     .user(user)
                     .build();
@@ -227,7 +230,7 @@ public class ChatService extends AbstractService {
         Chat chat = getChat(chatParticipantDto.getChatId(), chatParticipantDto.getLocale());
 
         if (chat.getPrivateChat()) chatRepository.deleteById(chat.getId());
-        else chatParticipantRepository.deleteById(new ChatParticipantID(chat.getId(), user.getId()));
+        else chatParticipantRepository.deleteById(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()));
     }
 
     public void renameChatCustom(ChatRenameDto chatRenameDto) {
@@ -238,7 +241,7 @@ public class ChatService extends AbstractService {
         Chat chat = getChat(chatId, chatRenameDto.getLocale());
         User user = getUser(username, chatRenameDto.getLocale());
 
-        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
+        ChatParticipant.ChatParticipantID chatParticipantID = new ChatParticipant.ChatParticipantID(chat.getId(), user.getId());
         ChatParticipant chatParticipant = chatParticipantRepository.findById(chatParticipantID)
                 .orElseThrow(() -> new IncorrectChatDataException(getDictionary(chatRenameDto.getLocale())
                         .getRenameChatCustomIncorrectChatDataException(username, chat.getChatName())));
@@ -279,11 +282,7 @@ public class ChatService extends AbstractService {
     }
 
     private ChatDto getChatDto(User user, Chat chat, String locale) {
-        ChatParticipantID chatParticipantID = new ChatParticipantID(chat.getId(), user.getId());
-        ChatParticipant chatParticipant = chatParticipantRepository.findById(chatParticipantID)
-                .orElseThrow(() -> new IncorrectChatDataException(
-                        getDictionary(locale).getGetPrivateChatIncorrectChatDataException()));
-
+        ChatParticipant chatParticipant = getChatParticipant(chat, user, locale);
         return ChatDto.builder()
                 .id(chat.getId())
                 .chatName(chat.getChatName())
@@ -319,6 +318,12 @@ public class ChatService extends AbstractService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new IncorrectUserDataException(getDictionary(locale)
                         .getGetUserIncorrectUserDataException(username)));
+    }
+
+    private ChatParticipant getChatParticipant(Chat chat, User user, String locale) {
+        return chatParticipantRepository.findById(new ChatParticipant.ChatParticipantID(chat.getId(), user.getId()))
+                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(locale)
+                        .getChatParticipantIncorrectChatDataException(user.getUsername(), chat.getChatName())));
     }
 
     private UserDto getUserDtoFromUser(User user) {
