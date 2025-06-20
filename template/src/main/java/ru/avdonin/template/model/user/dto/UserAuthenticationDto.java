@@ -1,7 +1,6 @@
 package ru.avdonin.template.model.user.dto;
 
 import lombok.*;
-import ru.avdonin.template.model.util.BaseDto;
 
 @Getter
 @Setter

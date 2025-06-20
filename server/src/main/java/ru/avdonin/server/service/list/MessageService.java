@@ -27,7 +27,7 @@ public class MessageService extends AbstractService {
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
-    private final FtpService ftpService;
+    private final AvatarFtpService avatarFtpService;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
 
     public MessageDto saveMessage(MessageDto messageDto) {
@@ -90,7 +90,8 @@ public class MessageService extends AbstractService {
                         ))
                 .sender(message.getSender().getUsername())
                 .chatId(message.getChat().getId())
-                .file(ftpService.getFile(message.getFile()))
+                .file(null)
+                .avatar(avatarFtpService.downloadAvatar(message.getSender().getUsername(), message.getSender().getAvatarFileName()))
                 .build();
     }
 }

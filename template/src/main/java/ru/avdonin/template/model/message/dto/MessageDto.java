@@ -17,6 +17,7 @@ public class MessageDto {
     private String content;
     private String sender;
     private String chatId;
-    private InputStream file;
+    private String file;
+    private String avatar;
     private String locale;
 }
