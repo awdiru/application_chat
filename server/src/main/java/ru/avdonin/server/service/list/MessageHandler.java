@@ -1,4 +1,4 @@
-package ru.avdonin.server.controller.list;
+package ru.avdonin.server.service.list;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,14 +14,12 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
-import ru.avdonin.server.service.list.ChatService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.chat.dto.ChatIdDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
-import ru.avdonin.server.service.list.MessageService;
-import ru.avdonin.server.service.list.UserService;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;
@@ -36,7 +34,6 @@ import java.util.concurrent.ConcurrentMap;
 public class MessageHandler extends TextWebSocketHandler {
     private final Logger log;
     private final UserService userService;
-    private final MessageService messageService;
     private final ChatService chatService;
 
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -71,6 +68,7 @@ public class MessageHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) {
+        /*
         try {
             MessageDto messageDto = objectMapper.readValue(textMessage.getPayload(), MessageDto.class);
             messageDto = messageService.saveMessage(messageDto);
@@ -88,10 +86,20 @@ public class MessageHandler extends TextWebSocketHandler {
 
         } catch (Exception e) {
             sendError(session, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        }*/
     }
 
-    private void sendToUser(String username, MessageDto message) throws IOException {
+    public void sendToUsers(NewMessageDto newMessageDto) throws IOException {
+        List<String> users = chatService.getChatUsers(new ChatIdDto(newMessageDto.getChatId(), newMessageDto.getLocale())).stream()
+                .map(UserDto::getUsername)
+                .toList();
+
+        for (String user : users)
+            if (!user.equals(newMessageDto.getSender()))
+                sendToUser(user, newMessageDto);
+    }
+
+    private void sendToUser(String username, NewMessageDto message) throws IOException {
         WebSocketSession session = sessions.get(username);
         if (session != null && session.isOpen()) {
             log.info("sendMessage: " + message);

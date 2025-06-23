@@ -9,6 +9,7 @@ import ru.avdonin.server.entity_model.Chat;
 import ru.avdonin.server.repository.ChatRepository;
 import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
+import ru.avdonin.template.exceptions.IncorrectDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.server.entity_model.Message;
 import ru.avdonin.server.entity_model.User;
@@ -16,7 +17,9 @@ import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 
+import java.io.IOException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -29,14 +32,12 @@ public class MessageService extends AbstractService {
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
-    private final AvatarFtpService avatarFtpService;
     private final ImageFtpService imageFtpService;
+    private final MessageHandler messageHandler;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
-    @Getter
-    private final Map<String, String> usersAvatar = new HashMap<>();
     private final Map<Long, String> messagesImages = new HashMap<>();
 
-    public MessageDto saveMessage(MessageDto messageDto) {
+    public void saveMessage(MessageDto messageDto) throws IOException {
 
         User sender = userRepository.findByUsername(messageDto.getSender())
                 .orElseThrow(() -> new IncorrectUserDataException(getDictionary(messageDto.getLocale())
@@ -48,30 +49,22 @@ public class MessageService extends AbstractService {
                         .getSaveMessageIncorrectChatDataException()));
 
 
-        Message saved = Message.builder()
-                .time(Instant.now())
+        Message message = Message.builder()
+                .time(messageDto.getTime().toInstant())
                 .content(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
                 .sender(sender)
                 .chat(chat)
                 .build();
         //TODO Дописать сохранение картинок
 
-        List<Message> messages = chatsMessages.computeIfAbsent(chat.getId(), k -> new ArrayList<>());
-        messages.add(saved);
-        if (messages.size() >= 5) {
-            messageRepository.saveAll(messages);
-            messages.clear();
-        }
-        String avatar = getAvatar(sender);
+        Message saved = messageRepository.save(message);
 
-        return MessageDto.builder()
-                .time(saved.getTime().atOffset(ZoneOffset.UTC))
-                .textContent(messageDto.getTextContent())
-                .sender(messageDto.getSender())
-                .avatarBase64(avatar)
-                .imageBase64(messageDto.getImageBase64())
-                .chatId(messageDto.getChatId())
+        NewMessageDto newMessageDto = NewMessageDto.builder()
+                .messageId(saved.getId())
+                .sender(sender.getUsername())
+                .chatId(chat.getId())
                 .build();
+        messageHandler.sendToUsers(newMessageDto);
     }
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
@@ -90,8 +83,13 @@ public class MessageService extends AbstractService {
                 .toList();
     }
 
+    public MessageDto getMessage(NewMessageDto newMessageDto) {
+        Message message = messageRepository.findById(newMessageDto.getMessageId())
+                .orElseThrow(() -> new IncorrectDataException("The message with id " + newMessageDto.getMessageId() + " was not found"));
+        return getMessageDto(message, newMessageDto.getLocale());
+    }
+
     private MessageDto getMessageDto(Message message, String locale) {
-        String avatar = getAvatar(message.getSender());
         return MessageDto.builder()
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
                 .textContent(
@@ -101,19 +99,9 @@ public class MessageService extends AbstractService {
                                 locale
                         ))
                 .sender(message.getSender().getUsername())
-                .avatarBase64(avatar)
                 .chatId(message.getChat().getId())
                 .imageBase64(null)
                 .build();
-    }
-
-    private String getAvatar(User user) {
-        return usersAvatar.computeIfAbsent(user.getUsername(),
-                k -> avatarFtpService.download(user.getUsername(), user.getAvatarFileName()));
-    }
-
-    private String getFileName() {
-        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy|HH-mm-ss-SSS"));
     }
 }
 

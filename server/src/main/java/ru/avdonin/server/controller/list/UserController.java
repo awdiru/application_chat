@@ -7,6 +7,7 @@ import ru.avdonin.server.controller.AbstractController;
 import ru.avdonin.server.service.list.UserService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.user.dto.UserAvatarDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
 @RestController
@@ -60,6 +61,17 @@ public class UserController extends AbstractController {
         try {
             UserDto respDto = userService.getUserByUsername(userDto);
             return ResponseEntity.ok().body(respDto);
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @GetMapping("/get/avatar")
+    public ResponseEntity<Object> getAvatar(@RequestBody UserAvatarDto userAvatarDto) {
+        try {
+            log.info("get avatar: " + userAvatarDto.getUsername());
+            UserAvatarDto response = userService.getAvatar(userAvatarDto);
+            return ResponseEntity.ok().body(response);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

@@ -17,10 +17,8 @@ import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
-import ru.avdonin.template.model.user.dto.UserDto;
-import ru.avdonin.template.model.user.dto.UserFriendDto;
-import ru.avdonin.template.model.user.dto.UsernameDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
+import ru.avdonin.template.model.user.dto.*;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
@@ -40,7 +38,7 @@ public class Client {
     private Session session;
     @Setter
     @Getter
-    private BaseDictionary language ;
+    private BaseDictionary language;
     private String httpURI;
     private String wsURI;
 
@@ -76,8 +74,11 @@ public class Client {
     }
 
     @OnMessage
-    public void onMessage(String message) throws JsonProcessingException {
-        MessageDto messageDto = objectMapper.readValue(message, MessageDto.class);
+    public void onMessage(String message) throws Exception {
+        NewMessageDto newMessageDto = objectMapper.readValue(message, NewMessageDto.class);
+        HttpResponse<String> response = get("/message/get", newMessageDto);
+        MessageDto messageDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
         messageDto.setTime(messageDto.getTime()
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
@@ -103,17 +104,20 @@ public class Client {
         post("/user" + path, userDto);
     }
 
-    public void sendMessage(String content, String username, String chatId, String imageBase64) throws IOException {
-        MessageDto message = MessageDto.builder()
-                .chatId(chatId)
-                .sender(username)
-                .textContent(content)
-                .imageBase64(imageBase64)
+    public void sendMessage(MessageDto message) throws Exception {
+        message.setLocale(getLocale());
+        post("/message/send", message);
+    }
+
+    public String getAvatar(String username) throws Exception {
+        UserAvatarDto userAvatarDto = UserAvatarDto.builder()
+                .username(username)
                 .locale(getLocale())
                 .build();
-
-        String json = objectMapper.writeValueAsString(message);
-        session.getBasicRemote().sendText(json);
+        HttpResponse<String> response = get("/user/get/avatar", userAvatarDto);
+        UserAvatarDto avatarDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+        return avatarDto.getAvatarBase64();
     }
 
     public List<MessageDto> getChatHistory(String chatId) throws Exception {

@@ -1,5 +1,6 @@
 package ru.avdonin.client.client.gui;
 
+import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.GUI;
@@ -20,9 +21,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Base64;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,6 +35,7 @@ public class MainFrame extends JFrame implements GUI {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Client client;
     private final String username;
+    private final Map<String, ImageIcon> avatars = new HashMap<>();
     private JPanel chatArea;
     private JTextArea messageArea;
     private JPanel chatsContainer;
@@ -47,6 +50,7 @@ public class MainFrame extends JFrame implements GUI {
     public MainFrame(Client client, String username) {
         this.client = client;
         this.username = username;
+        this.avatars.put(username, getAvatarIcon());
 
         client.setGui(this);
 
@@ -111,14 +115,17 @@ public class MainFrame extends JFrame implements GUI {
             @Override
             protected Void doInBackground() {
                 try {
-                    if (client.isNotConnected()) {
-                        client.connect(username);
-                        if (client.isNotConnected())
-                            throw new NoConnectionServerException("There is no connection to the server");
-                    }
-
-                    client.sendMessage(messageArea.getText(), username, chat.getId(), sentImageBase64);
+                    connect();
+                    MessageDto messageDto = MessageDto.builder()
+                            .time(OffsetDateTime.now())
+                            .sender(username)
+                            .chatId(chat.getId())
+                            .textContent(messageArea.getText())
+                            .imageBase64(sentImageBase64)
+                            .build();
+                    client.sendMessage(messageDto);
                     sentImageBase64 = null;
+                    onMessageReceived(messageDto);
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -206,13 +213,6 @@ public class MainFrame extends JFrame implements GUI {
                 }
             }
         }.execute();
-    }
-
-    private void fillChatArea(List<MessageDto> messages) {
-        chatArea.removeAll();
-        for (MessageDto m : messages) {
-            chatArea.add(createMessageItem(m));
-        }
     }
 
     private void loadInvitations() {
@@ -350,11 +350,11 @@ public class MainFrame extends JFrame implements GUI {
 
         JPanel headerChatsPanel = new JPanel(new BorderLayout());
 
-        ImageIcon avatarIcon = getAvatarIcon();
 
         String spase;
-        if (avatarIcon != null) {
-            headerChatsPanel.add(new JLabel(avatarIcon), BorderLayout.WEST);
+        ImageIcon avatar = avatars.get(username);
+        if (avatar != null) {
+            headerChatsPanel.add(new JLabel(avatar), BorderLayout.WEST);
             spase = " ";
         } else spase = "";
 
@@ -427,10 +427,15 @@ public class MainFrame extends JFrame implements GUI {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
-                    MainFrame.this.chat = chat;
-                    chatName.setText(MainFrameHelper.getChatName(chat));
-                    chatHistoryCount = 1;
-                    loadChatHistory();
+                    try {
+                        connect();
+                        MainFrame.this.chat = chat;
+                        chatName.setText(MainFrameHelper.getChatName(chat));
+                        chatHistoryCount = 1;
+                        loadChatHistory();
+                    } catch (Exception ex) {
+                        MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+                    }
                 }
             }
 
@@ -494,10 +499,17 @@ public class MainFrame extends JFrame implements GUI {
         Color friendMessage = new Color(157, 180, 239);
 
         ImageIcon avatarIcon = null;
-        if (messageDto.getAvatarBase64() != null && !messageDto.getAvatarBase64().isEmpty()) {
+        if (avatars.get(messageDto.getSender()) != null) {
+            avatarIcon = avatars.get(messageDto.getSender());
+
+        } else {
             try {
-                byte[] imageData = Base64.getDecoder().decode(messageDto.getAvatarBase64());
-                avatarIcon = new ImageIcon(imageData);
+                String avatarBase64 = client.getAvatar(messageDto.getSender());
+                byte[] imageData = Base64.getDecoder().decode(avatarBase64);
+                Image scaledImage = new ImageIcon(imageData).getImage()
+                        .getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+                avatarIcon = new ImageIcon(scaledImage);
+                avatars.put(messageDto.getSender(), avatarIcon);
             } catch (Exception e) {
             }
         }
@@ -532,7 +544,7 @@ public class MainFrame extends JFrame implements GUI {
         if (messageDto.getImageBase64() != null) {
             ImageIcon image;
             try {
-                byte[] imageData = Base64.getDecoder().decode(messageDto.getAvatarBase64());
+                byte[] imageData = Base64.getDecoder().decode(messageDto.getImageBase64());
                 image = new ImageIcon(imageData);
             } catch (Exception e) {
                 image = dictionary.getDefaultImage();
@@ -605,8 +617,6 @@ public class MainFrame extends JFrame implements GUI {
         else removeItem.setText(dictionary.getLogoutChat());
         removeItem.addActionListener(e -> logoutChat(chat));
         menu.add(removeItem);
-
-        // TODO Здесь можно добавить другие действия над пользователем
 
         menu.show(parent, 0, parent.getHeight());
     }
@@ -813,5 +823,13 @@ public class MainFrame extends JFrame implements GUI {
         main.setTopComponent(statusBar);
         main.setBottomComponent(mainWindow);
         return main;
+    }
+
+    private void connect() throws DeploymentException, IOException {
+        if (client.isNotConnected()) {
+            client.connect(username);
+            if (client.isNotConnected())
+                throw new NoConnectionServerException("There is no connection to the server");
+        }
     }
 }
