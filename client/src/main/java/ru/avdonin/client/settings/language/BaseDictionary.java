@@ -77,6 +77,8 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String friday = "Fri";
     private final String saturday = "Sat";
     private final String sunday = "Sun";
+    //Exception
+    private final String cannotBeRead = "The image file cannot be read";
     //Default symbols
     private final ImageIcon plus = new ImageIcon("data/plus-icon.png");
     private final ImageIcon minus = new ImageIcon("date/minus-icon.png");

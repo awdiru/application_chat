@@ -15,11 +15,14 @@ import ru.avdonin.template.model.chat.dto.InvitationChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -275,7 +278,6 @@ public class MainFrame extends JFrame implements GUI {
     }
 
     private JPanel getMessagePanel() {
-        JPanel messagePanel = new JPanel(new BorderLayout(5, 5));
 
         messageArea = new JTextArea(3, 20);
         messageArea.setLineWrap(true);
@@ -291,12 +293,12 @@ public class MainFrame extends JFrame implements GUI {
         inputPanel.add(scrollPane, BorderLayout.CENTER);
         inputPanel.add(attachButton, BorderLayout.EAST);
 
-        setupKeyBindings(messageArea);
+        setupKeyBindings();
 
         return inputPanel;
     }
 
-    private void setupKeyBindings(JTextArea messageArea) {
+    private void setupKeyBindings() {
         KeyStroke ctrlEnter = KeyStroke.getKeyStroke(
                 KeyEvent.VK_ENTER,
                 InputEvent.CTRL_DOWN_MASK
@@ -319,8 +321,41 @@ public class MainFrame extends JFrame implements GUI {
         if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             try {
-                byte[] fileContent = Files.readAllBytes(selectedFile.toPath());
-                sentImageBase64 = Base64.getEncoder().encodeToString(fileContent);
+                BufferedImage originalImage = ImageIO.read(selectedFile);
+                if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
+
+                int originalWidth = originalImage.getWidth();
+                int originalHeight = originalImage.getHeight();
+                int targetWidth = 200;
+                int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
+
+                int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
+                        BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+
+                BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
+
+                Graphics2D g2d = scaledImage.createGraphics();
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (imageType == BufferedImage.TYPE_INT_RGB) {
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, targetWidth, targetHeight);
+                }
+
+                g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+                g2d.dispose();
+
+                String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(scaledImage, formatName, baos);
+
+                sentImageBase64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
