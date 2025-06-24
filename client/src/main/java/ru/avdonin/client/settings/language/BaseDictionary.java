@@ -92,5 +92,6 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon changeAvatar = new ImageIcon("data/change-avatar-icon.png");
     private final ImageIcon participants = new ImageIcon("data/participants-chat-icon.png");
     private final ImageIcon paperClip = new ImageIcon("data/paper-clip-icon.png");
+    private final ImageIcon paperClipWithFile = new ImageIcon("data/paper-clip-with-file-icon.png");
     private final ImageIcon defaultImage = new ImageIcon("data/default-icon.png");
 }

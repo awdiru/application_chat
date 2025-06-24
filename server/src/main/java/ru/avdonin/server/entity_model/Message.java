@@ -25,7 +25,7 @@ public class Message {
     private String content;
 
     @Column(name = "file_name")
-    private String file;
+    private String fileName;
 
     @ManyToOne
     @JoinColumn(name = "sender_id")

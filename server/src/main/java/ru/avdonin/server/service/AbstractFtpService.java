@@ -17,28 +17,24 @@ public abstract class AbstractFtpService {
 
     /**
      * Название директории по умолчанию.
-     * Необходимо переопределять!
      */
     protected final String defaultPath;
     /**
      * Название файла по умолчанию.
-     * Необходимо переопределять!
      */
     @Getter
     protected final String defaultFileName;
     /**
      * Название базовой директории.
-     * Необходимо переопределять!
      */
     protected final String basePath;
     /**
-     * Сжатие по X.
-     * Необходимо переопределять!
+     * Сжатие по ширине.
      */
     protected final Integer xCompression;
     /**
-     * Сжатие по Y.
-     * Необходимо переопределять!
+     * Сжатие по высоте.
+     * Если необходимо сохранять оригинальные пропорции - установить -1
      */
     protected final Integer yCompression;
 
@@ -92,11 +88,13 @@ public abstract class AbstractFtpService {
 
             byte[] imageData = Base64.getDecoder().decode(fileBase64);
 
-        //    createDirectoryAndChangeWorking(directoryName);
-
             try (ByteArrayInputStream bais = new ByteArrayInputStream(imageData);
                  ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                 BufferedImage originalImage = ImageIO.read(bais);
+
+                int yCompression = this.yCompression;
+                if (yCompression == -1)
+                    yCompression = (int) (originalImage.getHeight() * (this.xCompression / (double) originalImage.getWidth()));
 
                 Thumbnails.of(originalImage)
                         .size(xCompression, yCompression)   // Размер сжатия

@@ -3,6 +3,7 @@ package ru.avdonin.template.model.message.dto;
 import lombok.*;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -17,6 +18,6 @@ public class MessageDto {
     @ToString.Exclude
     private String textContent;
     @ToString.Exclude
-    private String imageBase64;
+    private List<String> imagesBase64;
     private String locale;
 }

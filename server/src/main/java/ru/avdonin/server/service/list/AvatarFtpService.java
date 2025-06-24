@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.avdonin.server.service.AbstractFtpService;
+import ru.avdonin.template.constatns.Constants;
 
 @Service
 public class AvatarFtpService extends AbstractFtpService {
@@ -17,7 +18,7 @@ public class AvatarFtpService extends AbstractFtpService {
                 "default",
                 "default-avatar.png",
                 "/user_avatars",
-                32,
-                32);
+                (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                (Integer) Constants.COMPRESSION_AVATAR.getValue());
     }
 }

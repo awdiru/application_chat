@@ -9,6 +9,7 @@ import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.chat.dto.InvitationChatDto;
@@ -44,8 +45,9 @@ public class MainFrame extends JFrame implements GUI {
     private JPanel chatsContainer;
     private JScrollPane chatScroll;
     private JPanel invitationsContainer;
+    private JButton attachButton;
     private ChatDto chat;
-    private String sentImageBase64 = null;
+    private List<String> sentImagesBase64 = new ArrayList<>();
     private Integer chatHistoryCount = 1;
     private List<MessageDto> messages = new ArrayList<>();
     private JTextArea chatName = new JTextArea();
@@ -124,10 +126,17 @@ public class MainFrame extends JFrame implements GUI {
                             .sender(username)
                             .chatId(chat.getId())
                             .textContent(messageArea.getText())
-                            .imageBase64(sentImageBase64)
+                            .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
                             .build();
+                    if ((messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
+                            && messageDto.getImagesBase64() == null) return null;
+
                     client.sendMessage(messageDto);
-                    sentImageBase64 = null;
+
+                    attachButton.revalidate();
+                    attachButton.repaint();
+
+                    sentImagesBase64 = new ArrayList<>();
                     onMessageReceived(messageDto);
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
@@ -161,6 +170,9 @@ public class MainFrame extends JFrame implements GUI {
                     for (MessageDto m : get())
                         chatArea.add(createMessageItem(m));
                     messages = new ArrayList<>(get());
+
+                    chatArea.revalidate();
+                    chatArea.repaint();
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -285,9 +297,9 @@ public class MainFrame extends JFrame implements GUI {
         JScrollPane scrollPane = new JScrollPane(messageArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        JButton attachButton = new JButton(dictionary.getPaperClip());
+        attachButton = new JButton(dictionary.getPaperClip());
         attachButton.setMargin(new Insets(0, 5, 0, 5));
-        attachButton.addActionListener(e -> attachImage());
+        attachButton.addActionListener(e -> attachImage(attachButton));
 
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.add(scrollPane, BorderLayout.CENTER);
@@ -313,7 +325,7 @@ public class MainFrame extends JFrame implements GUI {
         });
     }
 
-    private void attachImage() {
+    private void attachImage(JButton parent) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dictionary.getAttachImage());
         fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
@@ -326,7 +338,8 @@ public class MainFrame extends JFrame implements GUI {
 
                 int originalWidth = originalImage.getWidth();
                 int originalHeight = originalImage.getHeight();
-                int targetWidth = 200;
+
+                Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
                 int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
 
                 int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
@@ -354,8 +367,12 @@ public class MainFrame extends JFrame implements GUI {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(scaledImage, formatName, baos);
 
-                sentImageBase64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+                sentImagesBase64.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
 
+                parent.setIcon(dictionary.getPaperClipWithFile());
+
+                parent.revalidate();
+                parent.repaint();
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
@@ -407,7 +424,8 @@ public class MainFrame extends JFrame implements GUI {
     private ImageIcon getAvatarIcon() {
         try {
             UserDto userDto = client.getUserDto(username);
-            return getAvatarIcon(userDto, 32, 32);
+            return getAvatarIcon(userDto, (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                    (Integer) Constants.COMPRESSION_AVATAR.getValue());
         } catch (Exception ignored) {
         }
         return null;
@@ -529,9 +547,12 @@ public class MainFrame extends JFrame implements GUI {
         return itemPanel;
     }
 
+
     private JPanel createMessageItem(MessageDto messageDto) {
         Color selfMessage = new Color(205, 214, 244);
         Color friendMessage = new Color(157, 180, 239);
+
+        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
 
         ImageIcon avatarIcon = null;
         if (avatars.get(messageDto.getSender()) != null) {
@@ -542,10 +563,12 @@ public class MainFrame extends JFrame implements GUI {
                 String avatarBase64 = client.getAvatar(messageDto.getSender());
                 byte[] imageData = Base64.getDecoder().decode(avatarBase64);
                 Image scaledImage = new ImageIcon(imageData).getImage()
-                        .getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+                        .getScaledInstance((Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                                (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                                Image.SCALE_SMOOTH);
                 avatarIcon = new ImageIcon(scaledImage);
                 avatars.put(messageDto.getSender(), avatarIcon);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
         JPanel headerPanel = new JPanel(new BorderLayout(5, 0));
@@ -570,24 +593,40 @@ public class MainFrame extends JFrame implements GUI {
         content.setSize(new Dimension(250, Short.MAX_VALUE));
         int height = content.getPreferredSize().height;
 
-        JPanel message = new JPanel(new BorderLayout());
+        JPanel message = new JPanel();
+        message.setLayout(new BorderLayout());
         message.add(headerPanel, BorderLayout.NORTH);
         message.add(content, BorderLayout.CENTER);
         message.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        if (messageDto.getImagesBase64() != null) {
+            JPanel images = new JPanel();
+            images.setLayout(new BoxLayout(images, BoxLayout.Y_AXIS));
+            images.setBackground(bgColor);
+            images.setBorder(new EmptyBorder(0,0,0,0));
+
+            for (String receivedImage : messageDto.getImagesBase64()) {
+                ImageIcon image;
+                try {
+                    byte[] imageData = Base64.getDecoder().decode(receivedImage);
+                    image = new ImageIcon(imageData);
+                } catch (Exception e) {
+                    image = dictionary.getDefaultImage();
+                }
+                JLabel imageLabel = new JLabel(image);
+
+                JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                container.setBackground(bgColor);
+                container.setBorder(new EmptyBorder(0,0,5,0));
+                container.add(imageLabel);
+
+                height += container.getPreferredSize().height;
+                images.add(container);
+            }
+            message.add(images, BorderLayout.SOUTH);
+        }
         message.setPreferredSize(new Dimension(250, height + 50));
 
-        if (messageDto.getImageBase64() != null) {
-            ImageIcon image;
-            try {
-                byte[] imageData = Base64.getDecoder().decode(messageDto.getImageBase64());
-                image = new ImageIcon(imageData);
-            } catch (Exception e) {
-                image = dictionary.getDefaultImage();
-            }
-            message.add(new JLabel(image), BorderLayout.SOUTH);
-        }
-
-        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
         message.setBackground(bgColor);
         title.setBackground(bgColor);
         content.setBackground(bgColor);
@@ -599,6 +638,7 @@ public class MainFrame extends JFrame implements GUI {
         if (messageDto.getSender().equals(username))
             container.setLayout(new FlowLayout(FlowLayout.RIGHT));
         else container.setLayout(new FlowLayout(FlowLayout.LEFT));
+
         container.add(message);
 
         return container;
