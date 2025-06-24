@@ -44,6 +44,8 @@ public abstract class BaseDictionary extends BaseSettings {
     //invite context menu
     private final String confirmInvite = "Accept the invitation";
     private final String rejectInvite = "Decline the invitation";
+    //Message context menu
+    private final String changeText = "Change the text";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";
@@ -94,4 +96,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon paperClip = new ImageIcon("data/paper-clip-icon.png");
     private final ImageIcon paperClipWithFile = new ImageIcon("data/paper-clip-with-file-icon.png");
     private final ImageIcon defaultImage = new ImageIcon("data/default-icon.png");
+    private final ImageIcon pencil = new ImageIcon("data/pencil-icon.png");
+    private final ImageIcon delete = new ImageIcon("data/delete-icon.png");
+    private final ImageIcon completeDeletion = new ImageIcon("data/completed-deletion-icon.png");
 }

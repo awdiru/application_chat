@@ -41,4 +41,15 @@ public class MessageController extends AbstractController {
             return getErrorResponse(e);
         }
     }
+
+    @PostMapping("/change")
+    public ResponseEntity<Object> changeMessage(@RequestBody MessageDto messageDto) {
+        try {
+            log.info("change message: " + messageDto.getId());
+            messageService.changeMessage(messageDto);
+            return getOkResponse("The message has been changed");
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
 }

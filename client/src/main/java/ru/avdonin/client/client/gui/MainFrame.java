@@ -3,7 +3,6 @@ package ru.avdonin.client.client.gui;
 import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.GUI;
 import ru.avdonin.client.client.gui.additional_frames.AdditionalFrameFactory;
 import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.client.settings.Settings;
@@ -16,14 +15,11 @@ import ru.avdonin.template.model.chat.dto.InvitationChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,7 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Getter
-public class MainFrame extends JFrame implements GUI {
+public class MainFrame extends JFrame {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Client client;
@@ -47,7 +43,7 @@ public class MainFrame extends JFrame implements GUI {
     private JPanel invitationsContainer;
     private JButton attachButton;
     private ChatDto chat;
-    private List<String> sentImagesBase64 = new ArrayList<>();
+    private Set<String> sentImagesBase64 = new HashSet<>();
     private Integer chatHistoryCount = 1;
     private List<MessageDto> messages = new ArrayList<>();
     private JTextArea chatName = new JTextArea();
@@ -65,7 +61,6 @@ public class MainFrame extends JFrame implements GUI {
         setVisible(true);
     }
 
-    @Override
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(chat.getId())) return;
 
@@ -80,7 +75,6 @@ public class MainFrame extends JFrame implements GUI {
         });
     }
 
-    @Override
     public void loadChats() {
         new SwingWorker<List<ChatDto>, Void>() {
             @Override
@@ -136,7 +130,7 @@ public class MainFrame extends JFrame implements GUI {
                     attachButton.revalidate();
                     attachButton.repaint();
 
-                    sentImagesBase64 = new ArrayList<>();
+                    sentImagesBase64.clear();
                     onMessageReceived(messageDto);
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
@@ -151,7 +145,7 @@ public class MainFrame extends JFrame implements GUI {
         }.execute();
     }
 
-    private void loadChatHistory() {
+    public void loadChatHistory() {
         new SwingWorker<List<MessageDto>, Void>() {
             @Override
             protected List<MessageDto> doInBackground() {
@@ -299,7 +293,13 @@ public class MainFrame extends JFrame implements GUI {
 
         attachButton = new JButton(dictionary.getPaperClip());
         attachButton.setMargin(new Insets(0, 5, 0, 5));
-        attachButton.addActionListener(e -> attachImage(attachButton));
+        attachButton.addActionListener(e -> {
+            try {
+                MainFrameHelper.attachImage(attachButton, sentImagesBase64, dictionary);
+            } catch (IOException ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        });
 
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.add(scrollPane, BorderLayout.CENTER);
@@ -323,60 +323,6 @@ public class MainFrame extends JFrame implements GUI {
                 sendMessage();
             }
         });
-    }
-
-    private void attachImage(JButton parent) {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(dictionary.getAttachImage());
-        fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
-
-        if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            try {
-                BufferedImage originalImage = ImageIO.read(selectedFile);
-                if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
-
-                int originalWidth = originalImage.getWidth();
-                int originalHeight = originalImage.getHeight();
-
-                Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
-                int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
-
-                int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
-                        BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
-
-                BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
-
-                Graphics2D g2d = scaledImage.createGraphics();
-                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_QUALITY);
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-
-                if (imageType == BufferedImage.TYPE_INT_RGB) {
-                    g2d.setColor(Color.WHITE);
-                    g2d.fillRect(0, 0, targetWidth, targetHeight);
-                }
-
-                g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
-                g2d.dispose();
-
-                String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(scaledImage, formatName, baos);
-
-                sentImagesBase64.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
-
-                parent.setIcon(dictionary.getPaperClipWithFile());
-
-                parent.revalidate();
-                parent.repaint();
-            } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            }
-        }
     }
 
     private JSplitPane getLeftPanel() {
@@ -588,22 +534,26 @@ public class MainFrame extends JFrame implements GUI {
         title.setText(formattedTitle);
         headerPanel.add(title, BorderLayout.CENTER);
 
-        JTextPane content = getTextPane();
-        content.setText(messageDto.getTextContent());
-        content.setSize(new Dimension(250, Short.MAX_VALUE));
-        int height = content.getPreferredSize().height;
+        JButton actions = new JButton(dictionary.getBurger());
+        actions.addActionListener(e -> showMessageActionsContextMenu(actions, messageDto));
+        headerPanel.add(actions, BorderLayout.EAST);
+
+        JTextPane textContent = getTextPane();
+        textContent.setText(messageDto.getTextContent());
+        textContent.setSize(new Dimension(250, Short.MAX_VALUE));
+        int height = textContent.getPreferredSize().height;
 
         JPanel message = new JPanel();
         message.setLayout(new BorderLayout());
         message.add(headerPanel, BorderLayout.NORTH);
-        message.add(content, BorderLayout.CENTER);
+        message.add(textContent, BorderLayout.CENTER);
         message.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         if (messageDto.getImagesBase64() != null) {
             JPanel images = new JPanel();
             images.setLayout(new BoxLayout(images, BoxLayout.Y_AXIS));
             images.setBackground(bgColor);
-            images.setBorder(new EmptyBorder(0,0,0,0));
+            images.setBorder(new EmptyBorder(0, 0, 0, 0));
 
             for (String receivedImage : messageDto.getImagesBase64()) {
                 ImageIcon image;
@@ -617,7 +567,7 @@ public class MainFrame extends JFrame implements GUI {
 
                 JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));
                 container.setBackground(bgColor);
-                container.setBorder(new EmptyBorder(0,0,5,0));
+                container.setBorder(new EmptyBorder(0, 0, 5, 0));
                 container.add(imageLabel);
 
                 height += container.getPreferredSize().height;
@@ -629,7 +579,7 @@ public class MainFrame extends JFrame implements GUI {
 
         message.setBackground(bgColor);
         title.setBackground(bgColor);
-        content.setBackground(bgColor);
+        textContent.setBackground(bgColor);
 
         JPanel container = new JPanel();
         container.setBackground(backgroungColor);
@@ -642,6 +592,20 @@ public class MainFrame extends JFrame implements GUI {
         container.add(message);
 
         return container;
+    }
+
+    private void showMessageActionsContextMenu(JComponent parent, MessageDto messageDto) {
+        JPopupMenu menu = new JPopupMenu();
+
+        if (messageDto.getSender().equals(username)) {
+            JMenuItem changeMessage = new JMenuItem();
+            changeMessage.setIcon(dictionary.getPencil());
+            changeMessage.setText(dictionary.getChangeText());
+            changeMessage.addActionListener(e -> AdditionalFrameFactory.getChangeMessageFrame(MainFrame.this, messageDto));
+            menu.add(changeMessage);
+        }
+
+        menu.show(parent, 0, parent.getHeight());
     }
 
     private JTextPane getTextPane() {

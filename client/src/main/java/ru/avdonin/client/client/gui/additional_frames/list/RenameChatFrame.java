@@ -29,7 +29,6 @@ public class RenameChatFrame extends BaseAdditionalFrame {
         renamePanel.add(renameField, BorderLayout.NORTH);
         renamePanel.add(renameButton, BorderLayout.SOUTH);
         add(renamePanel);
-        setVisible(true);
     }
     
     private JButton getRenameButton() {

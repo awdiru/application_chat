@@ -22,10 +22,10 @@ public class Message {
     private Instant time;
 
     @Column(name = "content")
-    private String content;
+    private String textContent;
 
     @Column(name = "file_name")
-    private String fileName;
+    private String fileNames;
 
     @ManyToOne
     @JoinColumn(name = "sender_id")

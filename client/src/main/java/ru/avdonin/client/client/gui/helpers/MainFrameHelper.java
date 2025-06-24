@@ -3,11 +3,22 @@ package ru.avdonin.client.client.gui.helpers;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.settings.language.BaseDictionary;
+import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
 
 public class MainFrameHelper {
 
@@ -70,5 +81,55 @@ public class MainFrameHelper {
         return chat.getCustomName() == null || chat.getCustomName().isEmpty()
                 ? chat.getChatName()
                 : chat.getCustomName() + " (" + chat.getChatName() + ")";
+    }
+
+    public static void attachImage(JButton button, Set<String> sentImagesBase64, BaseDictionary dictionary) throws IOException {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(dictionary.getAttachImage());
+        fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
+
+        if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+                BufferedImage originalImage = ImageIO.read(selectedFile);
+                if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
+
+                int originalWidth = originalImage.getWidth();
+                int originalHeight = originalImage.getHeight();
+
+                Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
+                int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
+
+                int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
+                        BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+
+                BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
+
+                Graphics2D g2d = scaledImage.createGraphics();
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (imageType == BufferedImage.TYPE_INT_RGB) {
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, targetWidth, targetHeight);
+                }
+
+                g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+                g2d.dispose();
+
+                String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(scaledImage, formatName, baos);
+
+                sentImagesBase64.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
+
+                button.setIcon(dictionary.getPaperClipWithFile());
+
+                button.revalidate();
+                button.repaint();
+        }
     }
 }

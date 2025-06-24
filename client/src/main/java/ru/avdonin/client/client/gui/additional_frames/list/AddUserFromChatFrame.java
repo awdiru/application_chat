@@ -28,7 +28,6 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
         addPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(addPanel);
-        setVisible(true);
     }
 
     private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main) {

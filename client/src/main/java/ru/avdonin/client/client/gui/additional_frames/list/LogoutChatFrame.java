@@ -27,7 +27,6 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
         deletePanel.add(deleteLabel, BorderLayout.NORTH);
         deletePanel.add(buttonPanel, BorderLayout.SOUTH);
         add(deletePanel);
-        setVisible(true);
     }
 
     private JPanel getLogoutChatButtonPanel(String deleteChatId, JFrame main) {

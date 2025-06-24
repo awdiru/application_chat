@@ -34,7 +34,7 @@ import java.util.List;
 @ClientEndpoint
 public class Client {
     @Setter
-    private GUI gui;
+    private MainFrame gui;
     private Session session;
     @Setter
     @Getter
@@ -262,6 +262,10 @@ public class Client {
         HttpResponse<String> response = get("/user/get", userDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+    }
+
+    public void changeMessage(MessageDto messageDto) throws Exception {
+        post("/message/change", messageDto);
     }
 
     private HttpResponse<String> get(String method, Object body) throws Exception {

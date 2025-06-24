@@ -30,6 +30,5 @@ public class CreateChatFrame extends BaseAdditionalFrame {
 
         addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
         add(addChatPanel);
-        setVisible(true);
     }
 }
