@@ -19,10 +19,6 @@ public class DictionarySP extends BaseDictionary {
     //Ventana de chat
     private final String chat = "Chat";
     private final String chats = "Chats";
-    //Barra de estado
-    private final String changeUser = "Cambiar usuario";
-    //Barra de estado del chat
-    private final String participants = "Participantes";
     //Ventana de chats
     private final String addChatTitle = "Crear chat";
     private final String chatName = "Nombre del chat";

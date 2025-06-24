@@ -27,7 +27,7 @@ spring:
 
 ftp:
   host: localhost
-  port: 21
-  username: user
-  password: password
-  remote-directory: /icons
+  port: 22
+  username: ftpuser
+  password: ftppass
+  passive-mode: true

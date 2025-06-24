@@ -9,7 +9,7 @@ CREATE TABLE public.users
     id             int8 GENERATED ALWAYS AS IDENTITY ( INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1 NO CYCLE) NOT NULL,
     username       varchar(32)                                                                                                          NOT NULL,
     "password"     varchar(255)                                                                                                         NOT NULL,
-    icon varchar(255)                                                                                                                   NOT NULL,
+    avatar_file_name varchar(255)                                                                                                                   NOT NULL,
     CONSTRAINT users_pk PRIMARY KEY (id),
     CONSTRAINT users_unique UNIQUE (username)
 );

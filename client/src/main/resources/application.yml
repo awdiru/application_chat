@@ -1,8 +1,0 @@
-encryption:
-  key: 18'XY5W^:@LhW^V8NiEUftJ@+jd|LWOS
-  algorithm: AES
-  transformation: AES/CBC/PKCS5Padding
-
-connection:
-  http-uri: http://localhost:8080
-  ws-uri: ws://localhost:8080

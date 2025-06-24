@@ -22,6 +22,6 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "icon")
-    private String icon;
+    @Column(name = "avatar_file_name")
+    private String avatarFileName;
 }

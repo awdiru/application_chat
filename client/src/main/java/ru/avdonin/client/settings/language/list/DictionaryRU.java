@@ -19,10 +19,6 @@ public class DictionaryRU extends BaseDictionary {
     //Окно чата
     private final String chat = "Чат";
     private final String chats = "Чаты";
-    //Статус-бар
-    private final String changeUser = "Сменить пользователя";
-    //Статус-бар чата
-    private final String participants = "Участники";
     //Окно чатов
     private final String addChatTitle = "Создать чат";
     private final String chatName = "Название чата";

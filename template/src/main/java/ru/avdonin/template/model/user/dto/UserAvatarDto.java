@@ -8,8 +8,8 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @ToString
-public class UserAuthenticationDto {
+public class UserAvatarDto {
     private String username;
-    private String password;
+    private String avatarBase64;
     private String locale;
 }

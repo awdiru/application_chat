@@ -27,7 +27,7 @@ public class ChatService extends AbstractService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final UserRepository userRepository;
     private final InvitationsRepository invitationsRepository;
-    private final FtpService ftpService;
+    private final AvatarFtpService avatarFtpService;
 
     public ChatDto createPublicChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
@@ -330,7 +330,7 @@ public class ChatService extends AbstractService {
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .icon(ftpService.getIcon(user.getIcon()))
+                .avatarBase64(avatarFtpService.download(user.getUsername(), user.getAvatarFileName()))
                 .build();
     }
 }

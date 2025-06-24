@@ -1,5 +1,6 @@
 package ru.avdonin.client.client.gui;
 
+import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.GUI;
@@ -8,20 +9,26 @@ import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
 import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.chat.dto.InvitationChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,12 +39,15 @@ public class MainFrame extends JFrame implements GUI {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Client client;
     private final String username;
+    private final Map<String, ImageIcon> avatars = new HashMap<>();
     private JPanel chatArea;
-    private JTextField messageField;
+    private JTextArea messageArea;
     private JPanel chatsContainer;
     private JScrollPane chatScroll;
     private JPanel invitationsContainer;
+    private JButton attachButton;
     private ChatDto chat;
+    private List<String> sentImagesBase64 = new ArrayList<>();
     private Integer chatHistoryCount = 1;
     private List<MessageDto> messages = new ArrayList<>();
     private JTextArea chatName = new JTextArea();
@@ -45,6 +55,7 @@ public class MainFrame extends JFrame implements GUI {
     public MainFrame(Client client, String username) {
         this.client = client;
         this.username = username;
+        this.avatars.put(username, getAvatarIcon());
 
         client.setGui(this);
 
@@ -60,11 +71,13 @@ public class MainFrame extends JFrame implements GUI {
 
         chatArea.add(createMessageItem(message));
 
-        JScrollBar vertical = chatScroll.getVerticalScrollBar();
-        vertical.setValue(vertical.getMaximum());
-
         chatArea.revalidate();
         chatArea.repaint();
+
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar scrollBar = chatScroll.getVerticalScrollBar();
+            scrollBar.setValue(scrollBar.getMaximum());
+        });
     }
 
     @Override
@@ -107,13 +120,24 @@ public class MainFrame extends JFrame implements GUI {
             @Override
             protected Void doInBackground() {
                 try {
-                    if (client.isNotConnected()) {
-                        client.connect(username);
-                        if (client.isNotConnected())
-                            throw new NoConnectionServerException("There is no connection to the server");
-                    }
+                    connect();
+                    MessageDto messageDto = MessageDto.builder()
+                            .time(OffsetDateTime.now())
+                            .sender(username)
+                            .chatId(chat.getId())
+                            .textContent(messageArea.getText())
+                            .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
+                            .build();
+                    if ((messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
+                            && messageDto.getImagesBase64() == null) return null;
 
-                    client.sendMessage(messageField.getText(), username, chat.getId());
+                    client.sendMessage(messageDto);
+
+                    attachButton.revalidate();
+                    attachButton.repaint();
+
+                    sentImagesBase64 = new ArrayList<>();
+                    onMessageReceived(messageDto);
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -122,7 +146,7 @@ public class MainFrame extends JFrame implements GUI {
 
             @Override
             protected void done() {
-                messageField.setText("");
+                messageArea.setText("");
             }
         }.execute();
     }
@@ -142,8 +166,13 @@ public class MainFrame extends JFrame implements GUI {
             @Override
             protected void done() {
                 try {
-                    fillChatArea(get());
+                    chatArea.removeAll();
+                    for (MessageDto m : get())
+                        chatArea.add(createMessageItem(m));
                     messages = new ArrayList<>(get());
+
+                    chatArea.revalidate();
+                    chatArea.repaint();
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -167,24 +196,38 @@ public class MainFrame extends JFrame implements GUI {
             protected void done() {
                 try {
                     if (get().isEmpty()) return;
+
+                    JScrollBar verticalBar = chatScroll.getVerticalScrollBar();
+                    int currentScrollPosition = verticalBar.getValue();
+
+                    messages.addAll(0, get());
                     chatHistoryCount++;
-                    messages.addAll(get());
-                    messages = new ArrayList<>(messages.stream()
-                            .sorted(Comparator.comparing(MessageDto::getTime))
-                            .toList());
-                    fillChatArea(messages);
+
+                    List<JPanel> newMessages = new ArrayList<>();
+                    int totalHeight = 0;
+
+                    for (MessageDto m : get()) {
+                        JPanel messageItem = createMessageItem(m);
+                        newMessages.add(messageItem);
+                        totalHeight += messageItem.getPreferredSize().height;
+                    }
+
+                    for (int i = newMessages.size() - 1; i >= 0; i--)
+                        chatArea.add(newMessages.get(i), 0);
+
+                    chatArea.revalidate();
+                    chatArea.repaint();
+
+                    int newScrollPosition = currentScrollPosition + totalHeight - 30;
+                    SwingUtilities.invokeLater(() -> {
+                        verticalBar.setValue(newScrollPosition);
+                    });
+
                 } catch (Exception e) {
                     MainFrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
             }
         }.execute();
-    }
-
-    private void fillChatArea(List<MessageDto> messages) {
-        chatArea.removeAll();
-        for (MessageDto m : messages) {
-            onMessageReceived(m);
-        }
     }
 
     private void loadInvitations() {
@@ -247,11 +290,93 @@ public class MainFrame extends JFrame implements GUI {
     }
 
     private JPanel getMessagePanel() {
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messageField = new JTextField();
-        messageField.addActionListener(e -> sendMessage());
-        messagePanel.add(messageField, BorderLayout.CENTER);
-        return messagePanel;
+
+        messageArea = new JTextArea(3, 20);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        attachButton = new JButton(dictionary.getPaperClip());
+        attachButton.setMargin(new Insets(0, 5, 0, 5));
+        attachButton.addActionListener(e -> attachImage(attachButton));
+
+        JPanel inputPanel = new JPanel(new BorderLayout());
+        inputPanel.add(scrollPane, BorderLayout.CENTER);
+        inputPanel.add(attachButton, BorderLayout.EAST);
+
+        setupKeyBindings();
+
+        return inputPanel;
+    }
+
+    private void setupKeyBindings() {
+        KeyStroke ctrlEnter = KeyStroke.getKeyStroke(
+                KeyEvent.VK_ENTER,
+                InputEvent.CTRL_DOWN_MASK
+        );
+
+        messageArea.getInputMap().put(ctrlEnter, "sendAction");
+        messageArea.getActionMap().put("sendAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendMessage();
+            }
+        });
+    }
+
+    private void attachImage(JButton parent) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(dictionary.getAttachImage());
+        fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
+
+        if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                BufferedImage originalImage = ImageIO.read(selectedFile);
+                if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
+
+                int originalWidth = originalImage.getWidth();
+                int originalHeight = originalImage.getHeight();
+
+                Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
+                int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
+
+                int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
+                        BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+
+                BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
+
+                Graphics2D g2d = scaledImage.createGraphics();
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (imageType == BufferedImage.TYPE_INT_RGB) {
+                    g2d.setColor(Color.WHITE);
+                    g2d.fillRect(0, 0, targetWidth, targetHeight);
+                }
+
+                g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+                g2d.dispose();
+
+                String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(scaledImage, formatName, baos);
+
+                sentImagesBase64.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
+
+                parent.setIcon(dictionary.getPaperClipWithFile());
+
+                parent.revalidate();
+                parent.repaint();
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        }
     }
 
     private JSplitPane getLeftPanel() {
@@ -272,11 +397,20 @@ public class MainFrame extends JFrame implements GUI {
 
         JScrollPane chatsScrollPane = new JScrollPane(chatsContainer);
 
-        JButton addChatButton = new JButton(dictionary.getPlus());
+        JButton addChatButton = new JButton(dictionary.getNewChat());
         addChatButton.addActionListener(e -> showCreateChatContextMenu(addChatButton));
 
         JPanel headerChatsPanel = new JPanel(new BorderLayout());
-        headerChatsPanel.add(new JLabel(dictionary.getChats()), BorderLayout.CENTER);
+
+
+        String spase;
+        ImageIcon avatar = avatars.get(username);
+        if (avatar != null) {
+            headerChatsPanel.add(new JLabel(avatar), BorderLayout.WEST);
+            spase = " ";
+        } else spase = "";
+
+        headerChatsPanel.add(new JLabel(spase + username), BorderLayout.CENTER);
         headerChatsPanel.add(addChatButton, BorderLayout.EAST);
 
         JPanel chatsPanel = new JPanel(new BorderLayout());
@@ -285,6 +419,31 @@ public class MainFrame extends JFrame implements GUI {
         chatsPanel.setMinimumSize(new Dimension(1000, 300));
 
         return chatsPanel;
+    }
+
+    private ImageIcon getAvatarIcon() {
+        try {
+            UserDto userDto = client.getUserDto(username);
+            return getAvatarIcon(userDto, (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                    (Integer) Constants.COMPRESSION_AVATAR.getValue());
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private ImageIcon getAvatarIcon(UserDto userDto, int x, int y) {
+        try {
+            if (userDto != null && userDto.getAvatarBase64() != null
+                    && !userDto.getAvatarBase64().isEmpty()) {
+
+                byte[] imageData = Base64.getDecoder().decode(userDto.getAvatarBase64());
+                ImageIcon avatarIcon = new ImageIcon(imageData);
+                Image scaledImage = avatarIcon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaledImage);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private JPanel getInvitationsPanel() {
@@ -321,10 +480,15 @@ public class MainFrame extends JFrame implements GUI {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
-                    MainFrame.this.chat = chat;
-                    chatName.setText(MainFrameHelper.getChatName(chat));
-                    chatHistoryCount = 1;
-                    loadChatHistory();
+                    try {
+                        connect();
+                        MainFrame.this.chat = chat;
+                        chatName.setText(MainFrameHelper.getChatName(chat));
+                        chatHistoryCount = 1;
+                        loadChatHistory();
+                    } catch (Exception ex) {
+                        MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+                    }
                 }
             }
 
@@ -383,9 +547,38 @@ public class MainFrame extends JFrame implements GUI {
         return itemPanel;
     }
 
+
     private JPanel createMessageItem(MessageDto messageDto) {
         Color selfMessage = new Color(205, 214, 244);
         Color friendMessage = new Color(157, 180, 239);
+
+        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
+
+        ImageIcon avatarIcon = null;
+        if (avatars.get(messageDto.getSender()) != null) {
+            avatarIcon = avatars.get(messageDto.getSender());
+
+        } else {
+            try {
+                String avatarBase64 = client.getAvatar(messageDto.getSender());
+                byte[] imageData = Base64.getDecoder().decode(avatarBase64);
+                Image scaledImage = new ImageIcon(imageData).getImage()
+                        .getScaledInstance((Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                                (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                                Image.SCALE_SMOOTH);
+                avatarIcon = new ImageIcon(scaledImage);
+                avatars.put(messageDto.getSender(), avatarIcon);
+            } catch (Exception ignored) {
+            }
+        }
+        JPanel headerPanel = new JPanel(new BorderLayout(5, 0));
+        headerPanel.setOpaque(false);
+
+        if (avatarIcon != null) {
+            JLabel avatarLabel = new JLabel(avatarIcon);
+            avatarLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+            headerPanel.add(avatarLabel, BorderLayout.WEST);
+        }
 
         JTextPane title = getTextPane();
 
@@ -393,19 +586,47 @@ public class MainFrame extends JFrame implements GUI {
                 + MainFrameHelper.formatTime(messageDto.getTime())
                 + " <b>" + messageDto.getSender() + "</b></div></html>";
         title.setText(formattedTitle);
+        headerPanel.add(title, BorderLayout.CENTER);
 
         JTextPane content = getTextPane();
-        content.setText(messageDto.getContent());
+        content.setText(messageDto.getTextContent());
         content.setSize(new Dimension(250, Short.MAX_VALUE));
         int height = content.getPreferredSize().height;
 
-        JPanel message = new JPanel(new BorderLayout());
-        message.add(title, BorderLayout.NORTH);
+        JPanel message = new JPanel();
+        message.setLayout(new BorderLayout());
+        message.add(headerPanel, BorderLayout.NORTH);
         message.add(content, BorderLayout.CENTER);
         message.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        if (messageDto.getImagesBase64() != null) {
+            JPanel images = new JPanel();
+            images.setLayout(new BoxLayout(images, BoxLayout.Y_AXIS));
+            images.setBackground(bgColor);
+            images.setBorder(new EmptyBorder(0,0,0,0));
+
+            for (String receivedImage : messageDto.getImagesBase64()) {
+                ImageIcon image;
+                try {
+                    byte[] imageData = Base64.getDecoder().decode(receivedImage);
+                    image = new ImageIcon(imageData);
+                } catch (Exception e) {
+                    image = dictionary.getDefaultImage();
+                }
+                JLabel imageLabel = new JLabel(image);
+
+                JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                container.setBackground(bgColor);
+                container.setBorder(new EmptyBorder(0,0,5,0));
+                container.add(imageLabel);
+
+                height += container.getPreferredSize().height;
+                images.add(container);
+            }
+            message.add(images, BorderLayout.SOUTH);
+        }
         message.setPreferredSize(new Dimension(250, height + 50));
 
-        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
         message.setBackground(bgColor);
         title.setBackground(bgColor);
         content.setBackground(bgColor);
@@ -417,7 +638,9 @@ public class MainFrame extends JFrame implements GUI {
         if (messageDto.getSender().equals(username))
             container.setLayout(new FlowLayout(FlowLayout.RIGHT));
         else container.setLayout(new FlowLayout(FlowLayout.LEFT));
+
         container.add(message);
+
         return container;
     }
 
@@ -469,8 +692,6 @@ public class MainFrame extends JFrame implements GUI {
         else removeItem.setText(dictionary.getLogoutChat());
         removeItem.addActionListener(e -> logoutChat(chat));
         menu.add(removeItem);
-
-        // TODO Здесь можно добавить другие действия над пользователем
 
         menu.show(parent, 0, parent.getHeight());
     }
@@ -532,9 +753,13 @@ public class MainFrame extends JFrame implements GUI {
         JButton settings = new JButton(dictionary.getSettings());
         settings.addActionListener(e -> Settings.getFrameSettings());
         buttonsPanel.add(settings);
-        //Сменить пользователя
-        JButton newUser = new JButton(dictionary.getChangeUser());
-        newUser.addActionListener(e -> {
+        //Сменить аватар
+        JButton changeAvatarButton = new JButton(dictionary.getChangeAvatar());
+        changeAvatarButton.addActionListener(e -> changeAvatar());
+        buttonsPanel.add(changeAvatarButton);
+        //Выйти
+        JButton exit = new JButton(dictionary.getExit());
+        exit.addActionListener(e -> {
             try {
                 dispose();
                 client.disconnect();
@@ -543,12 +768,32 @@ public class MainFrame extends JFrame implements GUI {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
         });
-        buttonsPanel.add(newUser);
+        buttonsPanel.add(exit);
 
         JPanel statusBar = new JPanel(new BorderLayout());
         statusBar.setSize(new Dimension(800, 100));
         statusBar.add(buttonsPanel, BorderLayout.WEST);
         return statusBar;
+    }
+
+    private void changeAvatar() {
+        JFileChooser fileChooser = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(
+                "Image Files", "jpg", "jpeg", "png");
+        fileChooser.setFileFilter(filter);
+
+        int result = fileChooser.showOpenDialog(MainFrame.this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                byte[] fileContent = Files.readAllBytes(selectedFile.toPath());
+                String base64Image = Base64.getEncoder().encodeToString(fileContent);
+
+                client.avatarChange(username, base64Image);
+            } catch (Exception ex) {
+                MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+            }
+        }
     }
 
     private JPanel getChatStatusBar() {
@@ -564,15 +809,15 @@ public class MainFrame extends JFrame implements GUI {
         });
         buttonsPanel.add(messagesButton);
 
-        JButton chatUsersButton = new JButton(dictionary.getParticipants());
-        chatUsersButton.addActionListener(e -> {
+        JButton participantsButton = new JButton(dictionary.getParticipants());
+        participantsButton.addActionListener(e -> {
             try {
-                showContextMenuParticipant(chatUsersButton);
+                showParticipantsContextMenu(participantsButton);
             } catch (Exception ex) {
                 MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
         });
-        buttonsPanel.add(chatUsersButton);
+        buttonsPanel.add(participantsButton);
 
         chatName = getTextArea(MainFrameHelper.getChatName(chat), null);
 
@@ -582,33 +827,37 @@ public class MainFrame extends JFrame implements GUI {
         return chatStatusBar;
     }
 
-    private void showContextMenuParticipant(JComponent parent) throws Exception {
+    private void showParticipantsContextMenu(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
         if (chat == null || chat.getId().isEmpty()) return;
 
         List<UserDto> users = client.getChatParticipants(chat.getId());
-        for (UserDto u : users) {
+        for (UserDto user : users) {
             JMenuItem userItem = new JMenuItem();
-            userItem.setText(u.getUsername());
+
+            userItem.setIcon(getAvatarIcon(user, 16, 16));
+            userItem.setText(user.getUsername());
+
             participants.add(userItem);
-            userItem.addActionListener(e -> {
-                try {
-                    ChatDto newChat;
-                    if (!u.getUsername().equals(username))
-                        newChat = client.getPrivateChat(username, u.getUsername());
-                    else newChat = client.getPersonalChat(username);
-
-                    if (chat.equals(newChat)) return;
-
-                    chat = newChat;
-                    chatName.setText(MainFrameHelper.getChatName(chat));
-                    loadChatHistory();
-                } catch (Exception ex) {
-                    MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-                }
-            });
+            userItem.addActionListener(e -> handleUserSelection(user));
         }
         participants.show(parent, 0, parent.getHeight());
+    }
+
+    private void handleUserSelection(UserDto user) {
+        try {
+            ChatDto newChat = user.getUsername().equals(username)
+                    ? client.getPersonalChat(username)
+                    : client.getPrivateChat(username, user.getUsername());
+
+            if (chat.equals(newChat)) return;
+
+            chat = newChat;
+            chatName.setText(MainFrameHelper.getChatName(chat));
+            loadChatHistory();
+        } catch (Exception ex) {
+            MainFrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+        }
     }
 
     private JPanel getRightPanel() {
@@ -649,5 +898,13 @@ public class MainFrame extends JFrame implements GUI {
         main.setTopComponent(statusBar);
         main.setBottomComponent(mainWindow);
         return main;
+    }
+
+    private void connect() throws DeploymentException, IOException {
+        if (client.isNotConnected()) {
+            client.connect(username);
+            if (client.isNotConnected())
+                throw new NoConnectionServerException("There is no connection to the server");
+        }
     }
 }

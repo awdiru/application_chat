@@ -7,6 +7,8 @@ import ru.avdonin.server.controller.AbstractController;
 import ru.avdonin.server.service.list.UserService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.user.dto.UserAvatarDto;
+import ru.avdonin.template.model.user.dto.UserDto;
 
 @RestController
 @RequestMapping("/user")
@@ -34,10 +36,42 @@ public class UserController extends AbstractController {
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody UserAuthenticationDto userDto) {
         try {
-            log.info("login user: " + userDto);
+            log.info("login user: " + userDto.getUsername());
             userService.validate(userDto);
             return getOkResponse("The user is logged in");
 
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @PostMapping("/avatar/change")
+    public ResponseEntity<Object> changeAvatar(@RequestBody UserDto userDto) {
+        try {
+            log.info("change user avatar: " + userDto.getUsername());
+            userService.changeAvatar(userDto);
+            return getOkResponse("");
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @GetMapping("/get")
+    public ResponseEntity<Object> getUser(@RequestBody UserDto userDto) {
+        try {
+            UserDto respDto = userService.getUserByUsername(userDto);
+            return ResponseEntity.ok().body(respDto);
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
+
+    @GetMapping("/get/avatar")
+    public ResponseEntity<Object> getAvatar(@RequestBody UserAvatarDto userAvatarDto) {
+        try {
+            log.info("get avatar: " + userAvatarDto.getUsername());
+            UserAvatarDto response = userService.getAvatar(userAvatarDto);
+            return ResponseEntity.ok().body(response);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

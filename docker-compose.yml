@@ -14,21 +14,20 @@ services:
       interval: 5s
       retries: 10
 
-  ftp_server:
-    image: fauria/vsftpd
-    container_name: ftp_server
-    restart: unless-stopped
-    environment:
-      - FTP_USER=user
-      - FTP_PASS=password
-      - PASV_ADDRESS=localhost
-      - PASV_MIN_PORT=30000
-      - PASV_MAX_PORT=30009
+  ftp:
+    image: stilliard/pure-ftpd:latest
+    container_name: application_chat-ftp
     ports:
-      - "21:21"
+      - "22:21"
       - "30000-30009:30000-30009"
     volumes:
-      - ./ftp_data:/home/ftpuser
+      - ./ftp_data:/home/ftpusers
+    environment:
+      FTP_USER_NAME: ftpuser
+      FTP_USER_PASS: ftppass
+      FTP_USER_HOME: /home/ftpusers
+      ADDED_USERS: "admin:adminpass:0"
+    command: /run.sh -c 5 -C 5 -l puredb:/etc/pure-ftpd/pureftpd.pdb -E -j -R -P localhost -p 30000:30009
 
   zookeeper:
     image: confluentinc/cp-zookeeper:6.2.0

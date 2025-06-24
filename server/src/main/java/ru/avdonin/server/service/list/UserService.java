@@ -10,6 +10,11 @@ import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.model.chat.dto.ChatCreateDto;
 import ru.avdonin.template.model.user.dto.UserAuthenticationDto;
+import ru.avdonin.template.model.user.dto.UserAvatarDto;
+import ru.avdonin.template.model.user.dto.UserDto;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -17,6 +22,8 @@ public class UserService extends AbstractService {
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final ChatService chatService;
+    private final AvatarFtpService avatarFtpService;
+   // private final MessageService messageService;
 
     public void validate(UserAuthenticationDto userDto) {
 
@@ -46,8 +53,10 @@ public class UserService extends AbstractService {
             User user = User.builder()
                     .username(userDto.getUsername())
                     .password(encryptedPassword)
-                    .icon("new_user.png")
+                    .avatarFileName(avatarFtpService.getDefaultFileName())
                     .build();
+
+            avatarFtpService.createDirectory(user.getUsername());
 
             userRepository.save(user);
             chatService.createPersonalChat(ChatCreateDto.builder()
@@ -63,6 +72,36 @@ public class UserService extends AbstractService {
             throw new IncorrectUserDataException(getDictionary(userDto.getLocale())
                     .getSaveIncorrectUserDataException());
         }
+    }
+
+    public UserAvatarDto getAvatar(UserAvatarDto userAvatarDto) {
+        User user = searchUserByUsername(userAvatarDto.getUsername(), userAvatarDto.getLocale());
+        String avatarBase64 = avatarFtpService.download(userAvatarDto.getUsername(), user.getAvatarFileName());
+        return UserAvatarDto.builder()
+                .username(user.getUsername())
+                .avatarBase64(avatarBase64)
+                .locale(userAvatarDto.getLocale())
+                .build();
+    }
+
+    public void changeAvatar(UserDto userDto) {
+        User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
+        String newAvatarName = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("dd-MM-yyyy|HH-mm-ss-SSS"))
+                + ".png";
+        user.setAvatarFileName(newAvatarName);
+        User saved = userRepository.save(user);
+        avatarFtpService.upload(saved.getUsername(), saved.getAvatarFileName(), userDto.getAvatarBase64());
+        //messageService.getUsersAvatar().put(user.getUsername(), userDto.getAvatarBase64());
+    }
+
+    public UserDto getUserByUsername(UserDto userDto) {
+        User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
+        return UserDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .avatarBase64(avatarFtpService.download(user.getUsername(), user.getAvatarFileName()))
+                .build();
     }
 
     public User searchUserByUsername(String username, String locale) {

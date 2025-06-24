@@ -8,6 +8,7 @@ import ru.avdonin.server.entity_model.Chat;
 import ru.avdonin.server.repository.ChatRepository;
 import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
+import ru.avdonin.template.exceptions.IncorrectDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.server.entity_model.Message;
 import ru.avdonin.server.entity_model.User;
@@ -15,7 +16,9 @@ import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 
+import java.io.IOException;
 import java.time.*;
 import java.util.*;
 
@@ -27,10 +30,12 @@ public class MessageService extends AbstractService {
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
-    private final FtpService ftpService;
+    private final ImageFtpService imageFtpService;
+    private final MessageHandler messageHandler;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
+    private final Map<String, String> messagesImages = new HashMap<>();
 
-    public MessageDto saveMessage(MessageDto messageDto) {
+    public void saveMessage(MessageDto messageDto) throws IOException {
 
         User sender = userRepository.findByUsername(messageDto.getSender())
                 .orElseThrow(() -> new IncorrectUserDataException(getDictionary(messageDto.getLocale())
@@ -41,26 +46,38 @@ public class MessageService extends AbstractService {
                 .orElseThrow(() -> new IncorrectChatDataException(getDictionary(messageDto.getLocale())
                         .getSaveMessageIncorrectChatDataException()));
 
-        Message saved = Message.builder()
-                .time(Instant.now())
-                .content(encryptionService.encrypt(messageDto.getContent(), sender.getUsername(), messageDto.getLocale()))
-                .sender(sender)
-                .chat(chat)
-                .build();
+        boolean isFilesAttached = messageDto.getImagesBase64() != null
+                && !messageDto.getImagesBase64().isEmpty();
+        StringBuilder fileNamesBuilder = null;
 
-        List<Message> messages = chatsMessages.computeIfAbsent(chat.getId(), k -> new ArrayList<>());
-        messages.add(saved);
-        if (messages.size() >= 5) {
-            messageRepository.saveAll(messages);
-            messages.clear();
+        if (isFilesAttached) {
+            fileNamesBuilder = new StringBuilder();
+            for (int i = 0; i < messageDto.getImagesBase64().size(); i++) {
+                String receivedImage = messageDto.getImagesBase64().get(i);
+                String fileName = getFileName();
+                fileNamesBuilder.append(i == 0 ? fileName : "," + fileName);
+
+                imageFtpService.upload(messageDto.getChatId(), fileName, receivedImage);
+                messagesImages.put(fileName, receivedImage);
+            }
         }
 
-        return MessageDto.builder()
-                .time(saved.getTime().atOffset(ZoneOffset.UTC))
-                .content(messageDto.getContent())
-                .sender(messageDto.getSender())
-                .chatId(messageDto.getChatId())
+        Message message = Message.builder()
+                .time(messageDto.getTime().toInstant())
+                .content(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
+                .sender(sender)
+                .chat(chat)
+                .fileName(fileNamesBuilder == null ? null : fileNamesBuilder.toString())
                 .build();
+
+        Message saved = messageRepository.save(message);
+
+        NewMessageDto newMessageDto = NewMessageDto.builder()
+                .messageId(saved.getId())
+                .sender(sender.getUsername())
+                .chatId(chat.getId())
+                .build();
+        messageHandler.sendToUsers(newMessageDto);
     }
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
@@ -79,10 +96,29 @@ public class MessageService extends AbstractService {
                 .toList();
     }
 
+    public MessageDto getMessage(NewMessageDto newMessageDto) {
+        Message message = messageRepository.findById(newMessageDto.getMessageId())
+                .orElseThrow(() -> new IncorrectDataException("The message with id " + newMessageDto.getMessageId() + " was not found"));
+        return getMessageDto(message, newMessageDto.getLocale());
+    }
+
     private MessageDto getMessageDto(Message message, String locale) {
+        List<String> imagesBase64 = null;
+
+        if (message.getFileName() != null) {
+            String[] imageNames = message.getFileName().split(",");
+            imagesBase64 = new ArrayList<>(imageNames.length);
+
+            for (String imageName : imageNames) {
+                String imageBase64 = messagesImages.computeIfAbsent(imageName,
+                        k -> imageFtpService.download(message.getChat().getId(), imageName));
+                imagesBase64.add(imageBase64);
+            }
+        }
+
         return MessageDto.builder()
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
-                .content(
+                .textContent(
                         encryptionService.decrypt(
                                 message.getContent(),
                                 message.getSender().getUsername(),
@@ -90,8 +126,12 @@ public class MessageService extends AbstractService {
                         ))
                 .sender(message.getSender().getUsername())
                 .chatId(message.getChat().getId())
-                .file(ftpService.getFile(message.getFile()))
+                .imagesBase64(imagesBase64)
                 .build();
+    }
+
+    private String getFileName() {
+        return LocalDateTime.now() + ".png";
     }
 }
 
