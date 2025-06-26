@@ -46,28 +46,14 @@ public class MessageService extends AbstractService {
                 .orElseThrow(() -> new IncorrectChatDataException(getDictionary(messageDto.getLocale())
                         .getSaveMessageIncorrectChatDataException()));
 
-        boolean isFilesAttached = messageDto.getImagesBase64() != null
-                && !messageDto.getImagesBase64().isEmpty();
-        StringBuilder fileNamesBuilder = null;
-
-        if (isFilesAttached) {
-            fileNamesBuilder = new StringBuilder();
-            for (int i = 0; i < messageDto.getImagesBase64().size(); i++) {
-                String receivedImage = messageDto.getImagesBase64().get(i);
-                String fileName = getFileName();
-                fileNamesBuilder.append(i == 0 ? fileName : "," + fileName);
-
-                imageFtpService.upload(messageDto.getChatId(), fileName, receivedImage);
-                messagesImages.put(fileName, receivedImage);
-            }
-        }
+        String fileNames = getMessageFileNamesAndSaveFiles(messageDto);
 
         Message message = Message.builder()
                 .time(messageDto.getTime().toInstant())
-                .content(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
+                .textContent(encryptionService.encrypt(messageDto.getTextContent(), sender.getUsername(), messageDto.getLocale()))
                 .sender(sender)
                 .chat(chat)
-                .fileName(fileNamesBuilder == null ? null : fileNamesBuilder.toString())
+                .fileNames(fileNames)
                 .build();
 
         Message saved = messageRepository.save(message);
@@ -102,12 +88,24 @@ public class MessageService extends AbstractService {
         return getMessageDto(message, newMessageDto.getLocale());
     }
 
-    private MessageDto getMessageDto(Message message, String locale) {
-        List<String> imagesBase64 = null;
+    public void changeMessage(MessageDto messageDto) {
+        Message message = messageRepository.findById(messageDto.getId())
+                .orElseThrow(() -> new IncorrectChatDataException("The message with id " + messageDto.getId() + " was not found"));
 
-        if (message.getFileName() != null) {
-            String[] imageNames = message.getFileName().split(",");
-            imagesBase64 = new ArrayList<>(imageNames.length);
+        if (!message.getSender().getUsername().equals(messageDto.getSender()))
+            throw  new IncorrectUserDataException("Only the author of the message can change the messages");
+
+        message.setTextContent(encryptionService.encrypt(messageDto.getTextContent(), messageDto.getSender(), messageDto.getLocale()));
+        message.setFileNames(getMessageFileNamesAndSaveFiles(messageDto));
+        messageRepository.save(message);
+    }
+
+    private MessageDto getMessageDto(Message message, String locale) {
+        Set<String> imagesBase64 = null;
+
+        if (message.getFileNames() != null) {
+            String[] imageNames = message.getFileNames().split(",");
+            imagesBase64 = new HashSet<>(imageNames.length);
 
             for (String imageName : imageNames) {
                 String imageBase64 = messagesImages.computeIfAbsent(imageName,
@@ -117,10 +115,11 @@ public class MessageService extends AbstractService {
         }
 
         return MessageDto.builder()
+                .id(message.getId())
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
                 .textContent(
                         encryptionService.decrypt(
-                                message.getContent(),
+                                message.getTextContent(),
                                 message.getSender().getUsername(),
                                 locale
                         ))
@@ -128,6 +127,25 @@ public class MessageService extends AbstractService {
                 .chatId(message.getChat().getId())
                 .imagesBase64(imagesBase64)
                 .build();
+    }
+
+    private String getMessageFileNamesAndSaveFiles(MessageDto messageDto) {
+        StringBuilder fileNamesBuilder = null;
+        boolean isFilesAttached = messageDto.getImagesBase64() != null
+                && !messageDto.getImagesBase64().isEmpty();
+
+        if (isFilesAttached) {
+            fileNamesBuilder = new StringBuilder();
+            for (String imageBase64 : messageDto.getImagesBase64()) {
+                String fileName = getFileName();
+                fileNamesBuilder.append(fileName).append(",");
+
+                imageFtpService.upload(messageDto.getChatId(), fileName, imageBase64);
+                messagesImages.put(fileName, imageBase64);
+            }
+            fileNamesBuilder.delete(fileNamesBuilder.length() - 1, fileNamesBuilder.length());
+        }
+        return fileNamesBuilder == null ? null : fileNamesBuilder.toString();
     }
 
     private String getFileName() {

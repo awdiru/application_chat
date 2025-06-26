@@ -2,7 +2,7 @@ package ru.avdonin.client.client.gui.additional_frames.list;
 
 import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
+import ru.avdonin.client.client.gui.helpers.FrameHelper;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
@@ -17,7 +17,7 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
         initFrame(parent.getDictionary().getLogoutChat(),
                 new Dimension(250, 150));
 
-        String question = parent.getDictionary().getAddUser() + " " + MainFrameHelper.getChatName(chat);
+        String question = parent.getDictionary().getAddUser() + " " + FrameHelper.getChatName(chat);
         JLabel addLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         addLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -28,7 +28,6 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
         addPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(addPanel);
-        setVisible(true);
     }
 
     private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main) {
@@ -41,7 +40,7 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
             try {
                 parent.getClient().addUserFromChat(addUserField.getText(), chatId);
             } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, parent.getDictionary(), AddUserFromChatFrame.this);
+                FrameHelper.errorHandler(ex, parent.getDictionary(), AddUserFromChatFrame.this);
             } finally {
                 main.dispose();
             }

@@ -10,19 +10,26 @@ public class DictionaryRU extends BaseDictionary {
     private final String yes = "Да";
     private final String no = "Нет";
     private final String confirmation = "Подтверждение";
-    //Окно авторизации
+    //Authorization window
     private final String authorization = "Авторизация";
     private final String login = "Войти";
     private final String signup = "Регистрация";
     private final String username = "Имя пользователя";
     private final String password = "Пароль";
-    //Окно чата
+    //Chat window
     private final String chat = "Чат";
     private final String chats = "Чаты";
-    //Окно чатов
+    private final String invitations = "Приглашения";
+    //Chats window
     private final String addChatTitle = "Создать чат";
     private final String chatName = "Название чата";
-    //Контекстное меню
+    private final String friendsName = "Имя друга";
+    private final String privateChat = "Приватный чат";
+    private final String publicChat = "Публичный чат";
+    private final String createChat = "Создать чат";
+    private final String attachImage = "Прикрепить изображение";
+    private final String images = "Изображения";
+    //Chat context menu
     private final String logoutChat = "Покинуть чат";
     private final String logoutChatQuestion = "Вы уверены, что хотите выйти из чата?";
     private final String renameChatCustom = "Переименовать чат (для себя)";
@@ -32,19 +39,24 @@ public class DictionaryRU extends BaseDictionary {
     private final String addUserQuestion = "Имя пользователя";
     private final String add = "Добавить";
     private final String deleteChat = "Удалить чат";
-    //Окно настроек
+    //invite context menu
+    private final String confirmInvite = "Принять приглашение";
+    private final String rejectInvite = "Отклонить приглашение";
+    //Message context menu
+    private final String changeMessage = "Изменить сообщение";
+    //Settings window
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";
     private final String settingsTimeZone = "Часовой пояс";
     private final String settingsSystem = "Системные";
     private final String restartProgram = "Для применения изменений необходимо перезапустить программу.";
     private final String warning = "Предупреждение";
-    //Сообщения об ошибках
+    //Errors messages
     private final String error = "Ошибка";
     private final String authorizationError = "Ошибка авторизации";
     private final String errorCode = "Код ошибки";
     private final String statusCode = "Статусный код";
-    //Месяцы (в родительном падеже)
+    //Month (Родительный падеж)
     private final String january = "января";
     private final String february = "февраля";
     private final String march = "марта";
@@ -57,7 +69,7 @@ public class DictionaryRU extends BaseDictionary {
     private final String october = "октября";
     private final String november = "ноября";
     private final String december = "декабря";
-    //Дни недели
+    //Weekday
     private final String monday = "Пн";
     private final String tuesday = "Вт";
     private final String wednesday = "Ср";
@@ -65,4 +77,6 @@ public class DictionaryRU extends BaseDictionary {
     private final String friday = "Пт";
     private final String saturday = "Сб";
     private final String sunday = "Вс";
+    //Exception
+    private final String cannotBeRead = "Невозможно прочитать файл изображения";
 }

@@ -2,7 +2,7 @@ package ru.avdonin.client.client.gui.additional_frames.list;
 
 import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
+import ru.avdonin.client.client.gui.helpers.FrameHelper;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,13 +23,12 @@ public class CreateChatFrame extends BaseAdditionalFrame {
                 parent.getClient().createChat(parent.getUsername(), labelField.getText(), isPrivate);
                 parent.loadChats();
             } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, parent.getDictionary(), CreateChatFrame.this);
+                FrameHelper.errorHandler(ex, parent.getDictionary(), CreateChatFrame.this);
             }
             dispose();
         });
 
         addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
         add(addChatPanel);
-        setVisible(true);
     }
 }

@@ -9,5 +9,6 @@ public abstract class BaseAdditionalFrame extends JFrame {
         setSize(size);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
+        setVisible(true);
     }
 }
