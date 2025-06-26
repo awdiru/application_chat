@@ -17,7 +17,7 @@ import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.message.dto.NewMessageDto;
+import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.*;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
@@ -75,10 +75,34 @@ public class Client {
 
     @OnMessage
     public void onMessage(String message) throws Exception {
-        NewMessageDto newMessageDto = objectMapper.readValue(message, NewMessageDto.class);
-        HttpResponse<String> response = get("/message/get", newMessageDto);
+        ActionNotification actionNotification = objectMapper.readValue(message, ActionNotification.class);
+
+        switch (actionNotification.getAction()) {
+            case MESSAGE -> onMessage(actionNotification);
+            case INVITATION -> gui.loadInvitations();
+        }
+    }
+
+    private void onMessage(ActionNotification actionNotification) throws Exception {
+        ActionNotification.Message message;
+        if (actionNotification.getData() instanceof ActionNotification.Message)
+             message = (ActionNotification.Message) actionNotification.getData();
+        else throw new RuntimeException("The message notification contains incorrect information");
+
+        if (!message.getChatId().equals(gui.getChat().getId())) {
+            gui.addNotificationChat(message.getChatId());
+            return;
+        }
+
+        MessageDto requestDto = MessageDto.builder()
+                .id(message.getMessageId())
+                .build();
+
+        HttpResponse<String> response = get("/message/get", requestDto);
+
         MessageDto messageDto = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+
         messageDto.setTime(messageDto.getTime()
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
@@ -189,9 +213,9 @@ public class Client {
         post("/chat/add", invitationChatDto);
     }
 
-    public List<InvitationChatDto> getInvitationsChats(String username) throws Exception {
+    public List<InvitationChatDto> getInvitationsChats() throws Exception {
         UsernameDto usernameDto = UsernameDto.builder()
-                .username(username)
+                .username(gui.getUsername())
                 .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/invitations", usernameDto);

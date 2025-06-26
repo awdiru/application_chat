@@ -38,6 +38,7 @@ public class MainFrame extends JFrame {
     private final List<MessageDto> messages = new ArrayList<>();
     private final Client client;
     private final String username;
+    private final Map<String, JLabel> chatIconsNotification = new HashMap<>();
 
     private JPanel chatArea;
     private JTextArea messageArea;
@@ -221,12 +222,12 @@ public class MainFrame extends JFrame {
         }.execute();
     }
 
-    private void loadInvitations() {
+    public void loadInvitations() {
         new SwingWorker<List<InvitationChatDto>, Void>() {
             @Override
             protected List<InvitationChatDto> doInBackground() {
                 try {
-                    return client.getInvitationsChats(username);
+                    return client.getInvitationsChats();
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -428,6 +429,7 @@ public class MainFrame extends JFrame {
                         chatName.setText(FrameHelper.getChatName(chat));
                         chatHistoryCount = 1;
                         loadChatHistory();
+                        delNotificationChat();
                     } catch (Exception ex) {
                         FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
                     }
@@ -449,7 +451,14 @@ public class MainFrame extends JFrame {
         JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showChatContextMenu(menuButton, chat));
 
+        JLabel chatNotification = new JLabel(dictionary.getEnvelope());
+        chatIconsNotification.put(chat.getId(), chatNotification);
+
+        JPanel containerCN = new JPanel(new BorderLayout());
+        containerCN.add(chatNotification, BorderLayout.NORTH);
+
         JPanel itemPanel = new JPanel(new BorderLayout());
+        itemPanel.add(containerCN, BorderLayout.WEST);
         itemPanel.add(textArea, BorderLayout.CENTER);
         itemPanel.add(menuButton, BorderLayout.EAST);
 
@@ -864,5 +873,17 @@ public class MainFrame extends JFrame {
             if (client.isNotConnected())
                 throw new NoConnectionServerException("There is no connection to the server");
         }
+    }
+
+    public void addNotificationChat(String chatId) {
+        JLabel chatIcon = chatIconsNotification.get(chatId);
+        chatIcon.setIcon(dictionary.getExclamationMark());
+        FrameHelper.repaintComponent(chatIcon);
+    }
+
+    private void delNotificationChat() {
+        JLabel chatIcon = chatIconsNotification.get(chat.getId());
+        chatIcon.setIcon(dictionary.getEnvelope());
+        FrameHelper.repaintComponent(chatIcon);
     }
 }

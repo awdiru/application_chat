@@ -1,6 +1,5 @@
 package ru.avdonin.server.service.list;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -14,13 +13,17 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
+import ru.avdonin.server.entity_model.ChatParticipant;
+import ru.avdonin.server.entity_model.User;
+import ru.avdonin.server.repository.ChatParticipantRepository;
+import ru.avdonin.server.repository.UserRepository;
+import ru.avdonin.template.exceptions.IncorrectDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.chat.dto.ChatIdDto;
-import ru.avdonin.template.model.message.dto.NewMessageDto;
+import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
-import ru.avdonin.template.model.message.dto.MessageDto;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -33,8 +36,8 @@ import java.util.concurrent.ConcurrentMap;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MessageHandler extends TextWebSocketHandler {
     private final Logger log;
-    private final UserService userService;
-    private final ChatService chatService;
+    private final UserRepository userRepository;
+    private final ChatParticipantRepository chatParticipantRepository;
 
     private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -45,7 +48,8 @@ public class MessageHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         try {
             String username = getUsernameFromSession(session);
-            userService.searchUserByUsername(username, "EN");
+            userRepository.findByUsername(username)
+                    .orElseThrow(() -> new IncorrectDataException("User " + username + " not found"));
             sessions.put(username, session);
             log.info("connection established, username: " + username);
         } catch (Exception e) {
@@ -68,38 +72,26 @@ public class MessageHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) {
-        /*
-        try {
-            MessageDto messageDto = objectMapper.readValue(textMessage.getPayload(), MessageDto.class);
-            messageDto = messageService.saveMessage(messageDto);
 
-            List<String> users = chatService.getChatUsers(new ChatIdDto(messageDto.getChatId(), messageDto.getLocale())).stream()
-                    .map(UserDto::getUsername)
-                    .toList();
-
-            for (String username : users) sendToUser(username, messageDto);
-
-            log.info("successful send message");
-
-        } catch (JsonProcessingException | IncorrectUserDataException e) {
-            sendError(session, e.getMessage(), HttpStatus.BAD_REQUEST);
-
-        } catch (Exception e) {
-            sendError(session, e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }*/
     }
 
-    public void sendToUsers(NewMessageDto newMessageDto) throws IOException {
-        List<String> users = chatService.getChatUsers(new ChatIdDto(newMessageDto.getChatId(), newMessageDto.getLocale())).stream()
-                .map(UserDto::getUsername)
+    public void sendToUsersMessageNotification(ActionNotification actionNotification) throws IOException {
+        ActionNotification.Message message;
+        if (actionNotification.getData() instanceof ActionNotification.Message)
+            message = (ActionNotification.Message) actionNotification.getData();
+        else throw new RuntimeException("The message notification contains incorrect information");
+
+        List<String> users = chatParticipantRepository.findAllParticipant(message.getChatId()).stream()
+                .map(ChatParticipant::getUser)
+                .map(User::getUsername)
                 .toList();
 
         for (String user : users)
-            if (!user.equals(newMessageDto.getSender()))
-                sendToUser(user, newMessageDto);
+            if (!user.equals(message.getSender()))
+                sendToUser(user, actionNotification);
     }
 
-    private void sendToUser(String username, NewMessageDto message) throws IOException {
+    public void sendToUser(String username, ActionNotification message) throws IOException {
         WebSocketSession session = sessions.get(username);
         if (session != null && session.isOpen()) {
             log.info("sendMessage: " + message);

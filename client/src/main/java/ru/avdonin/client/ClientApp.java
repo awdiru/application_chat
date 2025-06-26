@@ -11,5 +11,9 @@ public class ClientApp {
             Client client = new Client();
             new LoginFrame(client).setVisible(true);
         });
+        SwingUtilities.invokeLater(() -> {
+            Client client = new Client();
+            new LoginFrame(client).setVisible(true);
+        });
     }
 }

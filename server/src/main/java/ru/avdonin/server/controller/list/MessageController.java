@@ -7,7 +7,7 @@ import ru.avdonin.server.controller.AbstractController;
 import ru.avdonin.server.service.list.MessageService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.message.dto.NewMessageDto;
+import ru.avdonin.template.model.util.ActionNotification;
 
 @RestController
 @RequestMapping("/message")
@@ -32,11 +32,11 @@ public class MessageController extends AbstractController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<Object> getMessage(@RequestBody NewMessageDto newMessageDto) {
+    public ResponseEntity<Object> getMessage(@RequestBody MessageDto messageDto) {
         try {
-            log.info("get message: " + newMessageDto.getMessageId());
-            MessageDto messageDto = messageService.getMessage(newMessageDto);
-            return ResponseEntity.ok().body(messageDto);
+            log.info("get message: " + messageDto.getId());
+            MessageDto responseDto = messageService.getMessage(messageDto);
+            return ResponseEntity.ok().body(responseDto);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

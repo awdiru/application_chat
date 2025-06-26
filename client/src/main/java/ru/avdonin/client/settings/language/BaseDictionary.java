@@ -99,4 +99,6 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon pencil = new ImageIcon("data/pencil-icon.png");
     private final ImageIcon delete = new ImageIcon("data/delete-icon.png");
     private final ImageIcon completeDeletion = new ImageIcon("data/completed-deletion-icon.png");
+    private final ImageIcon envelope = new ImageIcon("data/envelope-icon.png");
+    private final ImageIcon exclamationMark = new ImageIcon("data/exclamation-mark-icon.png");
 }
