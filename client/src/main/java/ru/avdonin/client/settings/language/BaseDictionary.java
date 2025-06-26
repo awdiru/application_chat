@@ -45,7 +45,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String confirmInvite = "Accept the invitation";
     private final String rejectInvite = "Decline the invitation";
     //Message context menu
-    private final String changeText = "Change the text";
+    private final String changeMessage = "Change the message";
     //Settings window
     private final String settingsTitle = "Settings";
     private final String settingsLanguage = "Language";

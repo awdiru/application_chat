@@ -2,7 +2,7 @@ package ru.avdonin.client.client.gui.additional_frames.list;
 
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
-import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
+import ru.avdonin.client.client.gui.helpers.FrameHelper;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
@@ -23,8 +23,8 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
     private JTextArea messageArea;
 
     public ChangeMessageFrame(MainFrame parent, MessageDto oldMessageDto) {
-        initFrame(parent.getDictionary().getChangeText(),
-                new Dimension(240, 110));
+        initFrame(parent.getDictionary().getChangeMessage(),
+                new Dimension(300, 150));
         this.parent = parent;
         this.oldMessageDto = oldMessageDto;
         this.oldSentImagesBase64 = oldMessageDto.getImagesBase64() == null ? new HashSet<>() : oldMessageDto.getImagesBase64();
@@ -43,12 +43,9 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         JScrollPane textScroll = new JScrollPane(messageArea);
         textScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        JButton attachButton = getAttachButton();
-
 
         JPanel textPanel = new JPanel(new BorderLayout());
         textPanel.add(textScroll, BorderLayout.CENTER);
-        textPanel.add(attachButton, BorderLayout.EAST);
 
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.add(getImages(), BorderLayout.NORTH);
@@ -57,23 +54,6 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         setupKeyBindings(parent);
 
         return inputPanel;
-    }
-
-    private JButton getAttachButton() {
-        JButton attachButton = new JButton(parent.getDictionary().getPaperClip());
-        attachButton.setMargin(new Insets(0, 5, 0, 5));
-        attachButton.addActionListener(e -> {
-            try {
-                Set<String> newImage = new HashSet<>();
-                MainFrameHelper.attachImage(attachButton, newImage, parent.getDictionary());
-                for (String image : newImage) sentImagesBase64.put(image, false);
-                imagesPanel.revalidate();
-                imagesPanel.repaint();
-            } catch (IOException ex) {
-                MainFrameHelper.errorHandler(ex, parent.getDictionary(), parent);
-            }
-        });
-        return attachButton;
     }
 
     private void setupKeyBindings(MainFrame parent) {
@@ -87,8 +67,8 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    if (sentImagesBase64.keySet().equals(oldSentImagesBase64)) sentImagesBase64.clear();
                     Set<String> sentImages = getSentImages();
+                    if (sentImages.equals(oldSentImagesBase64)) sentImages.clear();
                     MessageDto messageDto = MessageDto.builder()
                             .id(oldMessageDto.getId())
                             .chatId(oldMessageDto.getChatId())
@@ -102,38 +82,31 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
                     parent.loadChatHistory();
                     dispose();
                 } catch (Exception ex) {
-                    MainFrameHelper.errorHandler(ex, parent.getDictionary(), parent);
+                    FrameHelper.errorHandler(ex, parent.getDictionary(), parent);
                 }
             }
         });
     }
 
-    private JScrollPane getImages() {
+    private JPanel getImages() {
         imagesPanel = new JPanel();
         imagesPanel.setLayout(new BoxLayout(imagesPanel, BoxLayout.X_AXIS));
 
-        for (String imageBase64 : oldSentImagesBase64) {
-            ImageIcon image;
-            try {
-                byte[] imageData = Base64.getDecoder().decode(imageBase64);
-                Image scaledImage = new ImageIcon(imageData).getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-                image = new ImageIcon(scaledImage);
-            } catch (Exception e) {
-                image = parent.getDictionary().getDefaultImage();
-            }
+        for (String imageBase64 : oldSentImagesBase64) addImageComponent(imageBase64);
 
-            JButton deleteButton = getDeleteButton(imageBase64);
-
-            JPanel imagePanel = new JPanel(new BorderLayout());
-            imagePanel.add(new JLabel(image), BorderLayout.WEST);
-            imagePanel.add(deleteButton, BorderLayout.EAST);
-
-            imagesPanel.add(imagePanel);
-        }
         JScrollPane scrollPane = new JScrollPane(imagesPanel);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        return scrollPane;
+        JButton attachButton = getAttachButton();
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.add(attachButton);
+
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.add(scrollPane, BorderLayout.CENTER);
+        headerPanel.add(buttonPanel, BorderLayout.EAST);
+
+        return headerPanel;
     }
 
     private JButton getDeleteButton(String imageBase64) {
@@ -147,10 +120,31 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
                 sentImagesBase64.put(imageBase64, true);
                 deleteButton.setIcon(parent.getDictionary().getCompleteDeletion());
             }
-            deleteButton.revalidate();
-            deleteButton.repaint();
+            FrameHelper.repaintComponent(deleteButton);
+            FrameHelper.repaintComponent(imagesPanel);
         });
         return deleteButton;
+    }
+
+
+    private JButton getAttachButton() {
+        JButton attachButton = new JButton(parent.getDictionary().getPaperClip());
+        attachButton.setMargin(new Insets(0, 5, 0, 5));
+        attachButton.addActionListener(e -> {
+            try {
+                Set<String> newImages = new HashSet<>();
+                FrameHelper.attachImage(attachButton, newImages, parent.getDictionary());
+
+                for (String imageBase64 : newImages) {
+                    sentImagesBase64.put(imageBase64, false);
+                    addImageComponent(imageBase64);
+                }
+                FrameHelper.repaintComponent(imagesPanel);
+            } catch (IOException ex) {
+                FrameHelper.errorHandler(ex, parent.getDictionary(), parent);
+            }
+        });
+        return attachButton;
     }
 
     private Map<String, Boolean> initMap() {
@@ -167,5 +161,26 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
                 sentImages.add(imageBase64);
 
         return sentImages;
+    }
+
+    private void addImageComponent(String imageBase64){
+        ImageIcon image;
+        try {
+            byte[] imageData = Base64.getDecoder().decode(imageBase64);
+            Image scaledImage = new ImageIcon(imageData).getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+            image = new ImageIcon(scaledImage);
+        } catch (Exception e) {
+            image = parent.getDictionary().getDefaultImage();
+        }
+
+        JButton deleteButton = getDeleteButton(imageBase64);
+
+        JPanel imagePanel = new JPanel(new BorderLayout());
+        imagePanel.add(new JLabel(image), BorderLayout.WEST);
+        imagePanel.add(deleteButton, BorderLayout.EAST);
+        imagePanel.setPreferredSize(new Dimension(40, 25));
+        imagePanel.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
+
+        imagesPanel.add(imagePanel);
     }
 }

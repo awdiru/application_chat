@@ -2,7 +2,7 @@ package ru.avdonin.client.client.gui.additional_frames.list;
 
 import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.MainFrameHelper;
+import ru.avdonin.client.client.gui.helpers.FrameHelper;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
@@ -17,7 +17,7 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
         initFrame(parent.getDictionary().getLogoutChat(),
                 new Dimension(250, 150));
 
-        String question = parent.getDictionary().getLogoutChatQuestion() + " " + MainFrameHelper.getChatName(deleteChat);
+        String question = parent.getDictionary().getLogoutChatQuestion() + " " + FrameHelper.getChatName(deleteChat);
         JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
@@ -37,7 +37,7 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
                 parent.getClient().logoutOfChat(parent.getUsername(), deleteChatId);
                 parent.loadChats();
             } catch (Exception ex) {
-                MainFrameHelper.errorHandler(ex, parent.getDictionary(), parent);
+                FrameHelper.errorHandler(ex, parent.getDictionary(), parent);
             } finally {
                 main.dispose();
             }

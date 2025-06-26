@@ -17,10 +17,9 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.List;
 import java.util.Set;
 
-public class MainFrameHelper {
+public class FrameHelper {
 
     public static String getMonth(OffsetDateTime date, BaseDictionary dictionary) {
         return switch (date.getMonth()) {
@@ -63,17 +62,8 @@ public class MainFrameHelper {
         mainFrame.setVisible(true);
     }
 
-    public static void addDate(OffsetDateTime dateTime, JTextArea chatArea, BaseDictionary dictionary) {
-        SwingUtilities.invokeLater(() -> {
-            String date = MainFrameHelper.getDayOfWeek(dateTime, dictionary)
-                    + ", " + dateTime.getDayOfMonth() + " "
-                    + MainFrameHelper.getMonth(dateTime, dictionary) + "\n";
-            chatArea.append(date);
-        });
-    }
-
-    public static String formatTime(OffsetDateTime dateTime) {
-        return dateTime.format(DateTimeFormatter.ofPattern("HH:mm "));
+    public static String formatDateTime(OffsetDateTime dateTime) {
+        return dateTime.format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm "));
     }
 
     public static String getChatName(ChatDto chat) {
@@ -131,5 +121,10 @@ public class MainFrameHelper {
                 button.revalidate();
                 button.repaint();
         }
+    }
+
+    public static void repaintComponent(JComponent component) {
+        component.revalidate();
+        component.repaint();
     }
 }
