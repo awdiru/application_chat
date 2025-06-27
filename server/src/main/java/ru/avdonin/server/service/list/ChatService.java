@@ -16,7 +16,9 @@ import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
 import ru.avdonin.template.model.user.dto.UsernameDto;
+import ru.avdonin.template.model.util.ActionNotification;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class ChatService extends AbstractService {
     private final UserRepository userRepository;
     private final InvitationsRepository invitationsRepository;
     private final AvatarFtpService avatarFtpService;
+    private final MessageHandler messageHandler;
 
     public ChatDto createPublicChat(ChatCreateDto chatCreateDto) {
         if (chatCreateDto.getChatName() == null || chatCreateDto.getChatName().isEmpty())
@@ -127,7 +130,7 @@ public class ChatService extends AbstractService {
         chatParticipantRepository.save(chatParticipant);
     }
 
-    public void addUser(InvitationChatDto invitationChatDto) {
+    public void addUser(InvitationChatDto invitationChatDto) throws IOException {
         Chat chat = getChat(invitationChatDto.getChatId(), invitationChatDto.getLocale());
         User user = getUser(invitationChatDto.getUsername(), invitationChatDto.getLocale());
 
@@ -148,6 +151,13 @@ public class ChatService extends AbstractService {
                 .user(user)
                 .build();
         invitationsRepository.save(invitationChat);
+
+        ActionNotification actionNotification = ActionNotification.builder()
+                .action(ActionNotification.Action.INVITATION)
+                .data(new ActionNotification.Invitation())
+                .build();
+
+        messageHandler.sendToUser(user.getUsername(), actionNotification);
     }
 
     public List<InvitationChatDto> getInvitations(UsernameDto usernameDto) {

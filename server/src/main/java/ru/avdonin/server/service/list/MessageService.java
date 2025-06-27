@@ -16,7 +16,7 @@ import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.message.dto.NewMessageDto;
+import ru.avdonin.template.model.util.ActionNotification;
 
 import java.io.IOException;
 import java.time.*;
@@ -58,12 +58,15 @@ public class MessageService extends AbstractService {
 
         Message saved = messageRepository.save(message);
 
-        NewMessageDto newMessageDto = NewMessageDto.builder()
-                .messageId(saved.getId())
-                .sender(sender.getUsername())
-                .chatId(chat.getId())
+        ActionNotification actionNotification = ActionNotification.builder()
+                .action(ActionNotification.Action.MESSAGE)
+                .data(ActionNotification.Message.builder()
+                                .messageId(message.getId())
+                                .sender(sender.getUsername())
+                                .chatId(chat.getId())
+                                .build())
                 .build();
-        messageHandler.sendToUsers(newMessageDto);
+        messageHandler.sendToUsersMessageNotification(actionNotification);
     }
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
@@ -82,10 +85,11 @@ public class MessageService extends AbstractService {
                 .toList();
     }
 
-    public MessageDto getMessage(NewMessageDto newMessageDto) {
-        Message message = messageRepository.findById(newMessageDto.getMessageId())
-                .orElseThrow(() -> new IncorrectDataException("The message with id " + newMessageDto.getMessageId() + " was not found"));
-        return getMessageDto(message, newMessageDto.getLocale());
+    public MessageDto getMessage(MessageDto messageDto) {
+        Message message = messageRepository.findById(messageDto.getId())
+                .orElseThrow(() -> new IncorrectDataException("The message with id " + messageDto.getId() + " was not found"));
+
+        return getMessageDto(message, messageDto.getLocale());
     }
 
     public void changeMessage(MessageDto messageDto) {
