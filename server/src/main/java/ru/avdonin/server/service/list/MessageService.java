@@ -61,10 +61,10 @@ public class MessageService extends AbstractService {
         ActionNotification actionNotification = ActionNotification.builder()
                 .action(ActionNotification.Action.MESSAGE)
                 .data(ActionNotification.Message.builder()
-                                .messageId(message.getId())
-                                .sender(sender.getUsername())
-                                .chatId(chat.getId())
-                                .build())
+                        .messageId(message.getId())
+                        .sender(sender.getUsername())
+                        .chatId(chat.getId())
+                        .build())
                 .build();
         messageHandler.sendToUsersMessageNotification(actionNotification);
     }
@@ -86,22 +86,29 @@ public class MessageService extends AbstractService {
     }
 
     public MessageDto getMessage(MessageDto messageDto) {
-        Message message = messageRepository.findById(messageDto.getId())
-                .orElseThrow(() -> new IncorrectDataException("The message with id " + messageDto.getId() + " was not found"));
+        Message message = getMessage(messageDto.getId());
 
         return getMessageDto(message, messageDto.getLocale());
     }
 
     public void changeMessage(MessageDto messageDto) {
-        Message message = messageRepository.findById(messageDto.getId())
-                .orElseThrow(() -> new IncorrectChatDataException("The message with id " + messageDto.getId() + " was not found"));
+        Message message = getMessage(messageDto.getId());
 
         if (!message.getSender().getUsername().equals(messageDto.getSender()))
-            throw  new IncorrectUserDataException("Only the author of the message can change the messages");
+            throw new IncorrectUserDataException("Only the author of the message can change the messages");
 
         message.setTextContent(encryptionService.encrypt(messageDto.getTextContent(), messageDto.getSender(), messageDto.getLocale()));
         message.setFileNames(getMessageFileNamesAndSaveFiles(messageDto));
         messageRepository.save(message);
+    }
+
+    public void deleteMessage(MessageDto messageDto) {
+        Message message = getMessage(messageDto.getId());
+
+        if (!message.getSender().getUsername().equals(messageDto.getSender()))
+            throw new IncorrectUserDataException("Only the author of the message can deleted the messages");
+
+        messageRepository.delete(message);
     }
 
     private MessageDto getMessageDto(Message message, String locale) {
@@ -150,6 +157,11 @@ public class MessageService extends AbstractService {
             fileNamesBuilder.delete(fileNamesBuilder.length() - 1, fileNamesBuilder.length());
         }
         return fileNamesBuilder == null ? null : fileNamesBuilder.toString();
+    }
+
+    private Message getMessage(Long messageId) {
+        return messageRepository.findById(messageId)
+                .orElseThrow(() -> new IncorrectDataException("The message with id " + messageId + " was not found"));
     }
 
     private String getFileName() {

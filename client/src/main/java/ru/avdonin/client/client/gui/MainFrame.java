@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.IntStream;
 
 @Getter
 public class MainFrame extends JFrame {
@@ -49,6 +50,7 @@ public class MainFrame extends JFrame {
     private ChatDto chat;
     private Integer chatHistoryCount = 1;
     private JTextArea chatName = new JTextArea();
+    private JPanel attachPanel;
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -68,7 +70,7 @@ public class MainFrame extends JFrame {
 
         chatArea.add(createMessageItem(message));
 
-        FrameHelper.repaintComponent(chatArea);
+        FrameHelper.repaintComponents(chatArea);
 
         SwingUtilities.invokeLater(() -> {
             JScrollBar scrollBar = chatScroll.getVerticalScrollBar();
@@ -93,7 +95,7 @@ public class MainFrame extends JFrame {
                 try {
                     chatsContainer.removeAll();
                     for (ChatDto c : get()) chatsContainer.add(createChatItem(c));
-                    FrameHelper.repaintComponent(chatsContainer);
+                    FrameHelper.repaintComponents(chatsContainer);
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -128,7 +130,7 @@ public class MainFrame extends JFrame {
                     client.sendMessage(messageDto);
 
                     attachButton.setIcon(dictionary.getPaperClip());
-                    FrameHelper.repaintComponent(attachButton);
+                    FrameHelper.repaintComponents(attachButton);
 
                     onMessageReceived(messageDto);
                     sentImagesBase64.clear();
@@ -165,7 +167,7 @@ public class MainFrame extends JFrame {
                         chatArea.add(createMessageItem(m));
 
                     messages.clear();
-                    FrameHelper.repaintComponent(chatArea);
+                    FrameHelper.repaintComponents(chatArea);
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -194,7 +196,6 @@ public class MainFrame extends JFrame {
                     int currentScrollPosition = verticalBar.getValue();
 
                     messages.addAll(0, get());
-                    chatHistoryCount++;
 
                     List<JPanel> newMessages = new ArrayList<>();
                     int totalHeight = 0;
@@ -208,7 +209,7 @@ public class MainFrame extends JFrame {
                     for (int i = newMessages.size() - 1; i >= 0; i--)
                         chatArea.add(newMessages.get(i), 0);
 
-                    FrameHelper.repaintComponent(chatArea);
+                    FrameHelper.repaintComponents(chatArea);
 
                     int newScrollPosition = currentScrollPosition + totalHeight - 30;
                     SwingUtilities.invokeLater(() -> {
@@ -239,7 +240,7 @@ public class MainFrame extends JFrame {
                 try {
                     invitationsContainer.removeAll();
                     for (InvitationChatDto inv : get()) invitationsContainer.add(createInvitationItem(inv));
-                    FrameHelper.repaintComponent(invitationsContainer);
+                    FrameHelper.repaintComponents(invitationsContainer);
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
                 }
@@ -281,7 +282,6 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel getMessagePanel() {
-
         messageArea = new JTextArea(3, 20);
         messageArea.setLineWrap(true);
         messageArea.setWrapStyleWord(true);
@@ -290,13 +290,7 @@ public class MainFrame extends JFrame {
 
         attachButton = new JButton(dictionary.getPaperClip());
         attachButton.setMargin(new Insets(0, 5, 0, 5));
-        attachButton.addActionListener(e -> {
-            try {
-                FrameHelper.attachImage(attachButton, sentImagesBase64, dictionary);
-            } catch (IOException ex) {
-                FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            }
-        });
+        attachButton.addActionListener(e -> attachButtonAction());
 
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.add(scrollPane, BorderLayout.CENTER);
@@ -304,7 +298,41 @@ public class MainFrame extends JFrame {
 
         setupKeyBindings();
 
-        return inputPanel;
+        attachPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.add(attachPanel, BorderLayout.NORTH);
+        messagePanel.add(inputPanel, BorderLayout.CENTER);
+
+        return messagePanel;
+    }
+
+    private void attachButtonAction() {
+        try {
+            String image = FrameHelper.attachImage(dictionary);
+
+            JPanel imagePanel = new JPanel(new BorderLayout());
+            imagePanel.add(new JLabel(getScaledIcon(image, 20, 20)), BorderLayout.WEST);
+            imagePanel.add(getDeleteButton(image, imagePanel), BorderLayout.EAST);
+
+            attachPanel.add(imagePanel);
+
+            sentImagesBase64.add(image);
+            FrameHelper.repaintComponents(attachPanel);
+        } catch (IOException ex) {
+            FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
+        }
+    }
+
+    private JButton getDeleteButton(String image, JComponent component) {
+        JButton deleteButton = new JButton();
+        deleteButton.setIcon(dictionary.getDelete());
+        deleteButton.addActionListener(e -> {
+            sentImagesBase64.remove(image);
+            attachPanel.remove(component);
+            FrameHelper.repaintComponents(attachPanel);
+        });
+        return deleteButton;
     }
 
     private void setupKeyBindings() {
@@ -318,6 +346,8 @@ public class MainFrame extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 sendMessage();
+                attachPanel.removeAll();
+                FrameHelper.repaintComponents(attachPanel);
             }
         });
     }
@@ -378,12 +408,20 @@ public class MainFrame extends JFrame {
         try {
             if (userDto != null && userDto.getAvatarBase64() != null
                     && !userDto.getAvatarBase64().isEmpty()) {
-
-                byte[] imageData = Base64.getDecoder().decode(userDto.getAvatarBase64());
-                ImageIcon avatarIcon = new ImageIcon(imageData);
-                Image scaledImage = avatarIcon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
-                return new ImageIcon(scaledImage);
+                return getScaledIcon(userDto.getAvatarBase64(), x, y);
             }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private ImageIcon getScaledIcon(String imageBase64, int x, int y) {
+        try {
+            byte[] imageData = Base64.getDecoder().decode(imageBase64);
+            ImageIcon avatarIcon = new ImageIcon(imageData);
+            Image scaledImage = avatarIcon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
+
         } catch (Exception ignored) {
         }
         return null;
@@ -610,7 +648,28 @@ public class MainFrame extends JFrame {
             menu.add(changeMessage);
         }
 
+        if (messageDto.getSender().equals(username)) {
+            JMenuItem deleteMessage = new JMenuItem();
+            deleteMessage.setIcon(dictionary.getDelete());
+            deleteMessage.setText(dictionary.getDeleteMessage());
+            deleteMessage.addActionListener(e -> deleteMessageAction(messageDto));
+            menu.add(deleteMessage);
+        }
+
         menu.show(parent, 0, parent.getHeight());
+    }
+
+    private void deleteMessageAction(MessageDto messageDto) {
+        try {
+            int scrollValue = chatScroll.getVerticalScrollBar().getValue();
+            client.deleteMessage(messageDto);
+            loadChatHistory();
+            IntStream.range(1, chatHistoryCount).forEach(this::loadChatHistory);
+
+            SwingUtilities.invokeLater(() -> chatScroll.getVerticalScrollBar().setValue(scrollValue));
+        } catch (Exception e) {
+            FrameHelper.errorHandler(e, dictionary, MainFrame.this);
+        }
     }
 
     private JTextPane getTextPane() {
@@ -701,12 +760,12 @@ public class MainFrame extends JFrame {
         AdditionalFrameFactory.getLogoutChatFrame(MainFrame.this, deleteChat);
         if (chat != null && deleteChat.getId().equals(chat.getId()))
             chatArea.removeAll();
-        FrameHelper.repaintComponent(chatsContainer);
+        FrameHelper.repaintComponents(chatsContainer);
     }
 
     private void renameChat(ChatDto chat, boolean isAdmin) {
         AdditionalFrameFactory.getRenameChatFrame(MainFrame.this, chat, isAdmin);
-        FrameHelper.repaintComponent(chatsContainer);
+        FrameHelper.repaintComponents(chatsContainer);
     }
 
     private JPanel getStatusBar() {
@@ -769,7 +828,7 @@ public class MainFrame extends JFrame {
         JButton messagesButton = new JButton(dictionary.getUpArrow());
         messagesButton.addActionListener(e -> {
             try {
-                loadChatHistory(chatHistoryCount);
+                loadChatHistory(chatHistoryCount++);
             } catch (Exception ex) {
                 FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
             }
@@ -878,12 +937,12 @@ public class MainFrame extends JFrame {
     public void addNotificationChat(String chatId) {
         JLabel chatIcon = chatIconsNotification.get(chatId);
         chatIcon.setIcon(dictionary.getExclamationMark());
-        FrameHelper.repaintComponent(chatIcon);
+        FrameHelper.repaintComponents(chatIcon);
     }
 
     private void delNotificationChat() {
         JLabel chatIcon = chatIconsNotification.get(chat.getId());
         chatIcon.setIcon(dictionary.getEnvelope());
-        FrameHelper.repaintComponent(chatIcon);
+        FrameHelper.repaintComponents(chatIcon);
     }
 }

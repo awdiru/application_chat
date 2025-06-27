@@ -277,6 +277,10 @@ public class Client {
         post("/user/avatar/change", userDto);
     }
 
+    public void deleteMessage(MessageDto messageDto) throws Exception {
+        post("/message/delete", messageDto);
+    }
+
     public UserDto getUserDto(String username) throws Exception {
         UserDto userDto = UserDto.builder()
                 .username(username)

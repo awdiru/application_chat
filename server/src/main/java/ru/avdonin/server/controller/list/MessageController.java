@@ -51,4 +51,15 @@ public class MessageController extends AbstractController {
             return getErrorResponse(e);
         }
     }
+
+    @PostMapping("/delete")
+    public ResponseEntity<Object> deleteMessage(@RequestBody MessageDto messageDto) {
+        try {
+            log.info("delete a message: " + messageDto.getId());
+            messageService.deleteMessage(messageDto);
+            return getOkResponse("The message has been deleted");
+        } catch (Exception e) {
+            return getErrorResponse(e);
+        }
+    }
 }

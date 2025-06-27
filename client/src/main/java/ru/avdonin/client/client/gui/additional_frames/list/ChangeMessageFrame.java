@@ -89,8 +89,7 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
     }
 
     private JPanel getImages() {
-        imagesPanel = new JPanel();
-        imagesPanel.setLayout(new BoxLayout(imagesPanel, BoxLayout.X_AXIS));
+        imagesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         for (String imageBase64 : oldSentImagesBase64) addImageComponent(imageBase64);
 
@@ -120,8 +119,8 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
                 sentImagesBase64.put(imageBase64, true);
                 deleteButton.setIcon(parent.getDictionary().getCompleteDeletion());
             }
-            FrameHelper.repaintComponent(deleteButton);
-            FrameHelper.repaintComponent(imagesPanel);
+            FrameHelper.repaintComponents(deleteButton);
+            FrameHelper.repaintComponents(imagesPanel);
         });
         return deleteButton;
     }
@@ -132,14 +131,10 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         attachButton.setMargin(new Insets(0, 5, 0, 5));
         attachButton.addActionListener(e -> {
             try {
-                Set<String> newImages = new HashSet<>();
-                FrameHelper.attachImage(attachButton, newImages, parent.getDictionary());
-
-                for (String imageBase64 : newImages) {
-                    sentImagesBase64.put(imageBase64, false);
-                    addImageComponent(imageBase64);
-                }
-                FrameHelper.repaintComponent(imagesPanel);
+                String image = FrameHelper.attachImage(parent.getDictionary());
+                sentImagesBase64.put(image, false);
+                addImageComponent(image);
+                FrameHelper.repaintComponents(imagesPanel);
             } catch (IOException ex) {
                 FrameHelper.errorHandler(ex, parent.getDictionary(), parent);
             }
@@ -163,11 +158,11 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         return sentImages;
     }
 
-    private void addImageComponent(String imageBase64){
+    private void addImageComponent(String imageBase64) {
         ImageIcon image;
         try {
             byte[] imageData = Base64.getDecoder().decode(imageBase64);
-            Image scaledImage = new ImageIcon(imageData).getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+            Image scaledImage = new ImageIcon(imageData).getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
             image = new ImageIcon(scaledImage);
         } catch (Exception e) {
             image = parent.getDictionary().getDefaultImage();
@@ -178,9 +173,6 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         JPanel imagePanel = new JPanel(new BorderLayout());
         imagePanel.add(new JLabel(image), BorderLayout.WEST);
         imagePanel.add(deleteButton, BorderLayout.EAST);
-        imagePanel.setPreferredSize(new Dimension(40, 25));
-        imagePanel.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
-
         imagesPanel.add(imagePanel);
     }
 }

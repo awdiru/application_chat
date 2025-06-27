@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Set;
 
 public class FrameHelper {
 
@@ -73,7 +72,7 @@ public class FrameHelper {
                 : chat.getCustomName() + " (" + chat.getChatName() + ")";
     }
 
-    public static void attachImage(JButton button, Set<String> sentImagesBase64, BaseDictionary dictionary) throws IOException {
+    public static String attachImage(BaseDictionary dictionary) throws IOException {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dictionary.getAttachImage());
         fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
@@ -114,17 +113,15 @@ public class FrameHelper {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(scaledImage, formatName, baos);
 
-                sentImagesBase64.add(Base64.getEncoder().encodeToString(baos.toByteArray()));
-
-                button.setIcon(dictionary.getPaperClipWithFile());
-
-                button.revalidate();
-                button.repaint();
+                return Base64.getEncoder().encodeToString(baos.toByteArray());
         }
+        return null;
     }
 
-    public static void repaintComponent(JComponent component) {
-        component.revalidate();
-        component.repaint();
+    public static void repaintComponents(JComponent... components) {
+        for (JComponent component : components) {
+            component.revalidate();
+            component.repaint();
+        }
     }
 }
