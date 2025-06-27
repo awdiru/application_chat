@@ -86,13 +86,13 @@ public class MessageService extends AbstractService {
     }
 
     public MessageDto getMessage(MessageDto messageDto) {
-        Message message = getMessage(messageDto.getId());
+        Message message = getMessageOrException(messageDto);
 
         return getMessageDto(message, messageDto.getLocale());
     }
 
     public void changeMessage(MessageDto messageDto) {
-        Message message = getMessage(messageDto.getId());
+        Message message = getMessageOrException(messageDto);
 
         if (!message.getSender().getUsername().equals(messageDto.getSender()))
             throw new IncorrectUserDataException("Only the author of the message can change the messages");
@@ -103,7 +103,7 @@ public class MessageService extends AbstractService {
     }
 
     public void deleteMessage(MessageDto messageDto) {
-        Message message = getMessage(messageDto.getId());
+        Message message = getMessageOrException(messageDto);
 
         if (!message.getSender().getUsername().equals(messageDto.getSender()))
             throw new IncorrectUserDataException("Only the author of the message can deleted the messages");
@@ -159,9 +159,21 @@ public class MessageService extends AbstractService {
         return fileNamesBuilder == null ? null : fileNamesBuilder.toString();
     }
 
-    private Message getMessage(Long messageId) {
-        return messageRepository.findById(messageId)
-                .orElseThrow(() -> new IncorrectDataException("The message with id " + messageId + " was not found"));
+    private Message getMessageOrException(MessageDto messageDto) {
+        if (messageDto.getId() != null)
+            return messageRepository.findById(messageDto.getId())
+                    .orElseThrow(() -> new IncorrectDataException("The message with id " + messageDto.getId() + " was not found"));
+
+        List<Message> messages = messageRepository.findAllByTime(messageDto.getTime().toInstant());
+        if (messages == null || messages.isEmpty())
+            throw new IncorrectDataException("The message not found");
+
+        for (Message message : messages) {
+            MessageDto respMessage = getMessageDto(message, messageDto.getLocale());
+            if (respMessage.equals(messageDto))
+                return message;
+        }
+        throw new IncorrectDataException("The message not found");
     }
 
     private String getFileName() {
