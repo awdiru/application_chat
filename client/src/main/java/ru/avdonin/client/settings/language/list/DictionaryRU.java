@@ -44,6 +44,7 @@ public class DictionaryRU extends BaseDictionary {
     private final String rejectInvite = "Отклонить приглашение";
     //Message context menu
     private final String changeMessage = "Изменить сообщение";
+    private final String deleteMessage = "Удалить сообщение";
     //Settings window
     private final String settingsTitle = "Настройки";
     private final String settingsLanguage = "Язык";
@@ -79,4 +80,5 @@ public class DictionaryRU extends BaseDictionary {
     private final String sunday = "Вс";
     //Exception
     private final String cannotBeRead = "Невозможно прочитать файл изображения";
+    private final String emptyMessage = "Сообщение не может быть пустым";
 }

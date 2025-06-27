@@ -26,13 +26,10 @@ import java.nio.file.Files;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.IntStream;
 
 @Getter
 public class MainFrame extends JFrame {
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Map<String, ImageIcon> avatars = new HashMap<>();
     private final Set<String> sentImagesBase64 = new HashSet<>();
@@ -269,8 +266,6 @@ public class MainFrame extends JFrame {
         chatArea = new JPanel();
         chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
         chatArea.setBackground(backgroungColor);
-
-        chatArea.add(Box.createVerticalGlue());
 
         chatScroll = new JScrollPane(chatArea);
         chatScroll.setPreferredSize(new Dimension(500, 500));
@@ -697,12 +692,16 @@ public class MainFrame extends JFrame {
     private void showChatContextMenu(JComponent parent, ChatDto chat) {
         JPopupMenu menu = new JPopupMenu();
         if (!chat.getPrivateChat()) {
-            JMenuItem addUserItem = new JMenuItem(dictionary.getAddUser());
+            JMenuItem addUserItem = new JMenuItem();
+            addUserItem.setText(dictionary.getAddUser());
+            addUserItem.setIcon(dictionary.getParticipants());
             addUserItem.addActionListener(e -> AdditionalFrameFactory.getAddUserFromChatFrame(MainFrame.this, chat));
             menu.add(addUserItem);
         }
         if (chat.getAdmin().equals(username) && !chat.getPrivateChat()) {
-            JMenuItem renameItemAdmin = new JMenuItem(dictionary.getRenameChatAdmin());
+            JMenuItem renameItemAdmin = new JMenuItem();
+            renameItemAdmin.setText(dictionary.getRenameChatAdmin());
+            renameItemAdmin.setIcon(dictionary.getPencil());
             renameItemAdmin.addActionListener(e -> renameChat(chat, true));
             menu.add(renameItemAdmin);
         }
@@ -711,13 +710,18 @@ public class MainFrame extends JFrame {
         if (chat.getPrivateChat())
             renameItemCustom.setText(dictionary.getRename());
         else renameItemCustom.setText(dictionary.getRenameChatCustom());
+        renameItemCustom.setIcon(dictionary.getPencil());
         renameItemCustom.addActionListener(e -> renameChat(chat, false));
         menu.add(renameItemCustom);
 
         JMenuItem removeItem = new JMenuItem();
-        if (chat.getPrivateChat())
+        if (chat.getPrivateChat()) {
             removeItem.setText(dictionary.getDeleteChat());
-        else removeItem.setText(dictionary.getLogoutChat());
+            removeItem.setIcon(dictionary.getDelete());
+        } else {
+            removeItem.setText(dictionary.getLogoutChat());
+            removeItem.setIcon(dictionary.getExit());
+        }
         removeItem.addActionListener(e -> logoutChat(chat));
         menu.add(removeItem);
 

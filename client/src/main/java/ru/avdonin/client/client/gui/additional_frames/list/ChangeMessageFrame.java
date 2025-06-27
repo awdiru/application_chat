@@ -78,6 +78,9 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
                             .locale(parent.getDictionary().getLocale())
                             .build();
 
+                    if (isEmptyMessage(messageDto))
+                        throw new RuntimeException(parent.getDictionary().getEmptyMessage());
+
                     parent.getClient().changeMessage(messageDto);
                     parent.loadChatHistory();
                     dispose();
@@ -175,4 +178,10 @@ public class ChangeMessageFrame extends BaseAdditionalFrame {
         imagePanel.add(deleteButton, BorderLayout.EAST);
         imagesPanel.add(imagePanel);
     }
+
+    private boolean isEmptyMessage(MessageDto messageDto) {
+        return (messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
+                && (messageDto.getImagesBase64() == null || messageDto.getImagesBase64().isEmpty());
+    }
+
 }
