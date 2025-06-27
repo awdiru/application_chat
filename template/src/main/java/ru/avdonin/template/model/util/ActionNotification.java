@@ -2,38 +2,55 @@ package ru.avdonin.template.model.util;
 
 import lombok.*;
 
+import com.fasterxml.jackson.annotation.*;
+
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @ToString
-public class ActionNotification {
-    private Action action;
-    private Object data;
-    private String locale;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ActionNotification<T extends ActionNotification.BaseData> {
 
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
-    @ToString
-    public static class Message  {
-        private String chatId;
-        private Long messageId;
-        private String sender;
-        private String locale;
+    private Action action;
+    private T data;
+
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+            property = "action"
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = Message.class, name = "MESSAGE"),
+            @JsonSubTypes.Type(value = Invitation.class, name = "INVITATION"),
+    })
+    public interface BaseData {
     }
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @ToString
-    public static class Invitation {
-        private String locale;
+    @JsonTypeName("MESSAGE")
+    public static class Message implements BaseData {
+        private String chatId;
+        private Long messageId;
+        private String sender;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ToString
+    @JsonTypeName("INVITATION")
+    public static class Invitation implements BaseData {
+        private String invitationCode;
+        private String invitedUser;
     }
 
     public enum Action {

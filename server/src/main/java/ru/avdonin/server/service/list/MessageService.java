@@ -64,7 +64,6 @@ public class MessageService extends AbstractService {
                                 .messageId(message.getId())
                                 .sender(sender.getUsername())
                                 .chatId(chat.getId())
-                                .locale(messageDto.getLocale())
                                 .build())
                 .build();
         messageHandler.sendToUsersMessageNotification(actionNotification);

@@ -101,4 +101,5 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon completeDeletion = new ImageIcon("data/completed-deletion-icon.png");
     private final ImageIcon envelope = new ImageIcon("data/envelope-icon.png");
     private final ImageIcon exclamationMark = new ImageIcon("data/exclamation-mark-icon.png");
+    private final ImageIcon image = new ImageIcon("data/image-icon.png");
 }

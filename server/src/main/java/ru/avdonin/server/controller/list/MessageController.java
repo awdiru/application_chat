@@ -7,7 +7,6 @@ import ru.avdonin.server.controller.AbstractController;
 import ru.avdonin.server.service.list.MessageService;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.util.ActionNotification;
 
 @RestController
 @RequestMapping("/message")
