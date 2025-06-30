@@ -93,18 +93,16 @@ public class Client {
             typing = (ActionNotification.Typing) actionNotification.getData();
         else throw new RuntimeException("The typing notification contains incorrect information");
 
-        if (Objects.equals(typing.getChatId(), gui.getChat().getId())) {
-            if (typing.getIsTyping())
-                gui.addUserTyping(typing.getUsername());
-            else gui.delUserTyping(typing.getUsername());
-        }
+        if (typing.getIsTyping())
+            gui.addUserTyping(typing.getUsername(), typing.getChatId());
+        else gui.delUserTyping(typing.getUsername(), typing.getChatId());
     }
 
     private void messageAction(ActionNotification actionNotification) throws Exception {
         ActionNotification.Message message;
 
         if (actionNotification.getData() instanceof ActionNotification.Message)
-             message = (ActionNotification.Message) actionNotification.getData();
+            message = (ActionNotification.Message) actionNotification.getData();
         else throw new RuntimeException("The message notification contains incorrect information");
 
         if (!message.getChatId().equals(gui.getChat().getId())) {

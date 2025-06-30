@@ -125,15 +125,41 @@ public class FrameHelper {
         }
     }
 
-    public static ImageIcon getScaledIcon(String imageBase64, int x, int y) {
+    public static ImageIcon getScaledIcon(String imageBase64, int x, int y, BaseDictionary dictionary) {
         try {
             byte[] imageData = Base64.getDecoder().decode(imageBase64);
-            ImageIcon avatarIcon = new ImageIcon(imageData);
-            Image scaledImage = avatarIcon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
+            ImageIcon icon = new ImageIcon(imageData);
+            Image scaledImage = icon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
             return new ImageIcon(scaledImage);
 
         } catch (Exception ignored) {
+            return dictionary.getDefaultImage();
         }
-        return null;
+    }
+
+    public static ImageIcon getIcon(String imageBase64, BaseDictionary dictionary) {
+        try {
+            byte[] imageData = Base64.getDecoder().decode(imageBase64);
+            return new ImageIcon(imageData);
+
+        } catch (Exception ignored) {
+            return dictionary.getDefaultImage();
+        }
+    }
+
+    public static ImageIcon getNumber(Integer num, BaseDictionary dictionary){
+        return switch (num) {
+            case 0 -> dictionary.getEnvelope();
+            case 1 -> dictionary.getOne();
+            case 2 -> dictionary.getTwo();
+            case 3 -> dictionary.getThree();
+            case 4 -> dictionary.getFour();
+            case 5 -> dictionary.getFive();
+            case 6 -> dictionary.getSix();
+            case 7 -> dictionary.getSeven();
+            case 8 -> dictionary.getEight();
+            case 9 -> dictionary.getNine();
+            default -> dictionary.getPlusNum();
+        };
     }
 }

@@ -1,6 +1,5 @@
 package ru.avdonin.client.repository;
 
-import java.sql.*;
 import java.util.Map;
 
 public class ConfigsRepository extends BaseRepository {

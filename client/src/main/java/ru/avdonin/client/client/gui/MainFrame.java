@@ -5,6 +5,7 @@ import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.additional_frames.AdditionalFrameFactory;
 import ru.avdonin.client.client.gui.helpers.FrameHelper;
+import ru.avdonin.client.repository.NotificationRepository;
 import ru.avdonin.client.settings.Settings;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.client.settings.language.FactoryLanguage;
@@ -35,9 +36,11 @@ public class MainFrame extends JFrame {
     private final BaseDictionary dictionary = FactoryLanguage.getFactory().getSettings();
     private final Map<String, ImageIcon> avatars = new HashMap<>();
     private final Map<String, JLabel> chatIconsNotification = new HashMap<>();
-    private final Set<String> usersTyping = new HashSet<>();
+    private final Map<String, Integer> chatNotifications = new HashMap<>();
     private final Set<String> sentImagesBase64 = new HashSet<>();
     private final List<MessageDto> messages = new ArrayList<>();
+    private final NotificationRepository notificationRepository = new NotificationRepository();
+
     private final Client client;
     private final String username;
 
@@ -59,6 +62,7 @@ public class MainFrame extends JFrame {
     private boolean isTyping = false;
     private Timer typingTimer;
     private final int TYPING_DELAY_MS = 10000;
+
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -103,6 +107,7 @@ public class MainFrame extends JFrame {
                 try {
                     chatsContainer.removeAll();
                     for (ChatDto c : get()) chatsContainer.add(createChatItem(c));
+                    if (chat == null) findChat(get().getFirst());
                     FrameHelper.repaintComponents(chatsContainer);
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
@@ -389,7 +394,7 @@ public class MainFrame extends JFrame {
             String image = FrameHelper.attachImage(dictionary);
 
             JPanel imagePanel = new JPanel(new BorderLayout());
-            imagePanel.add(new JLabel(FrameHelper.getScaledIcon(image, 30, 30)), BorderLayout.WEST);
+            imagePanel.add(new JLabel(FrameHelper.getScaledIcon(image, 30, 30, dictionary)), BorderLayout.WEST);
             imagePanel.add(getDeleteButton(image, imagePanel), BorderLayout.EAST);
 
             attachPanel.add(imagePanel);
@@ -474,7 +479,8 @@ public class MainFrame extends JFrame {
             UserDto userDto = client.getUserDto(username);
             return FrameHelper.getScaledIcon(userDto.getAvatarBase64(),
                     (Integer) Constants.COMPRESSION_AVATAR.getValue(),
-                    (Integer) Constants.COMPRESSION_AVATAR.getValue());
+                    (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                    dictionary);
         } catch (Exception ignored) {
         }
         return null;
@@ -515,12 +521,9 @@ public class MainFrame extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
                     try {
+                        if (MainFrame.this.chat.equals(chat)) return;
                         connect();
-                        MainFrame.this.chat = chat;
-                        chatName.setText(FrameHelper.getChatName(chat));
-                        chatHistoryCount = 1;
-                        loadChatHistory();
-                        delNotificationChat();
+                        findChat(chat);
                     } catch (Exception ex) {
                         FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
                     }
@@ -542,11 +545,10 @@ public class MainFrame extends JFrame {
         JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showChatContextMenu(menuButton, chat));
 
-        JLabel chatNotification = new JLabel(dictionary.getEnvelope());
-        chatIconsNotification.put(chat.getId(), chatNotification);
+        initNotificationNum(chat.getId());
 
         JPanel containerCN = new JPanel(new BorderLayout());
-        containerCN.add(chatNotification, BorderLayout.NORTH);
+        containerCN.add(chatIconsNotification.get(chat.getId()), BorderLayout.NORTH);
 
         JPanel itemPanel = new JPanel(new BorderLayout());
         itemPanel.add(containerCN, BorderLayout.WEST);
@@ -639,13 +641,7 @@ public class MainFrame extends JFrame {
             images.setBorder(new EmptyBorder(0, 0, 0, 0));
 
             for (String receivedImage : messageDto.getImagesBase64()) {
-                ImageIcon image;
-                try {
-                    byte[] imageData = Base64.getDecoder().decode(receivedImage);
-                    image = new ImageIcon(imageData);
-                } catch (Exception e) {
-                    image = dictionary.getDefaultImage();
-                }
+                ImageIcon image = FrameHelper.getIcon(receivedImage, dictionary);
                 JLabel imageLabel = new JLabel(image);
 
                 JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -690,7 +686,8 @@ public class MainFrame extends JFrame {
                     String avatarBase64 = client.getAvatar(username);
                     return FrameHelper.getScaledIcon(avatarBase64,
                             (Integer) Constants.COMPRESSION_AVATAR.getValue(),
-                            (Integer) Constants.COMPRESSION_AVATAR.getValue());
+                            (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                            dictionary);
                 } catch (Exception e) {
                     return null;
                 }
@@ -852,7 +849,10 @@ public class MainFrame extends JFrame {
         JPanel buttonsPanel = new JPanel();
         //Перезагрузить
         JButton restart = new JButton(dictionary.getReboot());
-        restart.addActionListener(e -> FrameHelper.restart(MainFrame.this, client, username));
+        restart.addActionListener(e -> {
+            avatars.clear();
+            FrameHelper.restart(MainFrame.this, client, username);
+        });
         buttonsPanel.add(restart);
         //Настройки
         JButton settings = new JButton(dictionary.getSettings());
@@ -942,7 +942,7 @@ public class MainFrame extends JFrame {
         for (UserDto user : users) {
             JMenuItem userItem = new JMenuItem();
 
-            userItem.setIcon(FrameHelper.getScaledIcon(user.getAvatarBase64(), 16, 16));
+            userItem.setIcon(FrameHelper.getScaledIcon(user.getAvatarBase64(), 16, 16, dictionary));
             userItem.setText(user.getUsername());
 
             participants.add(userItem);
@@ -959,9 +959,7 @@ public class MainFrame extends JFrame {
 
             if (chat.equals(newChat)) return;
 
-            chat = newChat;
-            chatName.setText(FrameHelper.getChatName(chat));
-            loadChatHistory();
+            findChat(chat);
         } catch (Exception ex) {
             FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
         }
@@ -1011,54 +1009,77 @@ public class MainFrame extends JFrame {
     }
 
     public void addNotificationChat(String chatId) {
-        JLabel chatIcon = chatIconsNotification.get(chatId);
-        chatIcon.setIcon(dictionary.getExclamationMark());
+        Integer numNotification = -1;
+        try {
+            numNotification = notificationRepository.getNotificationsNum(chatId);
+        } catch (Exception ignored) {
+        }
+        notificationRepository.updateOrCreateNotificationNum(chatId, ++numNotification);
+
+        ImageIcon num = FrameHelper.getNumber(numNotification, dictionary);
+        JLabel chatIcon = chatIconsNotification.computeIfAbsent(chatId, k -> new JLabel(num));
+        chatIcon.setIcon(num);
+        FrameHelper.repaintComponents(chatIcon);
+    }
+
+    private void initNotificationNum(String chatId) {
+        Integer numNotification = 0;
+        try {
+            numNotification = notificationRepository.getNotificationsNum(chatId);
+        } catch (Exception ignored) {
+        }
+        notificationRepository.updateOrCreateNotificationNum(chatId, numNotification);
+
+        ImageIcon num = FrameHelper.getNumber(numNotification, dictionary);
+        JLabel chatIcon = chatIconsNotification.computeIfAbsent(chatId, k -> new JLabel(num));
+        chatIcon.setIcon(num);
         FrameHelper.repaintComponents(chatIcon);
     }
 
     private void delNotificationChat() {
-        JLabel chatIcon = chatIconsNotification.get(chat.getId());
+        notificationRepository.updateOrCreateNotificationNum(chat.getId(), 0);
+
+        JLabel chatIcon = chatIconsNotification.computeIfAbsent(chat.getId(), k -> new JLabel(dictionary.getEnvelope()));
         chatIcon.setIcon(dictionary.getEnvelope());
         FrameHelper.repaintComponents(chatIcon);
     }
 
-    public void addUserTyping(String username) {
-        String text = userTyping.getText();
-        if (text == null || text.isEmpty())
-            userTyping.setText(dictionary.getTyping() + username);
-        else {
-            text = text + ", " + username;
-            userTyping.setText(text);
-        }
-        FrameHelper.repaintComponents(userTyping);
+    private final Set<String> usersTyping = new HashSet<>();
+
+    public void addUserTyping(String username, String chatId) {
+        if (!chatId.equals(chat.getId())) return;
+
+        usersTyping.add(username);
+        userTyping.setText(getTypingText());
     }
 
-    public void delUserTyping(String username) {
-        try {
-            String text = userTyping.getText();
-            if (text == null || text.isEmpty()) return;
+    public void delUserTyping(String username, String chatId) {
+        if (!chatId.equals(chat.getId())) return;
 
-            if (!text.startsWith(dictionary.getTyping()))
-                throw new RuntimeException(dictionary.getIncorrectTypingText());
+        usersTyping.remove(username);
+        userTyping.setText(getTypingText());
+    }
 
-            String[] names = text.substring(dictionary.getTyping().length()).split(" ");
-            StringBuilder builder = new StringBuilder();
+    private String getTypingText() {
+        StringBuilder builder = new StringBuilder();
 
-            for (String name : names) {
-                if (!name.equals(username))
-                    builder.append(name).append(", ");
-            }
+        if (usersTyping.isEmpty()) return "";
 
-            String finalText = dictionary.getTyping() + builder;
-            if (finalText.endsWith(", "))
-                finalText = finalText.substring(0, finalText.length() - 2);
+        for (String name : usersTyping)
+            builder.append(name).append(", ");
 
-            if (finalText.equals(dictionary.getTyping()))
-                userTyping.setText("");
-            else userTyping.setText(finalText);
+        builder.delete(builder.length() - 2, builder.length());
+        builder.append(dictionary.getTyping());
 
-        } catch (Exception e) {
-            FrameHelper.errorHandler(e, dictionary, MainFrame.this);
-        }
+        return builder.toString();
+    }
+
+    public void findChat(ChatDto chat) {
+        userTyping.setText("");
+        this.chat = chat;
+        chatName.setText(FrameHelper.getChatName(chat));
+        chatHistoryCount = 1;
+        loadChatHistory();
+        delNotificationChat();
     }
 }

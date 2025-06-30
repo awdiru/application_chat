@@ -32,7 +32,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String attachImage = "Attach image";
     private final String images = "Images";
     //Chat status bar
-    private final String typing = " typing: ";
+    private final String typing = " typing...";
     //Chat context menu
     private final String logoutChat = "Log out of the chat";
     private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
@@ -109,4 +109,16 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon exclamationMark = new ImageIcon("data/exclamation-mark-icon.png");
     private final ImageIcon image = new ImageIcon("data/image-icon.png");
     private final ImageIcon defaultAvatar = new ImageIcon("data/default-avatar.png");
+
+    //numbers
+    private final ImageIcon one = new ImageIcon("data/numbers/1.png");
+    private final ImageIcon two = new ImageIcon("data/numbers/2.png");
+    private final ImageIcon three = new ImageIcon("data/numbers/3.png");
+    private final ImageIcon four = new ImageIcon("data/numbers/4.png");
+    private final ImageIcon five = new ImageIcon("data/numbers/5.png");
+    private final ImageIcon six = new ImageIcon("data/numbers/6.png");
+    private final ImageIcon seven = new ImageIcon("data/numbers/7.png");
+    private final ImageIcon eight = new ImageIcon("data/numbers/8.png");
+    private final ImageIcon nine = new ImageIcon("data/numbers/9.png");
+    private final ImageIcon plusNum = new ImageIcon("data/numbers/plus.png");
 }
