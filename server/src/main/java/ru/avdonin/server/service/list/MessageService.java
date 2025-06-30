@@ -66,7 +66,7 @@ public class MessageService extends AbstractService {
                         .chatId(chat.getId())
                         .build())
                 .build();
-        messageHandler.sendToUsersMessageNotification(actionNotification);
+        messageHandler.sendToUsersMessage(actionNotification);
     }
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {

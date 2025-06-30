@@ -31,6 +31,8 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String createChat = "Create chat";
     private final String attachImage = "Attach image";
     private final String images = "Images";
+    //Chat status bar
+    private final String typing = " typing: ";
     //Chat context menu
     private final String logoutChat = "Log out of the chat";
     private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
@@ -83,6 +85,7 @@ public abstract class BaseDictionary extends BaseSettings {
     //Exception
     private final String cannotBeRead = "The image file cannot be read";
     private final String emptyMessage = "The message cannot be empty";
+    private final String incorrectTypingText = "An unexpected error has been made in the text of the \"typing\" message";
     //Default symbols
     private final ImageIcon plus = new ImageIcon("data/plus-icon.png");
     private final ImageIcon minus = new ImageIcon("date/minus-icon.png");
@@ -90,6 +93,7 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon ellipsis = new ImageIcon("data/ellipsis-icon.png");
     private final ImageIcon reboot = new ImageIcon("data/reboot-icon.png");
     private final ImageIcon upArrow = new ImageIcon("data/up-arrow-icon.png");
+    private final ImageIcon rightArrow = new ImageIcon("data/right-arrow-icon.png");
     private final ImageIcon burger = new ImageIcon("data/burger-icon.png");
     private final ImageIcon newChat = new ImageIcon("data/new-chat-icon.png");
     private final ImageIcon exit = new ImageIcon("data/exit-icon.png");
@@ -104,4 +108,5 @@ public abstract class BaseDictionary extends BaseSettings {
     private final ImageIcon envelope = new ImageIcon("data/envelope-icon.png");
     private final ImageIcon exclamationMark = new ImageIcon("data/exclamation-mark-icon.png");
     private final ImageIcon image = new ImageIcon("data/image-icon.png");
+    private final ImageIcon defaultAvatar = new ImageIcon("data/default-avatar.png");
 }

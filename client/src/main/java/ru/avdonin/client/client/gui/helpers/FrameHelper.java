@@ -124,4 +124,16 @@ public class FrameHelper {
             component.repaint();
         }
     }
+
+    public static ImageIcon getScaledIcon(String imageBase64, int x, int y) {
+        try {
+            byte[] imageData = Base64.getDecoder().decode(imageBase64);
+            ImageIcon avatarIcon = new ImageIcon(imageData);
+            Image scaledImage = avatarIcon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
+
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
 }

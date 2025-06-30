@@ -21,9 +21,9 @@
 		<developer/>
 	</developers>
 	<modules>
+		<module>template</module>
 		<module>server</module>
 		<module>client</module>
-        <module>template</module>
         <module>logger</module>
     </modules>
 	<scm>
@@ -72,18 +72,6 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -24,6 +24,7 @@ public class ActionNotification<T extends ActionNotification.BaseData> {
     @JsonSubTypes({
             @JsonSubTypes.Type(value = Message.class, name = "MESSAGE"),
             @JsonSubTypes.Type(value = Invitation.class, name = "INVITATION"),
+            @JsonSubTypes.Type(value = Typing.class, name = "TYPING")
     })
     public interface BaseData {
     }
@@ -53,8 +54,22 @@ public class ActionNotification<T extends ActionNotification.BaseData> {
         private String invitedUser;
     }
 
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @ToString
+    @JsonTypeName("TYPING")
+    public static class Typing implements BaseData {
+        private String chatId;
+        private String username;
+        private Boolean isTyping;
+    }
+
     public enum Action {
         MESSAGE,
-        INVITATION
+        INVITATION,
+        TYPING
     }
 }

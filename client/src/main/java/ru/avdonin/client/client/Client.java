@@ -21,6 +21,7 @@ import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.*;
 import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
+import ru.avdonin.template.model.util.TypingDto;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,6 +31,7 @@ import java.net.http.HttpResponse;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 
 @ClientEndpoint
 public class Client {
@@ -78,13 +80,29 @@ public class Client {
         ActionNotification actionNotification = objectMapper.readValue(message, ActionNotification.class);
 
         switch (actionNotification.getAction()) {
-            case MESSAGE -> onMessage(actionNotification);
+            case MESSAGE -> messageAction(actionNotification);
             case INVITATION -> gui.loadInvitations();
+            case TYPING -> typingAction(actionNotification);
         }
     }
 
-    private void onMessage(ActionNotification actionNotification) throws Exception {
+    private void typingAction(ActionNotification actionNotification) {
+        ActionNotification.Typing typing;
+
+        if (actionNotification.getData() instanceof ActionNotification.Typing)
+            typing = (ActionNotification.Typing) actionNotification.getData();
+        else throw new RuntimeException("The typing notification contains incorrect information");
+
+        if (Objects.equals(typing.getChatId(), gui.getChat().getId())) {
+            if (typing.getIsTyping())
+                gui.addUserTyping(typing.getUsername());
+            else gui.delUserTyping(typing.getUsername());
+        }
+    }
+
+    private void messageAction(ActionNotification actionNotification) throws Exception {
         ActionNotification.Message message;
+
         if (actionNotification.getData() instanceof ActionNotification.Message)
              message = (ActionNotification.Message) actionNotification.getData();
         else throw new RuntimeException("The message notification contains incorrect information");
@@ -294,6 +312,17 @@ public class Client {
 
     public void changeMessage(MessageDto messageDto) throws Exception {
         post("/message/change", messageDto);
+    }
+
+    public void sendTyping(String chatId, boolean isTyping) throws Exception {
+        TypingDto typingDto = TypingDto.builder()
+                .chatId(chatId)
+                .username(gui.getUsername())
+                .isTyping(isTyping)
+                .locale(getLocale())
+                .build();
+
+        post("/typing", typingDto);
     }
 
     private HttpResponse<String> get(String method, Object body) throws Exception {
