@@ -1,4 +1,4 @@
-package ru.avdonin.client.client.gui.additional_frames;
+package ru.avdonin.client.client.gui.additional.frames;
 
 import javax.swing.*;
 import java.awt.*;

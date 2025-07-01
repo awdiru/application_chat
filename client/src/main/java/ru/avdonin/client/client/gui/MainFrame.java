@@ -3,7 +3,10 @@ package ru.avdonin.client.client.gui;
 import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.gui.additional_frames.AdditionalFrameFactory;
+import ru.avdonin.client.client.gui.ConstatntsGUI.ConstantsGUI;
+import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
+import ru.avdonin.client.client.gui.additional.panels.MessageAreaJPanel;
+import ru.avdonin.client.client.gui.additional.panels.MessageJPanel;
 import ru.avdonin.client.client.gui.helpers.FrameHelper;
 import ru.avdonin.client.repository.NotificationRepository;
 import ru.avdonin.client.settings.Settings;
@@ -17,9 +20,6 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.user.dto.UserDto;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.List;
-import javax.swing.Timer;
 
 @Getter
 public class MainFrame extends JFrame {
@@ -37,8 +36,6 @@ public class MainFrame extends JFrame {
     private final Map<String, ImageIcon> avatars = new HashMap<>();
     private final Map<String, JLabel> chatIconsNotification = new HashMap<>();
     private final Map<String, Integer> chatNotifications = new HashMap<>();
-    private final Set<String> sentImagesBase64 = new HashSet<>();
-    private final List<MessageDto> messages = new ArrayList<>();
     private final NotificationRepository notificationRepository = new NotificationRepository();
 
     private final Client client;
@@ -46,23 +43,17 @@ public class MainFrame extends JFrame {
 
     private Integer chatHistoryCount = 1;
 
+    private MessageAreaJPanel messageArea;
+
     private JPanel chatArea;
     private JPanel invitationsContainer;
     private JPanel chatsContainer;
-    private JPanel attachPanel;
-    private JTextArea userTyping;
 
     private JTextArea chatName;
-    private JTextArea messageArea;
 
     private JScrollPane chatScroll;
-    private JButton attachButton;
+
     private ChatDto chat;
-
-    private boolean isTyping = false;
-    private Timer typingTimer;
-    private final int TYPING_DELAY_MS = 10000;
-
 
     public MainFrame(Client client, String username) {
         this.client = client;
@@ -80,7 +71,7 @@ public class MainFrame extends JFrame {
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(chat.getId())) return;
 
-        chatArea.add(createMessageItem(message));
+        chatArea.add(new MessageJPanel(MainFrame.this, message));
 
         FrameHelper.repaintComponents(chatArea);
 
@@ -124,48 +115,7 @@ public class MainFrame extends JFrame {
         add(getMainWindow());
     }
 
-    private void sendMessage() {
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                try {
-                    typingTimer.stop();
-                    if (isTyping) {
-                        isTyping = false;
-                        client.sendTyping(chat.getId(), false);
-                    }
 
-                    connect();
-                    MessageDto messageDto = MessageDto.builder()
-                            .time(OffsetDateTime.now())
-                            .sender(username)
-                            .chatId(chat.getId())
-                            .textContent(messageArea.getText())
-                            .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
-                            .build();
-                    if ((messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
-                            && (messageDto.getImagesBase64() == null || messageDto.getImagesBase64().isEmpty()))
-                        return null;
-
-                    client.sendMessage(messageDto);
-
-                    attachPanel.removeAll();
-                    FrameHelper.repaintComponents(attachPanel);
-
-                    onMessageReceived(messageDto);
-                    sentImagesBase64.clear();
-                } catch (Exception e) {
-                    FrameHelper.errorHandler(e, dictionary, MainFrame.this);
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                messageArea.setText("");
-            }
-        }.execute();
-    }
 
     public void loadChatHistory() {
         new SwingWorker<List<MessageDto>, Void>() {
@@ -184,9 +134,8 @@ public class MainFrame extends JFrame {
                 try {
                     chatArea.removeAll();
                     for (MessageDto m : get())
-                        chatArea.add(createMessageItem(m));
+                        chatArea.add(new MessageJPanel(MainFrame.this, m));
 
-                    messages.clear();
                     FrameHelper.repaintComponents(chatArea);
                 } catch (Exception e) {
                     FrameHelper.errorHandler(e, dictionary, MainFrame.this);
@@ -215,13 +164,11 @@ public class MainFrame extends JFrame {
                     JScrollBar verticalBar = chatScroll.getVerticalScrollBar();
                     int currentScrollPosition = verticalBar.getValue();
 
-                    messages.addAll(0, get());
-
                     List<JPanel> newMessages = new ArrayList<>();
                     int totalHeight = 0;
 
                     for (MessageDto m : get()) {
-                        JPanel messageItem = createMessageItem(m);
+                        JPanel messageItem = new MessageJPanel(MainFrame.this, m);
                         newMessages.add(messageItem);
                         totalHeight += messageItem.getPreferredSize().height;
                     }
@@ -288,7 +235,7 @@ public class MainFrame extends JFrame {
     private JPanel getChatPanel() {
         chatArea = new JPanel();
         chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
-        chatArea.setBackground(backgroungColor);
+        chatArea.setBackground((Color) ConstantsGUI.BACKGROUND_COLOR.getValue());
 
         chatScroll = new JScrollPane(chatArea);
         chatScroll.setPreferredSize(new Dimension(500, 500));
@@ -297,139 +244,6 @@ public class MainFrame extends JFrame {
         JPanel chatPanel = new JPanel(new BorderLayout());
         chatPanel.add(chatScroll, BorderLayout.CENTER);
         return chatPanel;
-    }
-
-
-    private JPanel getMessagePanel() {
-        messageArea = new JTextArea(4, 27);
-        messageArea.setLineWrap(true);
-        messageArea.setWrapStyleWord(true);
-
-        initTypingTimer();
-
-        messageArea.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                handleUserTyping();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                handleUserTyping();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-            }
-        });
-
-        JScrollPane scrollPane = new JScrollPane(messageArea);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-
-        attachButton = new JButton(dictionary.getPaperClip());
-        attachButton.addActionListener(e -> attachButtonAction());
-        attachButton.setPreferredSize(new Dimension(30, 30));
-
-        JButton sendButton = new JButton(dictionary.getRightArrow());
-        sendButton.addActionListener(e -> sendMessage());
-        sendButton.setPreferredSize(new Dimension(30, 30));
-
-        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        inputPanel.add(scrollPane);
-        inputPanel.add(attachButton);
-        inputPanel.add(sendButton);
-
-        setupKeyBindings();
-
-        attachPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messagePanel.add(attachPanel, BorderLayout.NORTH);
-        messagePanel.add(inputPanel, BorderLayout.CENTER);
-
-        userTyping = getTextArea("", null);
-
-        JPanel container = new JPanel(new BorderLayout());
-        container.add(userTyping, BorderLayout.NORTH);
-        container.add(messagePanel, BorderLayout.CENTER);
-
-        return container;
-    }
-
-    private void handleUserTyping() {
-        boolean hasText = !messageArea.getText().trim().isEmpty();
-        try {
-            if (hasText) {
-                if (!isTyping) {
-                    isTyping = true;
-                    client.sendTyping(chat.getId(), true);
-                }
-                typingTimer.restart();
-            } else {
-                typingTimer.stop();
-                if (isTyping) {
-                    isTyping = false;
-                    client.sendTyping(chat.getId(), false);
-                }
-            }
-        } catch (Exception e) {
-            FrameHelper.errorHandler(e, dictionary, MainFrame.this);
-        }
-    }
-
-    private void initTypingTimer() {
-        typingTimer = new Timer(TYPING_DELAY_MS, e -> {
-            try {
-                isTyping = false;
-                client.sendTyping(chat.getId(), false);
-            } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-            }
-        });
-        typingTimer.setRepeats(false);
-    }
-
-    private void attachButtonAction() {
-        try {
-            String image = FrameHelper.attachImage(dictionary);
-
-            JPanel imagePanel = new JPanel(new BorderLayout());
-            imagePanel.add(new JLabel(FrameHelper.getScaledIcon(image, 30, 30, dictionary)), BorderLayout.WEST);
-            imagePanel.add(getDeleteButton(image, imagePanel), BorderLayout.EAST);
-
-            attachPanel.add(imagePanel);
-            sentImagesBase64.add(image);
-            FrameHelper.repaintComponents(attachPanel);
-
-        } catch (IOException ex) {
-            FrameHelper.errorHandler(ex, dictionary, MainFrame.this);
-        }
-    }
-
-    private JButton getDeleteButton(String image, JComponent component) {
-        JButton deleteButton = new JButton();
-        deleteButton.setIcon(dictionary.getDelete());
-        deleteButton.addActionListener(e -> {
-            sentImagesBase64.remove(image);
-            attachPanel.remove(component);
-            FrameHelper.repaintComponents(attachPanel);
-        });
-        return deleteButton;
-    }
-
-    private void setupKeyBindings() {
-        KeyStroke ctrlEnter = KeyStroke.getKeyStroke(
-                KeyEvent.VK_ENTER,
-                InputEvent.CTRL_DOWN_MASK
-        );
-
-        messageArea.getInputMap().put(ctrlEnter, "sendAction");
-        messageArea.getActionMap().put("sendAction", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                sendMessage();
-            }
-        });
     }
 
     private JSplitPane getLeftPanel() {
@@ -513,7 +327,6 @@ public class MainFrame extends JFrame {
     }
 
     private final Color mouseEnteredItemColor = new Color(183, 250, 211);
-    private final Color backgroungColor = UIManager.getColor("Panel.background");
 
     private JPanel createChatItem(ChatDto chat) {
         MouseAdapter selectListener = new MouseAdapter() {
@@ -537,10 +350,10 @@ public class MainFrame extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                e.getComponent().setBackground(backgroungColor);
+                e.getComponent().setBackground((Color) ConstantsGUI.BACKGROUND_COLOR.getValue());
             }
         };
-        JTextArea textArea = getTextArea(FrameHelper.getChatName(chat), selectListener);
+        JTextArea textArea = FrameHelper.getTextArea(FrameHelper.getChatName(chat), selectListener);
 
         JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showChatContextMenu(menuButton, chat));
@@ -571,11 +384,11 @@ public class MainFrame extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                e.getComponent().setBackground(backgroungColor);
+                e.getComponent().setBackground((Color) ConstantsGUI.BACKGROUND_COLOR.getValue());
             }
         };
 
-        JTextArea textArea = getTextArea(invitation.getChatName(), selectListener);
+        JTextArea textArea = FrameHelper.getTextArea(invitation.getChatName(), selectListener);
 
         JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showInvitationsContextMenu(menuButton, invitation));
@@ -591,173 +404,20 @@ public class MainFrame extends JFrame {
         return itemPanel;
     }
 
-
-    private JPanel createMessageItem(MessageDto messageDto) {
-        Color selfMessage = new Color(205, 214, 244);
-        Color friendMessage = new Color(157, 180, 239);
-
-        Color bgColor = messageDto.getSender().equals(username) ? selfMessage : friendMessage;
-
-
-        if (!avatars.containsKey(messageDto.getSender())) {
-            avatars.put(messageDto.getSender(), dictionary.getDefaultAvatar());
-            loadAvatarAsync(messageDto.getSender());
-        }
-
-        ImageIcon avatarIcon = avatars.get(messageDto.getSender());
-
-        JPanel headerPanel = new JPanel(new BorderLayout(5, 0));
-        headerPanel.setOpaque(false);
-
-        if (avatarIcon != null) {
-            JLabel avatarLabel = new JLabel(avatarIcon);
-            avatarLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-            headerPanel.add(avatarLabel, BorderLayout.WEST);
-        }
-
-        JTextPane title = getTextPane();
-
-        String formattedTitle = "<html><div style='padding:2px'>"
-                + FrameHelper.formatDateTime(messageDto.getTime())
-                + " <b>" + messageDto.getSender() + "</b></div></html>";
-        title.setText(formattedTitle);
-        headerPanel.add(title, BorderLayout.CENTER);
-
-        JTextPane textContent = getTextPane();
-        textContent.setText(messageDto.getTextContent());
-        textContent.setSize(new Dimension(250, Short.MAX_VALUE));
-        int height = textContent.getPreferredSize().height;
-
-        JPanel message = new JPanel();
-        message.setLayout(new BorderLayout());
-        message.add(headerPanel, BorderLayout.NORTH);
-        message.add(textContent, BorderLayout.CENTER);
-        message.setBorder(new EmptyBorder(5, 5, 5, 5));
-
-        if (messageDto.getImagesBase64() != null) {
-            JPanel images = new JPanel();
-            images.setLayout(new BoxLayout(images, BoxLayout.Y_AXIS));
-            images.setBackground(bgColor);
-            images.setBorder(new EmptyBorder(0, 0, 0, 0));
-
-            for (String receivedImage : messageDto.getImagesBase64()) {
-                ImageIcon image = FrameHelper.getIcon(receivedImage, dictionary);
-                JLabel imageLabel = new JLabel(image);
-
-                JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                container.setBackground(bgColor);
-                container.setBorder(new EmptyBorder(0, 0, 5, 0));
-                container.add(imageLabel);
-
-                height += container.getPreferredSize().height;
-                images.add(container);
+    public void loadAvatarAsync(String username, JComponent component) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                String avatarBase64 = client.getAvatar(username);
+                ImageIcon avatar = FrameHelper.getScaledIcon(avatarBase64,
+                        (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                        (Integer) Constants.COMPRESSION_AVATAR.getValue(),
+                        dictionary);
+                avatars.get(username).setImage(avatar.getImage());
+                FrameHelper.repaintComponents(component);
+            } catch (Exception e) {
+                FrameHelper.errorHandler(e, dictionary, MainFrame.this);
             }
-            message.add(images, BorderLayout.SOUTH);
-        }
-        message.setPreferredSize(new Dimension(250, height + 50));
-
-        message.setBackground(bgColor);
-        title.setBackground(bgColor);
-        textContent.setBackground(bgColor);
-
-        JPanel container = new JPanel();
-        container.setBackground(backgroungColor);
-        container.setOpaque(false);
-
-        if (messageDto.getSender().equals(username))
-            container.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        else container.setLayout(new FlowLayout(FlowLayout.LEFT));
-
-        container.add(message);
-
-        JButton actions = new JButton(dictionary.getBurger());
-        actions.addActionListener(e -> showMessageActionsContextMenu(actions, container, messageDto));
-        headerPanel.add(actions, BorderLayout.EAST);
-
-        return container;
-    }
-
-    private void loadAvatarAsync(String username) {
-        new SwingWorker<ImageIcon, Void>() {
-
-            @Override
-            protected ImageIcon doInBackground() {
-                try {
-                    String avatarBase64 = client.getAvatar(username);
-                    return FrameHelper.getScaledIcon(avatarBase64,
-                            (Integer) Constants.COMPRESSION_AVATAR.getValue(),
-                            (Integer) Constants.COMPRESSION_AVATAR.getValue(),
-                            dictionary);
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    ImageIcon avatar = get();
-                    avatars.get(username).setImage(avatar.getImage());
-                    FrameHelper.repaintComponents(chatArea);
-                } catch (Exception ignored) {
-                }
-            }
-        }.execute();
-
-    }
-
-    private void showMessageActionsContextMenu(JButton parent, JPanel message, MessageDto messageDto) {
-        JPopupMenu menu = new JPopupMenu();
-
-        if (messageDto.getSender().equals(username)) {
-            JMenuItem changeMessage = new JMenuItem();
-            changeMessage.setIcon(dictionary.getPencil());
-            changeMessage.setText(dictionary.getChangeMessage());
-            changeMessage.addActionListener(e -> AdditionalFrameFactory.getChangeMessageFrame(MainFrame.this, messageDto));
-            menu.add(changeMessage);
-        }
-
-        if (messageDto.getSender().equals(username)) {
-            JMenuItem deleteMessage = new JMenuItem();
-            deleteMessage.setIcon(dictionary.getDelete());
-            deleteMessage.setText(dictionary.getDeleteMessage());
-            deleteMessage.addActionListener(e -> deleteMessageAction(messageDto, message));
-            menu.add(deleteMessage);
-        }
-
-        menu.show(parent, 0, parent.getHeight());
-    }
-
-    private void deleteMessageAction(MessageDto messageDto, JPanel message) {
-        try {
-            client.deleteMessage(messageDto);
-            chatArea.remove(message);
-            FrameHelper.repaintComponents(chatArea);
-        } catch (Exception e) {
-            FrameHelper.errorHandler(e, dictionary, MainFrame.this);
-        }
-    }
-
-    private JTextPane getTextPane() {
-        JTextPane textPane = new JTextPane();
-        textPane.setContentType("text/html");
-        textPane.setEditable(false);
-        textPane.setOpaque(false);
-        textPane.setBorder(null);
-        textPane.setMargin(new Insets(0, 0, 0, 0));
-        return textPane;
-    }
-
-    private JTextArea getTextArea(String title, MouseAdapter selectListener) {
-        JTextArea textArea = new JTextArea(title);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setEditable(false);
-        textArea.setFocusable(false);
-        textArea.setBorder(null);
-        textArea.setBackground(backgroungColor);
-        textArea.addMouseListener(selectListener);
-        return textArea;
+        });
     }
 
     private void showChatContextMenu(JComponent parent, ChatDto chat) {
@@ -868,7 +528,7 @@ public class MainFrame extends JFrame {
             try {
                 dispose();
                 client.disconnect();
-                sentImagesBase64.clear();
+                messageArea.getSentImagesBase64().clear();
                 avatars.clear();
                 new LoginFrame(client);
             } catch (Exception ex) {
@@ -926,7 +586,7 @@ public class MainFrame extends JFrame {
         });
         buttonsPanel.add(participantsButton);
 
-        chatName = getTextArea(FrameHelper.getChatName(chat), null);
+        chatName = FrameHelper.getTextArea(FrameHelper.getChatName(chat), null);
 
         JPanel chatStatusBar = new JPanel(new BorderLayout());
         chatStatusBar.add(chatName, BorderLayout.CENTER);
@@ -968,12 +628,12 @@ public class MainFrame extends JFrame {
     private JPanel getRightPanel() {
         JPanel chatStatusBar = getChatStatusBar();
         JPanel chatPanel = getChatPanel();
-        JPanel messagePanel = getMessagePanel();
+        messageArea = new MessageAreaJPanel(MainFrame.this);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.add(chatStatusBar, BorderLayout.NORTH);
         rightPanel.add(chatPanel, BorderLayout.CENTER);
-        rightPanel.add(messagePanel, BorderLayout.SOUTH);
+        rightPanel.add(messageArea, BorderLayout.SOUTH);
 
         return rightPanel;
     }
@@ -1000,7 +660,7 @@ public class MainFrame extends JFrame {
         return main;
     }
 
-    private void connect() throws DeploymentException, IOException {
+    public void connect() throws DeploymentException, IOException {
         if (client.isNotConnected()) {
             client.connect(username);
             if (client.isNotConnected())
@@ -1044,38 +704,8 @@ public class MainFrame extends JFrame {
         FrameHelper.repaintComponents(chatIcon);
     }
 
-    private final Set<String> usersTyping = new HashSet<>();
-
-    public void addUserTyping(String username, String chatId) {
-        if (!chatId.equals(chat.getId())) return;
-
-        usersTyping.add(username);
-        userTyping.setText(getTypingText());
-    }
-
-    public void delUserTyping(String username, String chatId) {
-        if (!chatId.equals(chat.getId())) return;
-
-        usersTyping.remove(username);
-        userTyping.setText(getTypingText());
-    }
-
-    private String getTypingText() {
-        StringBuilder builder = new StringBuilder();
-
-        if (usersTyping.isEmpty()) return "";
-
-        for (String name : usersTyping)
-            builder.append(name).append(", ");
-
-        builder.delete(builder.length() - 2, builder.length());
-        builder.append(dictionary.getTyping());
-
-        return builder.toString();
-    }
-
     public void findChat(ChatDto chat) {
-        userTyping.setText("");
+        messageArea.clear();
         this.chat = chat;
         chatName.setText(FrameHelper.getChatName(chat));
         chatHistoryCount = 1;

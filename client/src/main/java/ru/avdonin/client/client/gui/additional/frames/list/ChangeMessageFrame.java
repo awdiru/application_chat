@@ -1,7 +1,7 @@
-package ru.avdonin.client.client.gui.additional_frames.list;
+package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.additional_frames.BaseAdditionalFrame;
+import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.gui.helpers.FrameHelper;
 import ru.avdonin.template.model.message.dto.MessageDto;
 

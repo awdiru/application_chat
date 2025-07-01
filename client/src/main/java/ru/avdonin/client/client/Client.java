@@ -94,8 +94,8 @@ public class Client {
         else throw new RuntimeException("The typing notification contains incorrect information");
 
         if (typing.getIsTyping())
-            gui.addUserTyping(typing.getUsername(), typing.getChatId());
-        else gui.delUserTyping(typing.getUsername(), typing.getChatId());
+            gui.getMessageArea().addUserTyping(typing.getUsername(), typing.getChatId());
+        else gui.getMessageArea().delUserTyping(typing.getUsername(), typing.getChatId());
     }
 
     private void messageAction(ActionNotification actionNotification) throws Exception {

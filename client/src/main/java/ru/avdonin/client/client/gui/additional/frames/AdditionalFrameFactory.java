@@ -1,11 +1,9 @@
-package ru.avdonin.client.client.gui.additional_frames;
+package ru.avdonin.client.client.gui.additional.frames;
 
-import ru.avdonin.client.client.gui.additional_frames.list.*;
+import ru.avdonin.client.client.gui.additional.frames.list.*;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
-
-import java.util.List;
 
 public abstract class AdditionalFrameFactory {
     public static void getRenameChatFrame(MainFrame parent, ChatDto renameChat, Boolean isAdmin) {

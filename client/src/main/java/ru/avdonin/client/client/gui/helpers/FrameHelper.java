@@ -1,15 +1,20 @@
 package ru.avdonin.client.client.gui.helpers;
 
 import ru.avdonin.client.client.Client;
+import ru.avdonin.client.client.gui.ConstatntsGUI.ConstantsGUI;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.model.chat.dto.ChatDto;
+import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -19,6 +24,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
 public class FrameHelper {
+    public static final Color BACKGROUNG_COLOR = UIManager.getColor("Panel.background");
+
 
     public static String getMonth(OffsetDateTime date, BaseDictionary dictionary) {
         return switch (date.getMonth()) {
@@ -79,50 +86,52 @@ public class FrameHelper {
 
         if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
-                BufferedImage originalImage = ImageIO.read(selectedFile);
-                if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
+            BufferedImage originalImage = ImageIO.read(selectedFile);
+            if (originalImage == null) throw new IOException(dictionary.getCannotBeRead());
 
-                int originalWidth = originalImage.getWidth();
-                int originalHeight = originalImage.getHeight();
+            int originalWidth = originalImage.getWidth();
+            int originalHeight = originalImage.getHeight();
 
-                Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
-                int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
+            Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
+            int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
 
-                int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
-                        BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+            int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
+                    BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
 
-                BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
+            BufferedImage scaledImage = new BufferedImage(targetWidth, targetHeight, imageType);
 
-                Graphics2D g2d = scaledImage.createGraphics();
-                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_QUALITY);
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2d = scaledImage.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
 
-                if (imageType == BufferedImage.TYPE_INT_RGB) {
-                    g2d.setColor(Color.WHITE);
-                    g2d.fillRect(0, 0, targetWidth, targetHeight);
-                }
+            if (imageType == BufferedImage.TYPE_INT_RGB) {
+                g2d.setColor(Color.WHITE);
+                g2d.fillRect(0, 0, targetWidth, targetHeight);
+            }
 
-                g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
-                g2d.dispose();
+            g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+            g2d.dispose();
 
-                String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(scaledImage, formatName, baos);
+            String formatName = (imageType == BufferedImage.TYPE_INT_ARGB) ? "png" : "jpg";
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(scaledImage, formatName, baos);
 
-                return Base64.getEncoder().encodeToString(baos.toByteArray());
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
         }
         return null;
     }
 
     public static void repaintComponents(JComponent... components) {
-        for (JComponent component : components) {
-            component.revalidate();
-            component.repaint();
-        }
+        SwingUtilities.invokeLater(() -> {
+            for (JComponent component : components) {
+                component.revalidate();
+                component.repaint();
+            }
+        });
     }
 
     public static ImageIcon getScaledIcon(String imageBase64, int x, int y, BaseDictionary dictionary) {
@@ -147,7 +156,7 @@ public class FrameHelper {
         }
     }
 
-    public static ImageIcon getNumber(Integer num, BaseDictionary dictionary){
+    public static ImageIcon getNumber(Integer num, BaseDictionary dictionary) {
         return switch (num) {
             case 0 -> dictionary.getEnvelope();
             case 1 -> dictionary.getOne();
@@ -161,5 +170,46 @@ public class FrameHelper {
             case 9 -> dictionary.getNine();
             default -> dictionary.getPlusNum();
         };
+    }
+
+    public static JTextPane getTextPane() {
+        JTextPane textPane = new JTextPane();
+        textPane.setContentType("text/html");
+        textPane.setEditable(false);
+        textPane.setOpaque(false);
+        textPane.setBorder(null);
+        textPane.setMargin(new Insets(0, 0, 0, 0));
+        return textPane;
+    }
+
+    public static JTextArea getTextArea(String title, MouseAdapter selectListener) {
+        JTextArea textArea = new JTextArea(title);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setEditable(false);
+        textArea.setFocusable(false);
+        textArea.setBorder(null);
+        textArea.setBackground(BACKGROUNG_COLOR);
+        textArea.addMouseListener(selectListener);
+        return textArea;
+    }
+
+    public static void setupKeyBindings(JComponent component,
+                                        KeyStroke keyStroke,
+                                        String actionKey,
+                                        ActionListener action) {
+
+        component.getInputMap().put(keyStroke, actionKey);
+        component.getActionMap().put(actionKey, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                action.actionPerformed(e);
+            }
+        });
+    }
+
+    public static boolean isEmptyMessage(MessageDto messageDto) {
+        return (messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
+                && (messageDto.getImagesBase64() == null || messageDto.getImagesBase64().isEmpty());
     }
 }
