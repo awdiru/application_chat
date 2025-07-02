@@ -26,7 +26,6 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.List;
 
@@ -73,7 +72,7 @@ public class MainFrame extends JFrame {
 
         chatArea.add(new MessageJPanel(MainFrame.this, message));
 
-        FrameHelper.repaintComponents(chatArea);
+      //  FrameHelper.repaintComponents(chatArea);
 
         SwingUtilities.invokeLater(() -> {
             JScrollBar scrollBar = chatScroll.getVerticalScrollBar();

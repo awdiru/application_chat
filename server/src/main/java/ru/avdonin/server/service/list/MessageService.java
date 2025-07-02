@@ -54,9 +54,10 @@ public class MessageService extends AbstractService {
                 .sender(sender)
                 .chat(chat)
                 .fileNames(fileNames)
+                .edited(false)
                 .build();
 
-        Message saved = messageRepository.save(message);
+        messageRepository.save(message);
 
         ActionNotification actionNotification = ActionNotification.builder()
                 .action(ActionNotification.Action.MESSAGE)
@@ -87,7 +88,6 @@ public class MessageService extends AbstractService {
 
     public MessageDto getMessage(MessageDto messageDto) {
         Message message = getMessageOrException(messageDto);
-
         return getMessageDto(message, messageDto.getLocale());
     }
 
@@ -98,7 +98,9 @@ public class MessageService extends AbstractService {
             throw new IncorrectUserDataException("Only the author of the message can change the messages");
 
         message.setTextContent(encryptionService.encrypt(messageDto.getTextContent(), messageDto.getSender(), messageDto.getLocale()));
-        message.setFileNames(getMessageFileNamesAndSaveFiles(messageDto));
+        String filesNames = getMessageFileNamesAndSaveFiles(messageDto);
+        if (filesNames != null) message.setFileNames(filesNames);
+        message.setEdited(true);
         messageRepository.save(message);
     }
 
@@ -137,6 +139,7 @@ public class MessageService extends AbstractService {
                 .sender(message.getSender().getUsername())
                 .chatId(message.getChat().getId())
                 .imagesBase64(imagesBase64)
+                .edited(message.getEdited())
                 .build();
     }
 
@@ -170,8 +173,7 @@ public class MessageService extends AbstractService {
 
         for (Message message : messages) {
             MessageDto respMessage = getMessageDto(message, messageDto.getLocale());
-            if (respMessage.equals(messageDto))
-                return message;
+            if (respMessage.equals(messageDto)) return message;
         }
         throw new IncorrectDataException("The message not found");
     }

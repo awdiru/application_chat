@@ -34,4 +34,7 @@ public class Message {
     @ManyToOne
     @JoinColumn(name = "chat_id")
     private Chat chat;
+
+    @Column(name = "is_editable")
+    private Boolean edited;
 }

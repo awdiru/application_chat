@@ -1,7 +1,6 @@
 package ru.avdonin.client.client.gui.helpers;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.gui.ConstatntsGUI.ConstantsGUI;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.settings.language.BaseDictionary;
 import ru.avdonin.template.constatns.Constants;
@@ -126,12 +125,12 @@ public class FrameHelper {
     }
 
     public static void repaintComponents(JComponent... components) {
-        SwingUtilities.invokeLater(() -> {
-            for (JComponent component : components) {
+        for (JComponent component : components) {
+            if (component != null) {
                 component.revalidate();
                 component.repaint();
             }
-        });
+        }
     }
 
     public static ImageIcon getScaledIcon(String imageBase64, int x, int y, BaseDictionary dictionary) {
@@ -172,14 +171,25 @@ public class FrameHelper {
         };
     }
 
-    public static JTextPane getTextPane() {
+    public static JTextPane getTextPaneHtml(String title) {
         JTextPane textPane = new JTextPane();
         textPane.setContentType("text/html");
+        editTextPane(textPane, title);
+        return textPane;
+    }
+
+    public static JTextPane getTextPane(String title) {
+        JTextPane textPane = new JTextPane();
+        editTextPane(textPane, title);
+        return textPane;
+    }
+
+    private static void editTextPane(JTextPane textPane, String title) {
+        textPane.setText(title);
         textPane.setEditable(false);
         textPane.setOpaque(false);
         textPane.setBorder(null);
         textPane.setMargin(new Insets(0, 0, 0, 0));
-        return textPane;
     }
 
     public static JTextArea getTextArea(String title, MouseAdapter selectListener) {
@@ -192,6 +202,15 @@ public class FrameHelper {
         textArea.setBackground(BACKGROUNG_COLOR);
         textArea.addMouseListener(selectListener);
         return textArea;
+    }
+
+    public static JTextField getTextField(String title) {
+        JTextField textField = new JTextField(title);
+        textField.setEditable(false);
+        textField.setFocusable(false);
+        textField.setBorder(null);
+        textField.setBackground(BACKGROUNG_COLOR);
+        return textField;
     }
 
     public static void setupKeyBindings(JComponent component,

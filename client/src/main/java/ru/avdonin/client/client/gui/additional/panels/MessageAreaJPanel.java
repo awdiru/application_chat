@@ -10,10 +10,10 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -33,7 +33,9 @@ public class MessageAreaJPanel extends JPanel {
 
     private boolean isTyping;
     private boolean isEditMode;
-    private MessageDto oldMessageDto;
+
+    //Для редактирования сообщений
+    private MessageJPanel messageJPanel;
 
     public MessageAreaJPanel(MainFrame mainFrame) {
         super();
@@ -83,14 +85,15 @@ public class MessageAreaJPanel extends JPanel {
         clearSent();
     }
 
-    public void changeMessage(MessageDto oldMessageDto) {
-        this.oldMessageDto = oldMessageDto;
-        isEditMode = true;
-        textArea.setText(oldMessageDto.getTextContent());
-        sentImagesBase64.clear();
-        if (oldMessageDto.getImagesBase64() != null)
-            for (String imageBase64 : oldMessageDto.getImagesBase64())
-                addImage(imageBase64);
+    public void changeMessageMode(MessageJPanel messageJPanel) {
+        this.messageJPanel = messageJPanel;
+        this.isEditMode = true;
+        this.textArea.setText(messageJPanel.getMessageDto().getTextContent());
+        this.sentImagesBase64.clear();
+        this.attachPanel.removeAll();
+
+        if (messageJPanel.getMessageDto().getImagesBase64() != null)
+            for (String imageBase64 : messageJPanel.getMessageDto().getImagesBase64()) addImage(imageBase64);
     }
 
     private void initMessageAreaJPanel() {
@@ -242,6 +245,7 @@ public class MessageAreaJPanel extends JPanel {
                         .chatId(mainFrame.getChat().getId())
                         .textContent(textArea.getText())
                         .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
+                        .edited(false)
                         .build();
                 if (FrameHelper.isEmptyMessage(messageDto)) return;
 
@@ -256,35 +260,42 @@ public class MessageAreaJPanel extends JPanel {
     }
 
     private void changeMessageAction() {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                stopTyping();
-                mainFrame.connect();
-                MessageDto messageDto = MessageDto.builder()
-                        .id(oldMessageDto.getId())
-                        .time(oldMessageDto.getTime())
-                        .sender(oldMessageDto.getSender())
-                        .chatId(oldMessageDto.getChatId())
-                        .textContent(textArea.getText())
-                        .imagesBase64(sentImagesBase64.equals(oldMessageDto.getImagesBase64()) ? null : sentImagesBase64)
-                        .build();
+        try {
+            isEditMode = false;
+            stopTyping();
+            mainFrame.connect();
 
-                if (FrameHelper.isEmptyMessage(messageDto)) return;
+            MessageDto oldMessage = messageJPanel.getMessageDto();
 
-                mainFrame.getClient().changeMessage(messageDto);
-                mainFrame.loadChatHistory();
+            MessageDto messageDto = MessageDto.builder()
+                    .id(oldMessage.getId())
+                    .time(oldMessage.getTime())
+                    .sender(oldMessage.getSender())
+                    .chatId(oldMessage.getChatId())
+                    .textContent(Objects.equals(textArea.getText(), oldMessage.getTextContent()) ? null : textArea.getText())
+                    .imagesBase64(Objects.equals(sentImagesBase64, oldMessage.getImagesBase64()) ? null : sentImagesBase64)
+                    .edited(true)
+                    .build();
 
-            } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, mainFrame.getDictionary(), mainFrame);
-            }
-            clearSent();
-        });
+            if (FrameHelper.isEmptyMessage(messageDto)) return;
+
+            mainFrame.getClient().changeMessage(messageDto);
+
+            messageDto.setTextContent(textArea.getText());
+            messageDto.setImagesBase64(sentImagesBase64);
+
+            messageJPanel.init(messageDto);
+            FrameHelper.repaintComponents(messageJPanel);
+
+        } catch (Exception ex) {
+            FrameHelper.errorHandler(ex, mainFrame.getDictionary(), mainFrame);
+        }
+        clearSent();
     }
 
     private void sendMessage() {
         if (isEditMode) {
             changeMessageAction();
-            isEditMode = false;
         } else {
             sendMessageAction();
         }

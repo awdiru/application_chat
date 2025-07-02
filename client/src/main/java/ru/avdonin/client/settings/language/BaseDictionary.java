@@ -33,6 +33,8 @@ public abstract class BaseDictionary extends BaseSettings {
     private final String images = "Images";
     //Chat status bar
     private final String typing = " typing...";
+    //Messages
+    private final String edited = "edited";
     //Chat context menu
     private final String logoutChat = "Log out of the chat";
     private final String logoutChatQuestion = "Are you sure you want to exit the chat?";
