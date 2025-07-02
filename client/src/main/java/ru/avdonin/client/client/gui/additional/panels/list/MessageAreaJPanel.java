@@ -1,9 +1,8 @@
-package ru.avdonin.client.client.gui.additional.panels;
+package ru.avdonin.client.client.gui.additional.panels.list;
 
 import lombok.Getter;
-import ru.avdonin.client.client.gui.ConstatntsGUI.ConstantsGUI;
-import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.FrameHelper;
+import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
+import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
@@ -16,12 +15,13 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import static ru.avdonin.client.client.constatnts.Constants.*;
+
 @Getter
-public class MessageAreaJPanel extends JPanel {
+public class MessageAreaJPanel extends BaseJPanel {
     private final Set<String> sentImagesBase64 = new HashSet<>();
     private final Set<String> usersTyping = new HashSet<>();
 
-    private final MainFrame mainFrame;
 
     private JTextArea textArea;
     private JTextArea userTyping;
@@ -37,26 +37,23 @@ public class MessageAreaJPanel extends JPanel {
     //Для редактирования сообщений
     private MessageJPanel messageJPanel;
 
-    public MessageAreaJPanel(MainFrame mainFrame) {
-        super();
-        this.mainFrame = mainFrame;
-
+    public MessageAreaJPanel() {
         initTypingTimer();
         initMessageAreaJPanel();
     }
 
     public void addUserTyping(String username, String chatId) {
-        if (!chatId.equals(mainFrame.getChat().getId())) return;
+        if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.add(username);
-        userTyping.setText(getTypingText(usersTyping, mainFrame));
+        userTyping.setText(getTypingText(usersTyping));
     }
 
     public void delUserTyping(String username, String chatId) {
-        if (!chatId.equals(mainFrame.getChat().getId())) return;
+        if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.remove(username);
-        userTyping.setText(getTypingText(usersTyping, mainFrame));
+        userTyping.setText(getTypingText(usersTyping));
     }
 
     public void stopTyping() {
@@ -64,10 +61,10 @@ public class MessageAreaJPanel extends JPanel {
             typingTimer.stop();
             if (isTyping) {
                 isTyping = false;
-                mainFrame.getClient().sendTyping(mainFrame.getChat().getId(), false);
+                mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
             }
         } catch (Exception e) {
-            FrameHelper.errorHandler(e, mainFrame.getDictionary(), mainFrame);
+            FrameHelper.errorHandler(e, mainFrame);
         }
     }
 
@@ -121,11 +118,11 @@ public class MessageAreaJPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        attachButton = new JButton(mainFrame.getDictionary().getPaperClip());
+        attachButton = new JButton(dictionary.getPaperClip());
         attachButton.addActionListener(e -> attachButtonAction());
         attachButton.setPreferredSize(new Dimension(30, 30));
 
-        sendButton = new JButton(mainFrame.getDictionary().getRightArrow());
+        sendButton = new JButton(dictionary.getRightArrow());
         sendButton.addActionListener(e -> sendMessage());
         sendButton.setPreferredSize(new Dimension(30, 30));
         setupStandardKeiBindings();
@@ -153,9 +150,9 @@ public class MessageAreaJPanel extends JPanel {
         int TYPING_DELAY_MS = 10000;
         typingTimer = new Timer(TYPING_DELAY_MS, e -> {
             try {
-                mainFrame.getClient().sendTyping(mainFrame.getChat().getId(), false);
+                mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
             } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, mainFrame.getDictionary(), mainFrame);
+                FrameHelper.errorHandler(ex, mainFrame);
             }
         });
         typingTimer.setRepeats(false);
@@ -167,33 +164,33 @@ public class MessageAreaJPanel extends JPanel {
             if (hasText) {
                 if (!isTyping) {
                     isTyping = true;
-                    mainFrame.getClient().sendTyping(mainFrame.getChat().getId(), true);
+                    mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), true);
                 }
                 typingTimer.restart();
             } else {
                 typingTimer.stop();
                 if (isTyping) {
                     isTyping = false;
-                    mainFrame.getClient().sendTyping(mainFrame.getChat().getId(), false);
+                    mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
                 }
             }
         } catch (Exception e) {
-            FrameHelper.errorHandler(e, mainFrame.getDictionary(), mainFrame);
+            FrameHelper.errorHandler(e, mainFrame);
         }
     }
 
     private void attachButtonAction() {
         try {
-            String image = FrameHelper.attachImage(mainFrame.getDictionary());
+            String image = FrameHelper.attachImage();
             addImage(image);
         } catch (IOException ex) {
-            FrameHelper.errorHandler(ex, mainFrame.getDictionary(), mainFrame);
+            FrameHelper.errorHandler(ex, mainFrame);
         }
     }
 
     private void addImage(String imageBase64) {
         JPanel imagePanel = new JPanel(new BorderLayout());
-        imagePanel.add(new JLabel(FrameHelper.getScaledIcon(imageBase64, 30, 30, mainFrame.getDictionary())), BorderLayout.WEST);
+        imagePanel.add(new JLabel(FrameHelper.getScaledIcon(imageBase64, 30, 30)), BorderLayout.WEST);
         imagePanel.add(getDeleteButton(imageBase64, imagePanel), BorderLayout.EAST);
 
         attachPanel.add(imagePanel);
@@ -204,7 +201,7 @@ public class MessageAreaJPanel extends JPanel {
 
     private JButton getDeleteButton(String image, JComponent component) {
         deleteButton = new JButton();
-        deleteButton.setIcon(mainFrame.getDictionary().getDelete());
+        deleteButton.setIcon(dictionary.getDelete());
         deleteButton.addActionListener(e -> {
             sentImagesBase64.remove(image);
             attachPanel.remove(component);
@@ -213,7 +210,7 @@ public class MessageAreaJPanel extends JPanel {
         return deleteButton;
     }
 
-    private String getTypingText(Set<String> usersTyping, MainFrame mainFrame) {
+    private String getTypingText(Set<String> usersTyping) {
         StringBuilder builder = new StringBuilder();
 
         if (usersTyping.isEmpty()) return "";
@@ -222,15 +219,15 @@ public class MessageAreaJPanel extends JPanel {
             builder.append(name).append(", ");
 
         builder.delete(builder.length() - 2, builder.length());
-        builder.append(mainFrame.getDictionary().getTyping());
+        builder.append(dictionary.getTyping());
 
         return builder.toString();
     }
 
     private void setupStandardKeiBindings() {
         FrameHelper.setupKeyBindings(textArea,
-                (KeyStroke) ConstantsGUI.SEND_MESSAGE.getValue(),
-                (String) ConstantsGUI.SEND_MESSAGE_KEY.getValue(),
+                SEND_MESSAGE.getValue(),
+                SEND_MESSAGE_KEY.getValue(),
                 e -> sendMessage());
     }
 
@@ -242,7 +239,7 @@ public class MessageAreaJPanel extends JPanel {
                 MessageDto messageDto = MessageDto.builder()
                         .time(OffsetDateTime.now())
                         .sender(mainFrame.getUsername())
-                        .chatId(mainFrame.getChat().getId())
+                        .chatId(mainFrame.getSelectedChat().getChat().getId())
                         .textContent(textArea.getText())
                         .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
                         .edited(false)
@@ -253,7 +250,7 @@ public class MessageAreaJPanel extends JPanel {
                 mainFrame.onMessageReceived(messageDto);
 
             } catch (Exception e) {
-                FrameHelper.errorHandler(e, mainFrame.getDictionary(), mainFrame);
+                FrameHelper.errorHandler(e, mainFrame);
             }
             clearSent();
         });
@@ -288,7 +285,7 @@ public class MessageAreaJPanel extends JPanel {
             FrameHelper.repaintComponents(messageJPanel);
 
         } catch (Exception ex) {
-            FrameHelper.errorHandler(ex, mainFrame.getDictionary(), mainFrame);
+            FrameHelper.errorHandler(ex, mainFrame);
         }
         clearSent();
     }

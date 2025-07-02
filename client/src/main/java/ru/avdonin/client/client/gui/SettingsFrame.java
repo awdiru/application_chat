@@ -1,11 +1,10 @@
 package ru.avdonin.client.client.gui;
 
-import ru.avdonin.client.settings.Settings;
-import ru.avdonin.client.settings.language.BaseDictionary;
-import ru.avdonin.client.settings.language.FactoryLanguage;
-import ru.avdonin.client.settings.language.FrameLanguage;
-import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
-import ru.avdonin.client.settings.time_zone.FrameTimeZone;
+import ru.avdonin.client.client.settings.Settings;
+import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.language.FrameLanguage;
+import ru.avdonin.client.client.settings.time_zone.FactoryTimeZone;
+import ru.avdonin.client.client.settings.time_zone.FrameTimeZone;
 
 import javax.swing.*;
 import java.awt.*;

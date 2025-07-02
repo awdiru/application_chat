@@ -2,12 +2,14 @@ package ru.avdonin.client.repository;
 
 import java.util.Map;
 
+import static ru.avdonin.client.repository.configs.DefaultConfigs.*;
+
 public class ConfigsRepository extends BaseRepository {
     private final Map<String, String> configs = Map.of(
-            "language", "SYSTEM",
-            "time_zone", "SYSTEM",
-            "http-uri", "http://localhost:8080",
-            "ws-uri", "ws://localhost:8080"
+            LANGUAGE.getConfigName(), LANGUAGE.getConfigValue(),
+            TIME_ZONE.getConfigName(), TIME_ZONE.getConfigValue(),
+            HTTP_URI.getConfigName(), HTTP_URI.getConfigValue(),
+            WS_URI.getConfigName(), WS_URI.getConfigValue()
     );
 
     public ConfigsRepository() {

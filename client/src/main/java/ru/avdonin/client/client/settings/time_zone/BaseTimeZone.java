@@ -1,7 +1,7 @@
-package ru.avdonin.client.settings.time_zone;
+package ru.avdonin.client.client.settings.time_zone;
 
 import lombok.Getter;
-import ru.avdonin.client.settings.BaseSettings;
+import ru.avdonin.client.client.settings.BaseSettings;
 
 @Getter
 public class BaseTimeZone extends BaseSettings {

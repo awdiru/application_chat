@@ -1,20 +1,22 @@
 package ru.avdonin.client.client.gui;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.settings.language.BaseDictionary;
-import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.Context;
+import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.language.FactoryLanguage;
 
 import javax.swing.*;
 import java.awt.*;
 
+import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+
 public class LoginFrame extends JFrame {
-    private final Client client;
+    private final Client client = Context.get(CLIENT);
     private final BaseDictionary language;
     private JTextField usernameField;
     private JPasswordField passwordField;
 
-    public LoginFrame(Client client) {
-        this.client = client;
+    public LoginFrame() {
         language = FactoryLanguage.getFactory().getSettings();
         initUi();
         setVisible(true);
@@ -62,7 +64,7 @@ public class LoginFrame extends JFrame {
                 } catch (Exception e) {
                     errorHandler(e);
                     dispose();
-                    new LoginFrame(client);
+                    new LoginFrame();
                 }
                 return false;
             }
@@ -73,7 +75,7 @@ public class LoginFrame extends JFrame {
                     if (!get()) return;
                     dispose();
                     client.connect(username);
-                    new MainFrame(client, username);
+                    new MainFrame(username);
                 } catch (Exception e) {
                     errorHandler(e);
                 }

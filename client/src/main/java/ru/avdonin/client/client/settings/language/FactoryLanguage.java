@@ -1,6 +1,6 @@
-package ru.avdonin.client.settings.language;
+package ru.avdonin.client.client.settings.language;
 
-import ru.avdonin.client.settings.BaseFactory;
+import ru.avdonin.client.client.settings.BaseFactory;
 import ru.avdonin.template.exceptions.FactoryException;
 
 import java.util.Locale;

@@ -1,20 +1,20 @@
-package ru.avdonin.client.client.gui.additional.panels;
+package ru.avdonin.client.client.gui.additional.panels.list;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.avdonin.client.client.gui.ConstatntsGUI.ConstantsGUI;
-import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.FrameHelper;
+import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
+import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class MessageJPanel extends JPanel {
+import static ru.avdonin.client.client.constatnts.Constants.*;
+
+public class MessageJPanel extends BaseJPanel {
     private static final Color SELF_MESSAGE_COLOR = new Color(205, 214, 244);
     private static final Color FRIEND_MESSAGE_COLOR = new Color(157, 180, 239);
-    private final MainFrame mainFrame;
     private final Color bgColor;
 
     @Getter
@@ -29,10 +29,8 @@ public class MessageJPanel extends JPanel {
     @Getter
     private JPanel imagesPanel;
 
-    public MessageJPanel(MainFrame mainFrame, MessageDto messageDto) {
-        super();
+    public MessageJPanel(MessageDto messageDto) {
         this.messageDto = messageDto;
-        this.mainFrame = mainFrame;
         this.bgColor = messageDto.getSender().equals(mainFrame.getUsername()) ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
         init();
     }
@@ -49,7 +47,7 @@ public class MessageJPanel extends JPanel {
         initImages();
         initMessage();
 
-        setBackground((Color) ConstantsGUI.BACKGROUND_COLOR.getValue());
+        setBackground(BACKGROUND_COLOR.getValue());
         setOpaque(false);
 
         if (messageDto.getSender().equals(mainFrame.getUsername()))
@@ -57,7 +55,7 @@ public class MessageJPanel extends JPanel {
         else setLayout(new FlowLayout(FlowLayout.LEFT));
 
         if (messageDto.getEdited()) {
-            JTextPane edited = FrameHelper.getTextPane(mainFrame.getDictionary().getEdited());
+            JTextPane edited = FrameHelper.getTextPane(dictionary.getEdited());
             edited.setForeground(new Color(165, 170, 170));
             add(edited);
         }
@@ -69,7 +67,7 @@ public class MessageJPanel extends JPanel {
         headerPanel.setOpaque(false);
 
         ImageIcon avatarIcon = mainFrame.getAvatars().computeIfAbsent(messageDto.getSender(), k -> {
-            mainFrame.getAvatars().put(messageDto.getSender(), mainFrame.getDictionary().getDefaultAvatar());
+            mainFrame.getAvatars().put(messageDto.getSender(), dictionary.getDefaultAvatar());
             mainFrame.loadAvatarAsync(messageDto.getSender(), MessageJPanel.this);
             return mainFrame.getAvatars().get(k);
         });
@@ -87,7 +85,7 @@ public class MessageJPanel extends JPanel {
         JTextPane title = FrameHelper.getTextPaneHtml(formattedTitle);
         headerPanel.add(title, BorderLayout.CENTER);
 
-        JButton actions = new JButton(mainFrame.getDictionary().getBurger());
+        JButton actions = new JButton(dictionary.getBurger());
         actions.addActionListener(e -> showMessageActionsContextMenu(actions));
         headerPanel.add(actions, BorderLayout.EAST);
         headerPanel.setBackground(bgColor);
@@ -98,16 +96,16 @@ public class MessageJPanel extends JPanel {
 
         if (messageDto.getSender().equals(mainFrame.getUsername())) {
             JMenuItem changeMessage = new JMenuItem();
-            changeMessage.setIcon(mainFrame.getDictionary().getPencil());
-            changeMessage.setText(mainFrame.getDictionary().getChangeMessage());
+            changeMessage.setIcon(dictionary.getPencil());
+            changeMessage.setText(dictionary.getChangeMessage());
             changeMessage.addActionListener(e -> mainFrame.getMessageArea().changeMessageMode(this));
             menu.add(changeMessage);
         }
 
         if (messageDto.getSender().equals(mainFrame.getUsername())) {
             JMenuItem deleteMessage = new JMenuItem();
-            deleteMessage.setIcon(mainFrame.getDictionary().getDelete());
-            deleteMessage.setText(mainFrame.getDictionary().getDeleteMessage());
+            deleteMessage.setIcon(dictionary.getDelete());
+            deleteMessage.setText(dictionary.getDeleteMessage());
             deleteMessage.addActionListener(e -> deleteMessageAction(messageDto));
             menu.add(deleteMessage);
         }
@@ -121,7 +119,7 @@ public class MessageJPanel extends JPanel {
             mainFrame.getChatArea().remove(this);
             FrameHelper.repaintComponents(mainFrame.getChatArea());
         } catch (Exception e) {
-            FrameHelper.errorHandler(e, mainFrame.getDictionary(), mainFrame);
+            FrameHelper.errorHandler(e, mainFrame);
         }
     }
 
@@ -143,7 +141,7 @@ public class MessageJPanel extends JPanel {
             imagesPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
 
             for (String receivedImage : messageDto.getImagesBase64()) {
-                ImageIcon image = FrameHelper.getIcon(receivedImage, mainFrame.getDictionary());
+                ImageIcon image = FrameHelper.getIcon(receivedImage);
                 JLabel imageLabel = new JLabel(image);
 
                 JPanel container = new JPanel(new FlowLayout(FlowLayout.CENTER));

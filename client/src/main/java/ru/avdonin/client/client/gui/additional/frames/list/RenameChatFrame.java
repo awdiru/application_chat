@@ -1,26 +1,23 @@
 package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
-import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.FrameHelper;
+import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class RenameChatFrame extends BaseAdditionalFrame {
-    private final MainFrame parent;
     private final JTextField renameField;
     private final ChatDto renameChat;
     private final boolean isAdmin;
     
-    public RenameChatFrame(MainFrame parent, ChatDto renameChat, Boolean isAdmin) {
-        this.parent = parent;
+    public RenameChatFrame(ChatDto renameChat, Boolean isAdmin) {
         this.renameChat = renameChat;
         this.isAdmin = isAdmin;
         this.renameField = new JTextField();
         
-        initFrame(parent.getDictionary().getRenameChatCustom() + " " + FrameHelper.getChatName(renameChat),
+        initFrame(dictionary.getRenameChatCustom() + " " + FrameHelper.getChatName(renameChat),
                 new Dimension(250, 150));
         
         JButton renameButton = getRenameButton();
@@ -33,7 +30,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
     
     private JButton getRenameButton() {
         JButton renameButton = new JButton();
-        renameButton.setText(parent.getDictionary().getRename());
+        renameButton.setText(dictionary.getRename());
         renameButton.addActionListener(e -> {
             try {
                 if (!renameField.getText().equals(renameChat.getChatName())) {
@@ -41,7 +38,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
                     parent.loadChats();
                 }
             } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, parent.getDictionary(), parent);
+                FrameHelper.errorHandler(ex, parent);
             } finally {
                 dispose();
             }

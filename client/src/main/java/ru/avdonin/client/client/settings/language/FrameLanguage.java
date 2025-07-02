@@ -1,9 +1,9 @@
-package ru.avdonin.client.settings.language;
+package ru.avdonin.client.client.settings.language;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.settings.FrameSettings;
-import ru.avdonin.client.settings.language.list.*;
+import ru.avdonin.client.client.settings.FrameSettings;
+import ru.avdonin.client.client.settings.language.list.*;
 
 @Getter
 public enum FrameLanguage implements FrameSettings {

@@ -1,7 +1,7 @@
-package ru.avdonin.client.settings.language;
+package ru.avdonin.client.client.settings.language;
 
 import lombok.Getter;
-import ru.avdonin.client.settings.BaseSettings;
+import ru.avdonin.client.client.settings.BaseSettings;
 
 import javax.swing.*;
 

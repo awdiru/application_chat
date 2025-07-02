@@ -1,4 +1,4 @@
-package ru.avdonin.client.settings;
+package ru.avdonin.client.client.settings;
 
 import ru.avdonin.client.repository.ConfigsRepository;
 

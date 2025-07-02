@@ -1,34 +1,48 @@
 package ru.avdonin.client.client.gui.additional.frames.list;
 
+import ru.avdonin.client.client.Client;
+import ru.avdonin.client.client.Context;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
-import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.helpers.FrameHelper;
+import ru.avdonin.client.client.helpers.FrameHelper;
 
 import javax.swing.*;
 import java.awt.*;
 
+import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+
 public class CreateChatFrame extends BaseAdditionalFrame {
-    public CreateChatFrame(MainFrame parent, boolean isPrivate) {
-        initFrame(parent.getDictionary().getAddChatTitle(),
+    public CreateChatFrame(boolean isPrivate) {
+
+        initFrame(dictionary.getAddChatTitle(),
                 new Dimension(240, 110));
 
         JPanel addChatPanel = new JPanel(new BorderLayout());
         JTextField labelField = new JTextField();
-        addChatPanel.add(new JLabel(isPrivate ? parent.getDictionary().getFriendsName() : parent.getDictionary().getChatName()), BorderLayout.NORTH);
+
+        String panelName = isPrivate ? dictionary.getFriendsName() : dictionary.getChatName();
+        addChatPanel.add(new JLabel(panelName), BorderLayout.NORTH);
         addChatPanel.add(labelField, BorderLayout.CENTER);
 
-        JButton pubChatButton = new JButton(parent.getDictionary().getCreateChat());
-        pubChatButton.addActionListener(e -> {
-            try {
-                parent.getClient().createChat(parent.getUsername(), labelField.getText(), isPrivate);
-                parent.loadChats();
-            } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, parent.getDictionary(), CreateChatFrame.this);
-            }
-            dispose();
-        });
+        JButton pubChatButton = getPubChatButton(isPrivate, labelField);
 
         addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
         add(addChatPanel);
+    }
+
+    private JButton getPubChatButton(boolean isPrivate, JTextField labelField) {
+        JButton pubChatButton = new JButton(dictionary.getCreateChat());
+        pubChatButton.addActionListener(e -> {
+            try {
+                Client client = Context.get(CLIENT);
+                String username = Context.get(USERNAME);
+                client.createChat(username, labelField.getText(), isPrivate);
+                parent.loadChats();
+
+            } catch (Exception ex) {
+                FrameHelper.errorHandler(ex, CreateChatFrame.this);
+            }
+            dispose();
+        });
+        return pubChatButton;
     }
 }

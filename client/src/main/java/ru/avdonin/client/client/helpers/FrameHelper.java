@@ -1,8 +1,9 @@
-package ru.avdonin.client.client.gui.helpers;
+package ru.avdonin.client.client.helpers;
 
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.Context;
+import ru.avdonin.client.client.settings.language.BaseDictionary;
 import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -22,11 +23,14 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
+import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+
 public class FrameHelper {
+    private static final BaseDictionary dictionary = Context.get(DICTIONARY);
     public static final Color BACKGROUNG_COLOR = UIManager.getColor("Panel.background");
 
 
-    public static String getMonth(OffsetDateTime date, BaseDictionary dictionary) {
+    public static String getMonth(OffsetDateTime date) {
         return switch (date.getMonth()) {
             case JANUARY -> dictionary.getJanuary();
             case FEBRUARY -> dictionary.getFebruary();
@@ -43,7 +47,7 @@ public class FrameHelper {
         };
     }
 
-    public static String getDayOfWeek(OffsetDateTime date, BaseDictionary dictionary) {
+    public static String getDayOfWeek(OffsetDateTime date) {
         return switch (date.getDayOfWeek()) {
             case MONDAY -> dictionary.getMonday();
             case TUESDAY -> dictionary.getTuesday();
@@ -55,15 +59,14 @@ public class FrameHelper {
         };
     }
 
-    public static void errorHandler(Exception e, BaseDictionary dictionary, JFrame parent) {
+    public static void errorHandler(Exception e, JFrame parent) {
         if (e.getMessage() == null || e.getMessage().isEmpty()) return;
         JOptionPane.showMessageDialog(parent, e.getMessage(), dictionary.getError(), JOptionPane.ERROR_MESSAGE);
     }
 
-    public static void restart(JFrame parent, Client client, String username) {
+    public static void restart(JFrame parent) {
         parent.dispose();
-        MainFrame mainFrame = new MainFrame(client, username);
-        client.setGui(mainFrame);
+        MainFrame mainFrame = new MainFrame();
         mainFrame.setVisible(true);
     }
 
@@ -78,7 +81,7 @@ public class FrameHelper {
                 : chat.getCustomName() + " (" + chat.getChatName() + ")";
     }
 
-    public static String attachImage(BaseDictionary dictionary) throws IOException {
+    public static String attachImage() throws IOException {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dictionary.getAttachImage());
         fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
@@ -91,7 +94,7 @@ public class FrameHelper {
             int originalWidth = originalImage.getWidth();
             int originalHeight = originalImage.getHeight();
 
-            Integer targetWidth = (Integer) Constants.COMPRESSION_IMAGES.getValue();
+            Integer targetWidth = Constants.COMPRESSION_IMAGES.getValue();
             int targetHeight = (int) (originalHeight * (targetWidth / (double) originalWidth));
 
             int imageType = originalImage.getTransparency() == Transparency.OPAQUE ?
@@ -133,7 +136,7 @@ public class FrameHelper {
         }
     }
 
-    public static ImageIcon getScaledIcon(String imageBase64, int x, int y, BaseDictionary dictionary) {
+    public static ImageIcon getScaledIcon(String imageBase64, int x, int y) {
         try {
             byte[] imageData = Base64.getDecoder().decode(imageBase64);
             ImageIcon icon = new ImageIcon(imageData);
@@ -145,7 +148,7 @@ public class FrameHelper {
         }
     }
 
-    public static ImageIcon getIcon(String imageBase64, BaseDictionary dictionary) {
+    public static ImageIcon getIcon(String imageBase64) {
         try {
             byte[] imageData = Base64.getDecoder().decode(imageBase64);
             return new ImageIcon(imageData);
@@ -155,7 +158,7 @@ public class FrameHelper {
         }
     }
 
-    public static ImageIcon getNumber(Integer num, BaseDictionary dictionary) {
+    public static ImageIcon getNumber(Integer num) {
         return switch (num) {
             case 0 -> dictionary.getEnvelope();
             case 1 -> dictionary.getOne();

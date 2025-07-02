@@ -1,9 +1,9 @@
-package ru.avdonin.client.settings.time_zone;
+package ru.avdonin.client.client.settings.time_zone;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.settings.FrameSettings;
-import ru.avdonin.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.FrameSettings;
+import ru.avdonin.client.client.settings.language.FactoryLanguage;
 
 @Getter
 public enum FrameTimeZone implements FrameSettings {

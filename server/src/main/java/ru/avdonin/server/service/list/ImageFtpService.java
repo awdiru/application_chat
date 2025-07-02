@@ -18,7 +18,7 @@ public class ImageFtpService extends AbstractFtpService {
                 "default",
                 "default-icon.png",
                 "/chats_images",
-                (Integer) Constants.COMPRESSION_IMAGES.getValue(),
+                Constants.COMPRESSION_IMAGES.getValue(),
                 -1);
     }
 }

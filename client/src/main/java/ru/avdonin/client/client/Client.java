@@ -6,15 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.sun.tools.javac.Main;
 import jakarta.websocket.*;
 import lombok.Getter;
-import lombok.Setter;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.repository.ConfigsRepository;
-import ru.avdonin.client.settings.language.BaseDictionary;
-import ru.avdonin.client.settings.language.FactoryLanguage;
-import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
+import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.time_zone.FactoryTimeZone;
 import ru.avdonin.template.exceptions.ClientException;
+import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.util.ActionNotification;
@@ -31,39 +32,37 @@ import java.net.http.HttpResponse;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Objects;
+
+import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.repository.configs.DefaultConfigs.*;
 
 @ClientEndpoint
 public class Client {
-    @Setter
-    private MainFrame gui;
-    private Session session;
-    @Setter
-    @Getter
-    private BaseDictionary language;
-    private String httpURI;
-    private String wsURI;
+    private final BaseDictionary dictionary = Context.get(DICTIONARY);
+    private final ConfigsRepository configsRepository = Context.get(CONFIG_REP);
 
-    private final ConfigsRepository configsRepository = new ConfigsRepository();
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    public Client(MainFrame gui) {
-        this.gui = gui;
-        loadProperties();
-        language = FactoryLanguage.getFactory().getSettings();
-    }
+    private Session session;
+    @Getter
+    private String httpURI;
+    private String wsURI;
+
 
     public Client() {
         loadProperties();
-        language = FactoryLanguage.getFactory().getSettings();
     }
 
     public void connect(String username) throws IOException, DeploymentException {
-        WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-        container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
+        if (isNotConnected()) {
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
+            if (isNotConnected())
+                throw new NoConnectionServerException("There is no connection to the server");
+        }
     }
 
     public void disconnect() throws IOException {
@@ -79,14 +78,15 @@ public class Client {
     public void onMessage(String message) throws Exception {
         ActionNotification actionNotification = objectMapper.readValue(message, ActionNotification.class);
 
+        MainFrame mainFrame = Context.get(MAIN_FRAME);
         switch (actionNotification.getAction()) {
-            case MESSAGE -> messageAction(actionNotification);
-            case INVITATION -> gui.loadInvitations();
-            case TYPING -> typingAction(actionNotification);
+            case MESSAGE -> messageAction(actionNotification, mainFrame);
+            case INVITATION -> mainFrame.loadInvitations();
+            case TYPING -> typingAction(actionNotification, mainFrame);
         }
     }
 
-    private void typingAction(ActionNotification actionNotification) {
+    private void typingAction(ActionNotification actionNotification, MainFrame mainFrame) {
         ActionNotification.Typing typing;
 
         if (actionNotification.getData() instanceof ActionNotification.Typing)
@@ -94,19 +94,19 @@ public class Client {
         else throw new RuntimeException("The typing notification contains incorrect information");
 
         if (typing.getIsTyping())
-            gui.getMessageArea().addUserTyping(typing.getUsername(), typing.getChatId());
-        else gui.getMessageArea().delUserTyping(typing.getUsername(), typing.getChatId());
+            mainFrame.getMessageArea().addUserTyping(typing.getUsername(), typing.getChatId());
+        else mainFrame.getMessageArea().delUserTyping(typing.getUsername(), typing.getChatId());
     }
 
-    private void messageAction(ActionNotification actionNotification) throws Exception {
+    private void messageAction(ActionNotification actionNotification, MainFrame mainFrame) throws Exception {
         ActionNotification.Message message;
 
         if (actionNotification.getData() instanceof ActionNotification.Message)
             message = (ActionNotification.Message) actionNotification.getData();
         else throw new RuntimeException("The message notification contains incorrect information");
 
-        if (!message.getChatId().equals(gui.getChat().getId())) {
-            gui.addNotificationChat(message.getChatId());
+        if (!message.getChatId().equals(mainFrame.getSelectedChat().getChat().getId())) {
+            mainFrame.getChatItemJPanels().get(message.getChatId()).addNotificationChat();
             return;
         }
 
@@ -123,7 +123,7 @@ public class Client {
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
                 )));
-        gui.onMessageReceived(messageDto);
+        mainFrame.onMessageReceived(messageDto);
     }
 
     @OnClose
@@ -231,7 +231,7 @@ public class Client {
 
     public List<InvitationChatDto> getInvitationsChats() throws Exception {
         UsernameDto usernameDto = UsernameDto.builder()
-                .username(gui.getUsername())
+            .username(Context.get(USERNAME))
                 .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/invitations", usernameDto);
@@ -315,7 +315,7 @@ public class Client {
     public void sendTyping(String chatId, boolean isTyping) throws Exception {
         TypingDto typingDto = TypingDto.builder()
                 .chatId(chatId)
-                .username(gui.getUsername())
+                .username(Context.get(USERNAME))
                 .isTyping(isTyping)
                 .locale(getLocale())
                 .build();
@@ -366,9 +366,9 @@ public class Client {
 
     private String createErrorMessage(ResponseMessage responseMessage) {
         String time = responseMessage.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
-        return time + " " + language.getErrorCode() + "\n"
-                + language.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
-                + language.getError() + ": " + responseMessage.getMessage();
+        return time + " " + dictionary.getErrorCode() + "\n"
+                + dictionary.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
+                + dictionary.getError() + ": " + responseMessage.getMessage();
     }
 
     private String getLocale() {
@@ -385,7 +385,7 @@ public class Client {
     }
 
     private void loadProperties() {
-        this.httpURI = configsRepository.getConfig("http-uri");
-        this.wsURI = configsRepository.getConfig("ws-uri");
+        this.httpURI = configsRepository.getConfig(HTTP_URI.getConfigName());
+        this.wsURI = configsRepository.getConfig(WS_URI.getConfigName());
     }
 }

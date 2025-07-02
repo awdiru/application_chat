@@ -1,6 +1,6 @@
-package ru.avdonin.client.settings.time_zone;
+package ru.avdonin.client.client.settings.time_zone;
 
-import ru.avdonin.client.settings.BaseFactory;
+import ru.avdonin.client.client.settings.BaseFactory;
 import ru.avdonin.template.exceptions.FactoryException;
 
 import java.time.OffsetDateTime;

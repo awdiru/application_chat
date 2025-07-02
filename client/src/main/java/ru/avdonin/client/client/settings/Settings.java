@@ -1,9 +1,9 @@
-package ru.avdonin.client.settings;
+package ru.avdonin.client.client.settings;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.settings.language.FactoryLanguage;
-import ru.avdonin.client.settings.time_zone.FactoryTimeZone;
+import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.time_zone.FactoryTimeZone;
 
 @Getter
 public enum Settings {
