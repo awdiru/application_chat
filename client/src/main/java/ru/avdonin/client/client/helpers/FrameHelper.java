@@ -1,9 +1,8 @@
 package ru.avdonin.client.client.helpers;
 
-import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.Context;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.context.Context;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -23,7 +22,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
 
 public class FrameHelper {
     private static final BaseDictionary dictionary = Context.get(DICTIONARY);

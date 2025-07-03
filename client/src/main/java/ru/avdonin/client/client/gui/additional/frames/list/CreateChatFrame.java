@@ -1,17 +1,19 @@
 package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.Context;
+import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
 
 public class CreateChatFrame extends BaseAdditionalFrame {
     public CreateChatFrame(boolean isPrivate) {
+        BaseDictionary dictionary = getDictionary();
 
         initFrame(dictionary.getAddChatTitle(),
                 new Dimension(240, 110));
@@ -23,13 +25,13 @@ public class CreateChatFrame extends BaseAdditionalFrame {
         addChatPanel.add(new JLabel(panelName), BorderLayout.NORTH);
         addChatPanel.add(labelField, BorderLayout.CENTER);
 
-        JButton pubChatButton = getPubChatButton(isPrivate, labelField);
+        JButton pubChatButton = getPubChatButton(isPrivate, labelField, dictionary);
 
         addChatPanel.add(pubChatButton, BorderLayout.SOUTH);
         add(addChatPanel);
     }
 
-    private JButton getPubChatButton(boolean isPrivate, JTextField labelField) {
+    private JButton getPubChatButton(boolean isPrivate, JTextField labelField, BaseDictionary dictionary) {
         JButton pubChatButton = new JButton(dictionary.getCreateChat());
         pubChatButton.addActionListener(e -> {
             try {

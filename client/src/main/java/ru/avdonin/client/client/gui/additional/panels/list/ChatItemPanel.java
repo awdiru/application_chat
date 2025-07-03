@@ -1,9 +1,11 @@
 package ru.avdonin.client.client.gui.additional.panels.list;
 
 import lombok.Getter;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
@@ -13,25 +15,64 @@ import java.awt.event.MouseEvent;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
-public class ChatItemJPanel extends BaseJPanel {
+public class ChatItemPanel extends BaseJPanel {
     @Getter
     private final ChatDto chat;
-
     private Integer newMessageCount = 0;
     private JLabel newMessageLabel;
 
-    public ChatItemJPanel(ChatDto chat) {
+    public ChatItemPanel(ChatDto chat) {
+        BaseDictionary dictionary = getDictionary();
         this.chat = chat;
-        createChatItem();
+        createChatItem(dictionary);
     }
 
-    private void createChatItem() {
-        MouseAdapter selectListener = new MouseAdapter() {
+
+    public void addNotificationChat() {
+        newMessageLabel.setIcon(FrameHelper.getNumber(++newMessageCount));
+        FrameHelper.repaintComponents(newMessageLabel);
+    }
+
+    public void delNotificationChat() {
+        newMessageCount = 0;
+        newMessageLabel.setIcon(FrameHelper.getNumber(0));
+        FrameHelper.repaintComponents(newMessageLabel);
+    }
+
+    public void setNewMessageCount(Integer newMessageCount) {
+        this.newMessageCount = newMessageCount - 1;
+        addNotificationChat();
+    }
+
+    private void createChatItem(BaseDictionary dictionary) {
+        MouseAdapter selectListener = getSelectListener();
+        JTextArea chatName = FrameHelper.getTextArea(FrameHelper.getChatName(chat), selectListener);
+
+        JButton menuButton = new JButton(dictionary.getBurger());
+        menuButton.addActionListener(e -> showChatContextMenu(menuButton, dictionary));
+
+        newMessageLabel = new JLabel(FrameHelper.getNumber(0));
+        JPanel containerCN = new JPanel(new BorderLayout());
+        containerCN.add(newMessageLabel);
+
+        add(containerCN, BorderLayout.WEST);
+        add(chatName, BorderLayout.CENTER);
+        add(menuButton, BorderLayout.EAST);
+
+        setMaximumSize(new Dimension(10000, 40));
+        addMouseListener(selectListener);
+        setOpaque(true);
+
+    }
+
+    private MouseAdapter getSelectListener() {
+        MainFrame mainFrame = getMainFrame();
+        return new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 1) {
                     try {
-                        mainFrame.findChat(chat, ChatItemJPanel.this);
+                        mainFrame.findChat(chat, ChatItemPanel.this);
                     } catch (Exception ex) {
                         FrameHelper.errorHandler(ex, mainFrame);
                     }
@@ -48,26 +89,10 @@ public class ChatItemJPanel extends BaseJPanel {
                 e.getComponent().setBackground(BACKGROUND_COLOR.getValue());
             }
         };
-        JTextArea chatName = FrameHelper.getTextArea(FrameHelper.getChatName(chat), selectListener);
-
-        JButton menuButton = new JButton(dictionary.getBurger());
-        menuButton.addActionListener(e -> showChatContextMenu(menuButton));
-
-        newMessageLabel = new JLabel(FrameHelper.getNumber(0));
-        JPanel containerCN = new JPanel(new BorderLayout());
-        containerCN.add(newMessageLabel);
-
-        add(containerCN, BorderLayout.WEST);
-        add(chatName, BorderLayout.CENTER);
-        add(menuButton, BorderLayout.EAST);
-
-        setMaximumSize(new Dimension(10000, 40));
-        addMouseListener(selectListener);
-        setOpaque(true);
-
     }
 
-    private void showChatContextMenu(JComponent parent) {
+    private void showChatContextMenu(JComponent parent, BaseDictionary dictionary) {
+        String username = getUsername();
         JPopupMenu menu = new JPopupMenu();
 
         if (!chat.getPrivateChat()) {
@@ -77,7 +102,7 @@ public class ChatItemJPanel extends BaseJPanel {
             addUserItem.addActionListener(e -> AdditionalFrameFactory.getAddUserFromChatFrame(chat));
             menu.add(addUserItem);
         }
-        if (chat.getAdmin().equals(mainFrame.getUsername()) && !chat.getPrivateChat()) {
+        if (chat.getAdmin().equals(username) && !chat.getPrivateChat()) {
             JMenuItem renameItemAdmin = new JMenuItem();
             renameItemAdmin.setText(dictionary.getRenameChatAdmin());
             renameItemAdmin.setIcon(dictionary.getPencil());
@@ -110,20 +135,10 @@ public class ChatItemJPanel extends BaseJPanel {
     }
 
     private void logoutChat(ChatDto deleteChat) {
+        MainFrame mainFrame = getMainFrame();
         AdditionalFrameFactory.getLogoutChatFrame(deleteChat);
         if (chat != null && deleteChat.getId().equals(chat.getId()))
             mainFrame.getChatArea().removeAll();
         FrameHelper.repaintComponents(mainFrame.getChatsContainer());
-    }
-
-    public void addNotificationChat() {
-        newMessageLabel.setIcon(FrameHelper.getNumber(++newMessageCount));
-        FrameHelper.repaintComponents(newMessageLabel);
-    }
-
-    public void delNotificationChat() {
-        newMessageCount = 0;
-        newMessageLabel.setIcon(FrameHelper.getNumber(0));
-        FrameHelper.repaintComponents(newMessageLabel);
     }
 }

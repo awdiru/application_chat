@@ -1,15 +1,20 @@
 package ru.avdonin.client.client.settings.time_zone;
 
+import ru.avdonin.client.client.context.Context;
+import ru.avdonin.client.client.context.ContextKeys;
 import ru.avdonin.client.client.settings.BaseFactory;
+import ru.avdonin.client.repository.configs.DefaultConfigs;
 import ru.avdonin.template.exceptions.FactoryException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
-public class FactoryTimeZone extends BaseFactory {
+import static ru.avdonin.client.client.context.ContextKeys.TIME_ZONE;
+
+public class FactoryTimeZone extends BaseFactory<EnumTimeZone, BaseTimeZone> {
     private static FactoryTimeZone factory;
-    private static FrameTimeZone timeZone;
-    private static final String TIME_ZONE_CONFIG = "time_zone";
+    private static EnumTimeZone timeZone;
+    private static final String TIME_ZONE_CONFIG = DefaultConfigs.TIME_ZONE.getConfigName();
 
     private FactoryTimeZone() {
     }
@@ -20,47 +25,52 @@ public class FactoryTimeZone extends BaseFactory {
 
     @Override
     public BaseTimeZone getSettings() {
-        return  getFrameSettings().getTimeZone();
+        return getFrameSettings().getTimeZone();
     }
 
     @Override
-    public FrameTimeZone getFrameSettings() {
+    public EnumTimeZone getFrameSettings() {
         if (timeZone == null) {
-            timeZone = FrameTimeZone.valueOf(getProperty(TIME_ZONE_CONFIG));
-            if (timeZone == FrameTimeZone.SYSTEM) timeZone = getSystemTimeZone();
+            timeZone = EnumTimeZone.valueOf(getProperty(TIME_ZONE_CONFIG));
+            if (timeZone == EnumTimeZone.SYSTEM) timeZone = getSystemTimeZone();
         }
         return timeZone;
     }
 
-    public void setTimeZone(FrameTimeZone newTimeZone) {
+    @Override
+    public void setValue(EnumTimeZone value) {
         try {
-            updateProperty(TIME_ZONE_CONFIG, newTimeZone.name());
-            timeZone = newTimeZone;
+            updateProperty(TIME_ZONE_CONFIG, value.name());
+            if (value == EnumTimeZone.SYSTEM) timeZone = getSystemTimeZone();
+            else timeZone = value;
+            Context.put(TIME_ZONE, timeZone);
         } catch (Exception e) {
             throw new FactoryException("Failed to set time zone", e);
         }
     }
 
-    public void setTimeZone(String newTimeZone) {
+    @Override
+    public void setValue(String value) {
         try {
-            FrameTimeZone timeZone = null;
-            for (FrameTimeZone tz : FrameTimeZone.values())
-                if (tz.getSelectedSetting().equals(newTimeZone)) timeZone = tz;
+            EnumTimeZone timeZone = null;
+            for (EnumTimeZone tz : EnumTimeZone.values())
+                if (tz.getSelectedSetting().equals(value)) timeZone = tz;
+
             if (timeZone == null) throw new RuntimeException();
-            setTimeZone(timeZone);
+            setValue(timeZone);
         } catch (Exception e) {
-            throw new FactoryException("Invalid time zone: " + newTimeZone, e);
+            throw new FactoryException("Invalid time zone: " + value, e);
         }
     }
 
-    public static FrameTimeZone getSystemTimeZone() {
+    private static EnumTimeZone getSystemTimeZone() {
         OffsetDateTime time = OffsetDateTime.now(ZoneId.systemDefault());
         String offset = time.getOffset().getId();
-        if (offset.equals("Z")) return FrameTimeZone.GMT_00_00;
+        if (offset.equals("Z")) return EnumTimeZone.GMT_00_00;
         Integer offsetInt = Integer.parseInt(offset.split(":")[0]);
-        for (FrameTimeZone tz : FrameTimeZone.values())
+        for (EnumTimeZone tz : EnumTimeZone.values())
             if (tz.getTimeZoneOffset().equals(offsetInt)) return timeZone = tz;
 
-        return FrameTimeZone.GMT_00_00;
+        return EnumTimeZone.GMT_00_00;
     }
 }

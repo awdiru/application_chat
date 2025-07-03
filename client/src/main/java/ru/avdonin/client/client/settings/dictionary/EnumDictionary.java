@@ -1,12 +1,12 @@
-package ru.avdonin.client.client.settings.language;
+package ru.avdonin.client.client.settings.dictionary;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.client.settings.FrameSettings;
-import ru.avdonin.client.client.settings.language.list.*;
+import ru.avdonin.client.client.settings.EnumSettings;
+import ru.avdonin.client.client.settings.dictionary.list.*;
 
 @Getter
-public enum FrameLanguage implements FrameSettings {
+public enum EnumDictionary implements EnumSettings {
     SYSTEM(new DictionarySystem()),
     RU(new DictionaryRU()),
     EN(new DictionaryEN()),
@@ -14,9 +14,9 @@ public enum FrameLanguage implements FrameSettings {
     IT(new DictionaryIT());
 
     private final BaseDictionary dictionary;
-    private final FactoryLanguage factory = FactoryLanguage.getFactory();
+    private final FactoryDictionary factory = FactoryDictionary.getFactory();
 
-    FrameLanguage(BaseDictionary dictionary) {
+    EnumDictionary(BaseDictionary dictionary) {
         this.dictionary = dictionary;
     }
 

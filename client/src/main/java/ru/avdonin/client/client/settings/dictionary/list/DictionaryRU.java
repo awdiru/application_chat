@@ -1,7 +1,7 @@
-package ru.avdonin.client.client.settings.language.list;
+package ru.avdonin.client.client.settings.dictionary.list;
 
 import lombok.Getter;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 
 @Getter
 public class DictionaryRU extends BaseDictionary {
@@ -9,7 +9,6 @@ public class DictionaryRU extends BaseDictionary {
     private final String customization = "Русский";
     private final String yes = "Да";
     private final String no = "Нет";
-    private final String confirmation = "Подтверждение";
     //Authorization window
     private final String authorization = "Авторизация";
     private final String login = "Войти";
@@ -18,7 +17,6 @@ public class DictionaryRU extends BaseDictionary {
     private final String password = "Пароль";
     //Chat window
     private final String chat = "Чат";
-    private final String chats = "Чаты";
     private final String invitations = "Приглашения";
     //Chats window
     private final String addChatTitle = "Создать чат";
@@ -36,7 +34,6 @@ public class DictionaryRU extends BaseDictionary {
     private final String renameChatAdmin = "Переименовать чат (для всех)";
     private final String rename = "Переименовать";
     private final String addUser = "Добавить пользователя";
-    private final String addUserQuestion = "Имя пользователя";
     private final String add = "Добавить";
     private final String deleteChat = "Удалить чат";
     //invite context menu
@@ -50,11 +47,8 @@ public class DictionaryRU extends BaseDictionary {
     private final String settingsLanguage = "Язык";
     private final String settingsTimeZone = "Часовой пояс";
     private final String settingsSystem = "Системные";
-    private final String restartProgram = "Для применения изменений необходимо перезапустить программу.";
-    private final String warning = "Предупреждение";
     //Errors messages
     private final String error = "Ошибка";
-    private final String authorizationError = "Ошибка авторизации";
     private final String errorCode = "Код ошибки";
     private final String statusCode = "Статусный код";
     //Month (Родительный падеж)
@@ -80,5 +74,4 @@ public class DictionaryRU extends BaseDictionary {
     private final String sunday = "Вс";
     //Exception
     private final String cannotBeRead = "Невозможно прочитать файл изображения";
-    private final String emptyMessage = "Сообщение не может быть пустым";
 }

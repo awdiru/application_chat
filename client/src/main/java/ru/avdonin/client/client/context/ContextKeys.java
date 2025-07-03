@@ -1,27 +1,30 @@
-package ru.avdonin.client.client.constatnts;
+package ru.avdonin.client.client.context;
 
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
+import ru.avdonin.client.client.settings.time_zone.BaseTimeZone;
 import ru.avdonin.client.repository.ConfigsRepository;
 
-import java.util.Map;
-
-@Getter
-public enum KeysCtx {
+public enum ContextKeys {
     DICTIONARY("dictionary", BaseDictionary.class),
+    TIME_ZONE("timeZone", BaseTimeZone.class),
     CLIENT("client", Client.class),
     USERNAME("username", String.class),
-    AVATARS("avatars", Map.class),
     MAIN_FRAME("mainFrame", MainFrame.class),
     CONFIG_REP("config_rep", ConfigsRepository.class);
 
+    @Getter
     private final String key;
-    private final Class<?> valueClass;
+    private final Class<?> aClass;
 
-    KeysCtx(String key, Class<?> valueClass) {
+    ContextKeys(String key, Class<?> aClass) {
         this.key = key;
-        this.valueClass = valueClass;
+        this.aClass = aClass;
+    }
+
+    Class<?> getAClass() {
+        return aClass;
     }
 }

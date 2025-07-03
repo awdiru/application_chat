@@ -2,18 +2,18 @@ package ru.avdonin.client.client.settings;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.dictionary.FactoryDictionary;
 import ru.avdonin.client.client.settings.time_zone.FactoryTimeZone;
 
 @Getter
 public enum Settings {
-    LANGUAGE(FactoryLanguage.getFactory().getSettings().getSettingsLanguage(), FactoryLanguage.getFactory()),
-    TIME_ZONE(FactoryLanguage.getFactory().getSettings().getSettingsTimeZone(), FactoryTimeZone.getFactory()),;
+    LANGUAGE(FactoryDictionary.getFactory().getSettings().getSettingsLanguage(), FactoryDictionary.getFactory()),
+    TIME_ZONE(FactoryDictionary.getFactory().getSettings().getSettingsTimeZone(), FactoryTimeZone.getFactory()),;
 
     private final String settingsName;
-    private final BaseFactory factory;
+    private final BaseFactory<?, ?> factory;
 
-    Settings(String settingsName, BaseFactory factory) {
+    Settings(String settingsName, BaseFactory<?, ?> factory) {
         this.settingsName = settingsName;
         this.factory = factory;
     }
@@ -24,6 +24,6 @@ public enum Settings {
     }
 
     public static void getFrameSettings() {
-        SettingsFrame.getFrame();
+        SettingsFrame.getSettingsFrame();
     }
 }

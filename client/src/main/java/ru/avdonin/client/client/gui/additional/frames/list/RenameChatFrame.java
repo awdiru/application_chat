@@ -2,6 +2,7 @@ package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
@@ -13,6 +14,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
     private final boolean isAdmin;
     
     public RenameChatFrame(ChatDto renameChat, Boolean isAdmin) {
+        BaseDictionary dictionary = getDictionary();
         this.renameChat = renameChat;
         this.isAdmin = isAdmin;
         this.renameField = new JTextField();
@@ -20,7 +22,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
         initFrame(dictionary.getRenameChatCustom() + " " + FrameHelper.getChatName(renameChat),
                 new Dimension(250, 150));
         
-        JButton renameButton = getRenameButton();
+        JButton renameButton = getRenameButton(dictionary);
 
         JPanel renamePanel = new JPanel(new BorderLayout());
         renamePanel.add(renameField, BorderLayout.NORTH);
@@ -28,7 +30,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
         add(renamePanel);
     }
     
-    private JButton getRenameButton() {
+    private JButton getRenameButton(BaseDictionary dictionary) {
         JButton renameButton = new JButton();
         renameButton.setText(dictionary.getRename());
         renameButton.addActionListener(e -> {

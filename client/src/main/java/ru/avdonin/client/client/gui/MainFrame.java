@@ -4,14 +4,14 @@ import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import lombok.Setter;
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.Context;
+import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
-import ru.avdonin.client.client.gui.additional.panels.list.ChatItemJPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.MessageAreaJPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.MessageJPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.ChatItemPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.MessageAreaPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.MessagePanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.Settings;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 import ru.avdonin.template.model.chat.dto.InvitationChatDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -28,24 +28,23 @@ import java.util.*;
 import java.util.List;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
 import static ru.avdonin.template.constatns.Constants.COMPRESSION_AVATAR;
 
 @Getter
 public class MainFrame extends JFrame {
     private final Client client = Context.get(CLIENT);
-    private final BaseDictionary dictionary = Context.get(DICTIONARY);
 
     private final Map<String, ImageIcon> avatars = new HashMap<>();
-    private final Map<String, ChatItemJPanel> chatItemJPanels = new HashMap<>();
+    private final Map<String, ChatItemPanel> chatItemJPanels = new HashMap<>();
 
     private final String username;
 
     @Getter
-    private ChatItemJPanel selectedChat;
+    private ChatItemPanel selectedChat;
     @Setter
     private Integer chatHistoryCount = 1;
-    private MessageAreaJPanel messageArea;
+    private MessageAreaPanel messageArea;
     private JPanel chatArea;
     private JPanel invitationsContainer;
     private JPanel chatsContainer;
@@ -54,12 +53,7 @@ public class MainFrame extends JFrame {
 
 
     public MainFrame() {
-        this(Context.get(USERNAME));
-    }
-
-    public MainFrame(String username) {
-        if (username == null) throw  new IllegalArgumentException("Username has null");
-        this.username = username;
+        this.username = Context.get(USERNAME);
         this.avatars.put(username, getAvatarIcon());
 
         initUi();
@@ -68,14 +62,12 @@ public class MainFrame extends JFrame {
         setVisible(true);
 
         Context.put(MAIN_FRAME, this);
-        Context.put(USERNAME, this.username);
-        Context.put(AVATARS, this.avatars);
     }
 
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(selectedChat.getChat().getId())) return;
 
-        chatArea.add(new MessageJPanel(message));
+        chatArea.add(new MessagePanel(message));
 
         SwingUtilities.invokeLater(() -> {
             JScrollBar scrollBar = chatScroll.getVerticalScrollBar();
@@ -101,9 +93,9 @@ public class MainFrame extends JFrame {
                     chatsContainer.removeAll();
                     chatItemJPanels.clear();
                     for (ChatDto c : get()) {
-                        ChatItemJPanel chatItemJPanel = new ChatItemJPanel(c);
-                        chatsContainer.add(chatItemJPanel);
-                        chatItemJPanels.put(c.getId(), chatItemJPanel);
+                        ChatItemPanel chatItemPanel = new ChatItemPanel(c);
+                        chatsContainer.add(chatItemPanel);
+                        chatItemJPanels.put(c.getId(), chatItemPanel);
                     }
                     if (selectedChat == null) {
                         ChatDto chatDto = get().getFirst();
@@ -118,6 +110,7 @@ public class MainFrame extends JFrame {
     }
 
     private void initUi() {
+        BaseDictionary dictionary = getDictionary();
         setTitle(dictionary.getChat() + " - " + username);
         setSize(600, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -143,7 +136,7 @@ public class MainFrame extends JFrame {
                 try {
                     chatArea.removeAll();
                     for (MessageDto m : get())
-                        chatArea.add(new MessageJPanel(m));
+                        chatArea.add(new MessagePanel(m));
 
                     FrameHelper.repaintComponents(chatArea);
                 } catch (Exception e) {
@@ -177,7 +170,7 @@ public class MainFrame extends JFrame {
                     int totalHeight = 0;
 
                     for (MessageDto m : get()) {
-                        JPanel messageItem = new MessageJPanel(m);
+                        JPanel messageItem = new MessagePanel(m);
                         newMessages.add(messageItem);
                         totalHeight += messageItem.getPreferredSize().height;
                     }
@@ -225,6 +218,7 @@ public class MainFrame extends JFrame {
     }
 
     private void showCreateChatContextMenu(JComponent parent) {
+        BaseDictionary dictionary = getDictionary();
         JPopupMenu menu = new JPopupMenu();
 
         JMenuItem privateChat = new JMenuItem();
@@ -268,6 +262,7 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel getChatsPanel() {
+        BaseDictionary dictionary = getDictionary();
         chatsContainer = new JPanel();
         chatsContainer.setLayout(new BoxLayout(chatsContainer, BoxLayout.Y_AXIS));
 
@@ -309,6 +304,7 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel getInvitationsPanel() {
+        BaseDictionary dictionary = getDictionary();
         invitationsContainer = new JPanel();
         invitationsContainer.setLayout(new BoxLayout(invitationsContainer, BoxLayout.Y_AXIS));
 
@@ -335,6 +331,7 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel createInvitationItem(InvitationChatDto invitation) {
+        BaseDictionary dictionary = getDictionary();
         MouseAdapter selectListener = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -380,6 +377,7 @@ public class MainFrame extends JFrame {
 
 
     private void showInvitationsContextMenu(JComponent parent, InvitationChatDto invitationChatDto) {
+        BaseDictionary dictionary = getDictionary();
         JPopupMenu menu = new JPopupMenu();
 
         JMenuItem confirmInvite = new JMenuItem();
@@ -413,6 +411,7 @@ public class MainFrame extends JFrame {
 
 
     private JPanel getStatusBar() {
+        BaseDictionary dictionary = getDictionary();
         //Панель кнопок
         JPanel buttonsPanel = new JPanel();
         //Перезагрузить
@@ -472,6 +471,7 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel getChatStatusBar() {
+        BaseDictionary dictionary = getDictionary();
         JPanel buttonsPanel = new JPanel();
 
         JButton messagesButton = new JButton(dictionary.getUpArrow());
@@ -536,7 +536,7 @@ public class MainFrame extends JFrame {
     private JPanel getRightPanel() {
         JPanel chatStatusBar = getChatStatusBar();
         JPanel chatPanel = getChatPanel();
-        messageArea = new MessageAreaJPanel();
+        messageArea = new MessageAreaPanel();
 
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.add(chatStatusBar, BorderLayout.NORTH);
@@ -569,17 +569,21 @@ public class MainFrame extends JFrame {
     }
 
     public void connect() throws DeploymentException, IOException {
-        client.connect(username);
+        client.connect();
     }
 
-    public void findChat(ChatDto chat, ChatItemJPanel chatItemJPanel) throws Exception {
+    public void findChat(ChatDto chat, ChatItemPanel chatItemPanel) throws Exception {
         if (selectedChat != null && selectedChat.getChat().equals(chat)) return;
         connect();
         this.messageArea.clear();
-        this.selectedChat = chatItemJPanel;
+        this.selectedChat = chatItemPanel;
         this.chatName.setText(FrameHelper.getChatName(chat));
         this.chatHistoryCount = 1;
         loadChatHistory();
         this.selectedChat.delNotificationChat();
+    }
+
+    private BaseDictionary getDictionary() {
+        return Context.get(DICTIONARY);
     }
 }

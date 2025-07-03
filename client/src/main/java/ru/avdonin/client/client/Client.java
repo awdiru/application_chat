@@ -6,14 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.sun.tools.javac.Main;
 import jakarta.websocket.*;
 import lombok.Getter;
+import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.MainFrame;
+import ru.avdonin.client.client.settings.time_zone.BaseTimeZone;
 import ru.avdonin.client.repository.ConfigsRepository;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
-import ru.avdonin.client.client.settings.language.FactoryLanguage;
-import ru.avdonin.client.client.settings.time_zone.FactoryTimeZone;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
+import ru.avdonin.client.client.settings.dictionary.FactoryDictionary;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.*;
@@ -33,12 +33,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeys.TIME_ZONE;
 import static ru.avdonin.client.repository.configs.DefaultConfigs.*;
 
 @ClientEndpoint
 public class Client {
-    private final BaseDictionary dictionary = Context.get(DICTIONARY);
     private final ConfigsRepository configsRepository = Context.get(CONFIG_REP);
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -56,7 +56,8 @@ public class Client {
         loadProperties();
     }
 
-    public void connect(String username) throws IOException, DeploymentException {
+    public void connect() throws IOException, DeploymentException {
+        String username = Context.get(USERNAME);
         if (isNotConnected()) {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.connectToServer(this, URI.create(wsURI + "/chat?username=" + username));
@@ -76,7 +77,7 @@ public class Client {
 
     @OnMessage
     public void onMessage(String message) throws Exception {
-        ActionNotification actionNotification = objectMapper.readValue(message, ActionNotification.class);
+        ActionNotification<?> actionNotification = objectMapper.readValue(message, ActionNotification.class);
 
         MainFrame mainFrame = Context.get(MAIN_FRAME);
         switch (actionNotification.getAction()) {
@@ -86,7 +87,7 @@ public class Client {
         }
     }
 
-    private void typingAction(ActionNotification actionNotification, MainFrame mainFrame) {
+    private void typingAction(ActionNotification<?> actionNotification, MainFrame mainFrame) {
         ActionNotification.Typing typing;
 
         if (actionNotification.getData() instanceof ActionNotification.Typing)
@@ -98,7 +99,7 @@ public class Client {
         else mainFrame.getMessageArea().delUserTyping(typing.getUsername(), typing.getChatId());
     }
 
-    private void messageAction(ActionNotification actionNotification, MainFrame mainFrame) throws Exception {
+    private void messageAction(ActionNotification<?> actionNotification, MainFrame mainFrame) throws Exception {
         ActionNotification.Message message;
 
         if (actionNotification.getData() instanceof ActionNotification.Message)
@@ -118,10 +119,10 @@ public class Client {
 
         MessageDto messageDto = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
-
+        BaseTimeZone timeZone = getTimeZone();
         messageDto.setTime(messageDto.getTime()
                 .withOffsetSameInstant(ZoneOffset.ofHours(
-                        FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                        timeZone.getOffset()
                 )));
         mainFrame.onMessageReceived(messageDto);
     }
@@ -174,11 +175,12 @@ public class Client {
         HttpResponse<String> response = get("/chat/get/history", chatGetHistoryDto);
         List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
+        BaseTimeZone timeZone = getTimeZone();
         return messages.stream()
                 .peek(message -> {
                     message.setTime(message.getTime()
                             .withOffsetSameInstant(ZoneOffset.ofHours(
-                                    FactoryTimeZone.getFactory().getFrameSettings().getTimeZoneOffset()
+                                    timeZone.getOffset()
                             )));
                 })
                 .toList();
@@ -365,6 +367,7 @@ public class Client {
     }
 
     private String createErrorMessage(ResponseMessage responseMessage) {
+        BaseDictionary dictionary = getDictionary();
         String time = responseMessage.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
         return time + " " + dictionary.getErrorCode() + "\n"
                 + dictionary.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
@@ -372,7 +375,7 @@ public class Client {
     }
 
     private String getLocale() {
-        return FactoryLanguage.getFactory().getSettings().getLocale();
+        return FactoryDictionary.getFactory().getSettings().getLocale();
     }
 
     private URI getURI(String method) {
@@ -387,5 +390,13 @@ public class Client {
     private void loadProperties() {
         this.httpURI = configsRepository.getConfig(HTTP_URI.getConfigName());
         this.wsURI = configsRepository.getConfig(WS_URI.getConfigName());
+    }
+
+    private BaseDictionary getDictionary() {
+        return Context.get(DICTIONARY);
+    }
+
+    private BaseTimeZone getTimeZone() {
+        return Context.get(TIME_ZONE);
     }
 }

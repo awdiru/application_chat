@@ -1,7 +1,7 @@
-package ru.avdonin.client.client.settings.language.list;
+package ru.avdonin.client.client.settings.dictionary.list;
 
 import lombok.Getter;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 
 @Getter
 public class DictionarySP extends BaseDictionary {
@@ -9,7 +9,6 @@ public class DictionarySP extends BaseDictionary {
     private final String customization = "Español";
     private final String yes = "Sí";
     private final String no = "No";
-    private final String confirmation = "Confirmación";
     //Ventana de autorización
     private final String authorization = "Autorización";
     private final String login = "Iniciar sesión";
@@ -18,7 +17,6 @@ public class DictionarySP extends BaseDictionary {
     private final String password = "Contraseña";
     //Ventana de chat
     private final String chat = "Chat";
-    private final String chats = "Chats";
     //Ventana de chats
     private final String addChatTitle = "Crear chat";
     private final String chatName = "Nombre del chat";
@@ -29,18 +27,14 @@ public class DictionarySP extends BaseDictionary {
     private final String renameChatAdmin = "Renombrar chat (para todos)";
     private final String rename = "Renombrar";
     private final String addUser = "Añadir usuario";
-    private final String addUserQuestion = "Nombre de usuario";
     private final String add = "Añadir";
     //Ventana de configuración
     private final String settingsTitle = "Configuración";
     private final String settingsLanguage = "Idioma";
     private final String settingsTimeZone = "Zona horaria";
     private final String settingsSystem = "Sistema";
-    private final String restartProgram = "Para aplicar los cambios, es necesario reiniciar el programa.";
-    private final String warning = "Advertencia";
     //Mensajes de error
     private final String error = "Error";
-    private final String authorizationError = "Error de autorización";
     private final String errorCode = "Código de error";
     private final String statusCode = "Código de estado";
     //Meses (en forma base)

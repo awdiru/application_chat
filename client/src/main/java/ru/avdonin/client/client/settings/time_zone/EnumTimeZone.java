@@ -2,12 +2,12 @@ package ru.avdonin.client.client.settings.time_zone;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.SettingsFrame;
-import ru.avdonin.client.client.settings.FrameSettings;
-import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.settings.EnumSettings;
+import ru.avdonin.client.client.settings.dictionary.FactoryDictionary;
 
 @Getter
-public enum FrameTimeZone implements FrameSettings {
-    SYSTEM(new BaseTimeZone(FactoryLanguage.getFactory().getSettings().getSettingsSystem())),
+public enum EnumTimeZone implements EnumSettings {
+    SYSTEM(new BaseTimeZone(FactoryDictionary.getFactory().getSettings().getSettingsSystem())),
     GMT_13_00(new BaseTimeZone("GMT +13:00", 13)),
     GMT_12_00(new BaseTimeZone("GMT +12:00", 12)),
     GMT_11_00(new BaseTimeZone("GMT +11:00", 11)),
@@ -38,7 +38,7 @@ public enum FrameTimeZone implements FrameSettings {
     private final BaseTimeZone timeZone;
     private final FactoryTimeZone factory = FactoryTimeZone.getFactory();
 
-    FrameTimeZone(BaseTimeZone timeZone) {
+    EnumTimeZone(BaseTimeZone timeZone) {
         this.timeZone = timeZone;
     }
 

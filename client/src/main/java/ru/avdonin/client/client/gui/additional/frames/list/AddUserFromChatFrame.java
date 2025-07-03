@@ -2,6 +2,7 @@ package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
@@ -9,6 +10,8 @@ import java.awt.*;
 
 public class AddUserFromChatFrame extends BaseAdditionalFrame {
     public AddUserFromChatFrame(ChatDto chat) {
+        BaseDictionary dictionary = getDictionary();
+
         initFrame(dictionary.getLogoutChat(),
                 new Dimension(250, 150));
 
@@ -16,7 +19,7 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
         JLabel addLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         addLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JPanel buttonPanel = getAddUserFromChatButtonPanel(chat.getId(), AddUserFromChatFrame.this);
+        JPanel buttonPanel = getAddUserFromChatButtonPanel(chat.getId(), AddUserFromChatFrame.this, dictionary);
 
         JPanel addPanel = new JPanel(new BorderLayout());
         addPanel.add(addLabel, BorderLayout.NORTH);
@@ -25,7 +28,7 @@ public class AddUserFromChatFrame extends BaseAdditionalFrame {
         add(addPanel);
     }
 
-    private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main) {
+    private JPanel getAddUserFromChatButtonPanel(String chatId, JFrame main, BaseDictionary dictionary) {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         JButton addButton = new JButton();
 

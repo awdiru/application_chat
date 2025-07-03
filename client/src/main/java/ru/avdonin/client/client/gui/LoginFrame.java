@@ -1,29 +1,28 @@
 package ru.avdonin.client.client.gui;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.Context;
-import ru.avdonin.client.client.settings.language.BaseDictionary;
-import ru.avdonin.client.client.settings.language.FactoryLanguage;
+import ru.avdonin.client.client.context.Context;
+import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
 
 public class LoginFrame extends JFrame {
     private final Client client = Context.get(CLIENT);
-    private final BaseDictionary language;
     private JTextField usernameField;
     private JPasswordField passwordField;
 
     public LoginFrame() {
-        language = FactoryLanguage.getFactory().getSettings();
         initUi();
         setVisible(true);
     }
 
     private void initUi() {
-        setTitle(language.getAuthorization());
+        BaseDictionary dictionary = getDictionary();
+        setTitle(dictionary.getAuthorization());
         setSize(300, 200);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -33,12 +32,12 @@ public class LoginFrame extends JFrame {
         usernameField = new JTextField();
         passwordField = new JPasswordField();
 
-        JButton loginButton = new JButton(language.getLogin());
-        JButton signupButton = new JButton(language.getSignup());
+        JButton loginButton = new JButton(dictionary.getLogin());
+        JButton signupButton = new JButton(dictionary.getSignup());
 
-        panel.add(new JLabel(language.getUsername()));
+        panel.add(new JLabel(dictionary.getUsername()));
         panel.add(usernameField);
-        panel.add(new JLabel(language.getPassword()));
+        panel.add(new JLabel(dictionary.getPassword()));
         panel.add(passwordField);
 
         panel.add(loginButton);
@@ -62,7 +61,7 @@ public class LoginFrame extends JFrame {
                     client.login(username, password, path);
                     return true;
                 } catch (Exception e) {
-                    errorHandler(e);
+                    FrameHelper.errorHandler(e, LoginFrame.this);
                     dispose();
                     new LoginFrame();
                 }
@@ -74,19 +73,17 @@ public class LoginFrame extends JFrame {
                 try {
                     if (!get()) return;
                     dispose();
-                    client.connect(username);
-                    new MainFrame(username);
+                    Context.put(USERNAME, username);
+                    client.connect();
+                    new MainFrame();
                 } catch (Exception e) {
-                    errorHandler(e);
+                    FrameHelper.errorHandler(e, LoginFrame.this);
                 }
             }
         }.execute();
     }
 
-    private void errorHandler(Exception e) {
-        if (e.getMessage() == null || e.getMessage().isEmpty()) return;
-        JOptionPane.showMessageDialog(LoginFrame.this,
-                e.getMessage(), language.getError(),
-                JOptionPane.ERROR_MESSAGE);
+    private BaseDictionary getDictionary() {
+        return Context.get(DICTIONARY);
     }
 }

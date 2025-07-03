@@ -1,8 +1,11 @@
 package ru.avdonin.client.client.gui.additional.panels.list;
 
 import lombok.Getter;
+import ru.avdonin.client.client.Client;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
@@ -18,7 +21,7 @@ import java.util.Set;
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
 @Getter
-public class MessageAreaJPanel extends BaseJPanel {
+public class MessageAreaPanel extends BaseJPanel {
     private final Set<String> sentImagesBase64 = new HashSet<>();
     private final Set<String> usersTyping = new HashSet<>();
 
@@ -35,14 +38,19 @@ public class MessageAreaJPanel extends BaseJPanel {
     private boolean isEditMode;
 
     //Для редактирования сообщений
-    private MessageJPanel messageJPanel;
+    private MessagePanel messagePanel;
 
-    public MessageAreaJPanel() {
-        initTypingTimer();
-        initMessageAreaJPanel();
+    public MessageAreaPanel() {
+        BaseDictionary dictionary = getDictionary();
+        MainFrame mainFrame = getMainFrame();
+        Client client = getClient();
+
+        initTypingTimer(mainFrame, client);
+        initMessageAreaJPanel(dictionary, mainFrame, client);
     }
 
     public void addUserTyping(String username, String chatId) {
+        MainFrame mainFrame = getMainFrame();
         if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.add(username);
@@ -50,29 +58,11 @@ public class MessageAreaJPanel extends BaseJPanel {
     }
 
     public void delUserTyping(String username, String chatId) {
+        MainFrame mainFrame = getMainFrame();
         if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.remove(username);
         userTyping.setText(getTypingText(usersTyping));
-    }
-
-    public void stopTyping() {
-        try {
-            typingTimer.stop();
-            if (isTyping) {
-                isTyping = false;
-                mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
-            }
-        } catch (Exception e) {
-            FrameHelper.errorHandler(e, mainFrame);
-        }
-    }
-
-    public void clearSent() {
-        sentImagesBase64.clear();
-        attachPanel.removeAll();
-        textArea.setText("");
-        FrameHelper.repaintComponents(attachPanel, textArea);
     }
 
     public void clear() {
@@ -82,18 +72,37 @@ public class MessageAreaJPanel extends BaseJPanel {
         clearSent();
     }
 
-    public void changeMessageMode(MessageJPanel messageJPanel) {
-        this.messageJPanel = messageJPanel;
+    private void clearSent() {
+        sentImagesBase64.clear();
+        attachPanel.removeAll();
+        textArea.setText("");
+        FrameHelper.repaintComponents(attachPanel, textArea);
+    }
+
+    public void changeMessageMode(MessagePanel messagePanel) {
+        this.messagePanel = messagePanel;
         this.isEditMode = true;
-        this.textArea.setText(messageJPanel.getMessageDto().getTextContent());
+        this.textArea.setText(messagePanel.getMessageDto().getTextContent());
         this.sentImagesBase64.clear();
         this.attachPanel.removeAll();
 
-        if (messageJPanel.getMessageDto().getImagesBase64() != null)
-            for (String imageBase64 : messageJPanel.getMessageDto().getImagesBase64()) addImage(imageBase64);
+        if (messagePanel.getMessageDto().getImagesBase64() != null)
+            for (String imageBase64 : messagePanel.getMessageDto().getImagesBase64()) addImage(imageBase64);
     }
 
-    private void initMessageAreaJPanel() {
+    private void stopTyping(MainFrame mainFrame, Client client) {
+        try {
+            typingTimer.stop();
+            if (isTyping) {
+                isTyping = false;
+                client.sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
+            }
+        } catch (Exception e) {
+            FrameHelper.errorHandler(e, mainFrame);
+        }
+    }
+
+    private void initMessageAreaJPanel(BaseDictionary dictionary, MainFrame mainFrame, Client client) {
         textArea = new JTextArea(4, 27);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
@@ -102,12 +111,12 @@ public class MessageAreaJPanel extends BaseJPanel {
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                handleUserTyping();
+                handleUserTyping(mainFrame, client);
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                handleUserTyping();
+                handleUserTyping(mainFrame, client);
             }
 
             @Override
@@ -146,11 +155,11 @@ public class MessageAreaJPanel extends BaseJPanel {
         add(messagePanel, BorderLayout.CENTER);
     }
 
-    private void initTypingTimer() {
+    private void initTypingTimer(MainFrame mainFrame, Client client) {
         int TYPING_DELAY_MS = 10000;
         typingTimer = new Timer(TYPING_DELAY_MS, e -> {
             try {
-                mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
+                client.sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
             } catch (Exception ex) {
                 FrameHelper.errorHandler(ex, mainFrame);
             }
@@ -158,20 +167,20 @@ public class MessageAreaJPanel extends BaseJPanel {
         typingTimer.setRepeats(false);
     }
 
-    private void handleUserTyping() {
+    private void handleUserTyping(MainFrame mainFrame, Client client) {
         boolean hasText = !textArea.getText().trim().isEmpty();
         try {
             if (hasText) {
                 if (!isTyping) {
                     isTyping = true;
-                    mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), true);
+                    client.sendTyping(mainFrame.getSelectedChat().getChat().getId(), true);
                 }
                 typingTimer.restart();
             } else {
                 typingTimer.stop();
                 if (isTyping) {
                     isTyping = false;
-                    mainFrame.getClient().sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
+                    client.sendTyping(mainFrame.getSelectedChat().getChat().getId(), false);
                 }
             }
         } catch (Exception e) {
@@ -180,6 +189,7 @@ public class MessageAreaJPanel extends BaseJPanel {
     }
 
     private void attachButtonAction() {
+        MainFrame mainFrame = getMainFrame();
         try {
             String image = FrameHelper.attachImage();
             addImage(image);
@@ -200,6 +210,7 @@ public class MessageAreaJPanel extends BaseJPanel {
     }
 
     private JButton getDeleteButton(String image, JComponent component) {
+        BaseDictionary dictionary = getDictionary();
         deleteButton = new JButton();
         deleteButton.setIcon(dictionary.getDelete());
         deleteButton.addActionListener(e -> {
@@ -211,6 +222,7 @@ public class MessageAreaJPanel extends BaseJPanel {
     }
 
     private String getTypingText(Set<String> usersTyping) {
+        BaseDictionary dictionary = getDictionary();
         StringBuilder builder = new StringBuilder();
 
         if (usersTyping.isEmpty()) return "";
@@ -219,7 +231,7 @@ public class MessageAreaJPanel extends BaseJPanel {
             builder.append(name).append(", ");
 
         builder.delete(builder.length() - 2, builder.length());
-        builder.append(dictionary.getTyping());
+        builder.append(usersTyping.size() > 1 ? dictionary.getTypings() : dictionary.getTyping());
 
         return builder.toString();
     }
@@ -233,12 +245,15 @@ public class MessageAreaJPanel extends BaseJPanel {
 
     public void sendMessageAction() {
         SwingUtilities.invokeLater(() -> {
+            MainFrame mainFrame = getMainFrame();
+            String username = getUsername();
+            Client client = getClient();
             try {
-                stopTyping();
+                stopTyping(mainFrame, client);
                 mainFrame.connect();
                 MessageDto messageDto = MessageDto.builder()
                         .time(OffsetDateTime.now())
-                        .sender(mainFrame.getUsername())
+                        .sender(username)
                         .chatId(mainFrame.getSelectedChat().getChat().getId())
                         .textContent(textArea.getText())
                         .imagesBase64(sentImagesBase64.isEmpty() ? null : sentImagesBase64)
@@ -246,7 +261,7 @@ public class MessageAreaJPanel extends BaseJPanel {
                         .build();
                 if (FrameHelper.isEmptyMessage(messageDto)) return;
 
-                mainFrame.getClient().sendMessage(messageDto);
+                client.sendMessage(messageDto);
                 mainFrame.onMessageReceived(messageDto);
 
             } catch (Exception e) {
@@ -257,12 +272,14 @@ public class MessageAreaJPanel extends BaseJPanel {
     }
 
     private void changeMessageAction() {
+        MainFrame mainFrame = getMainFrame();
+        Client client = getClient();
         try {
             isEditMode = false;
-            stopTyping();
+            stopTyping(mainFrame, client);
             mainFrame.connect();
 
-            MessageDto oldMessage = messageJPanel.getMessageDto();
+            MessageDto oldMessage = messagePanel.getMessageDto();
 
             MessageDto messageDto = MessageDto.builder()
                     .id(oldMessage.getId())
@@ -276,13 +293,13 @@ public class MessageAreaJPanel extends BaseJPanel {
 
             if (FrameHelper.isEmptyMessage(messageDto)) return;
 
-            mainFrame.getClient().changeMessage(messageDto);
+            client.changeMessage(messageDto);
 
             messageDto.setTextContent(textArea.getText());
             messageDto.setImagesBase64(sentImagesBase64);
 
-            messageJPanel.init(messageDto);
-            FrameHelper.repaintComponents(messageJPanel);
+            messagePanel.init(messageDto);
+            FrameHelper.repaintComponents(messagePanel);
 
         } catch (Exception ex) {
             FrameHelper.errorHandler(ex, mainFrame);

@@ -2,8 +2,11 @@ package ru.avdonin.client.client.gui.additional.panels.list;
 
 import lombok.Getter;
 import lombok.Setter;
+import ru.avdonin.client.client.Client;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
 
 import javax.swing.*;
@@ -12,7 +15,7 @@ import java.awt.*;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
-public class MessageJPanel extends BaseJPanel {
+public class MessagePanel extends BaseJPanel {
     private static final Color SELF_MESSAGE_COLOR = new Color(205, 214, 244);
     private static final Color FRIEND_MESSAGE_COLOR = new Color(157, 180, 239);
     private final Color bgColor;
@@ -29,9 +32,9 @@ public class MessageJPanel extends BaseJPanel {
     @Getter
     private JPanel imagesPanel;
 
-    public MessageJPanel(MessageDto messageDto) {
+    public MessagePanel(MessageDto messageDto) {
         this.messageDto = messageDto;
-        this.bgColor = messageDto.getSender().equals(mainFrame.getUsername()) ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
+        this.bgColor = messageDto.getSender().equals(getUsername()) ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
         init();
     }
 
@@ -41,8 +44,12 @@ public class MessageJPanel extends BaseJPanel {
     }
 
     public void init() {
+        BaseDictionary dictionary = getDictionary();
+        MainFrame mainFrame = getMainFrame();
+        Client client = getClient();
+
         removeAll();
-        initHeader();
+        initHeader(dictionary, mainFrame);
         initText();
         initImages();
         initMessage();
@@ -50,7 +57,7 @@ public class MessageJPanel extends BaseJPanel {
         setBackground(BACKGROUND_COLOR.getValue());
         setOpaque(false);
 
-        if (messageDto.getSender().equals(mainFrame.getUsername()))
+        if (messageDto.getSender().equals(getUsername()))
             setLayout(new FlowLayout(FlowLayout.RIGHT));
         else setLayout(new FlowLayout(FlowLayout.LEFT));
 
@@ -62,13 +69,13 @@ public class MessageJPanel extends BaseJPanel {
         add(messagePanel);
     }
 
-    private void initHeader() {
+    private void initHeader(BaseDictionary dictionary, MainFrame mainFrame) {
         headerPanel = new JPanel(new BorderLayout(5, 0));
         headerPanel.setOpaque(false);
 
         ImageIcon avatarIcon = mainFrame.getAvatars().computeIfAbsent(messageDto.getSender(), k -> {
             mainFrame.getAvatars().put(messageDto.getSender(), dictionary.getDefaultAvatar());
-            mainFrame.loadAvatarAsync(messageDto.getSender(), MessageJPanel.this);
+            mainFrame.loadAvatarAsync(messageDto.getSender(), MessagePanel.this);
             return mainFrame.getAvatars().get(k);
         });
 
@@ -86,15 +93,16 @@ public class MessageJPanel extends BaseJPanel {
         headerPanel.add(title, BorderLayout.CENTER);
 
         JButton actions = new JButton(dictionary.getBurger());
-        actions.addActionListener(e -> showMessageActionsContextMenu(actions));
+        actions.addActionListener(e -> showMessageActionsContextMenu(actions, dictionary, mainFrame));
         headerPanel.add(actions, BorderLayout.EAST);
         headerPanel.setBackground(bgColor);
     }
 
-    private void showMessageActionsContextMenu(JButton parent) {
-        JPopupMenu menu = new JPopupMenu();
+    private void showMessageActionsContextMenu(JButton parent, BaseDictionary dictionary, MainFrame mainFrame) {
+        String username = getUsername();
 
-        if (messageDto.getSender().equals(mainFrame.getUsername())) {
+        JPopupMenu menu = new JPopupMenu();
+        if (messageDto.getSender().equals(getUsername())) {
             JMenuItem changeMessage = new JMenuItem();
             changeMessage.setIcon(dictionary.getPencil());
             changeMessage.setText(dictionary.getChangeMessage());
@@ -102,20 +110,21 @@ public class MessageJPanel extends BaseJPanel {
             menu.add(changeMessage);
         }
 
-        if (messageDto.getSender().equals(mainFrame.getUsername())) {
+        if (messageDto.getSender().equals(username)) {
             JMenuItem deleteMessage = new JMenuItem();
             deleteMessage.setIcon(dictionary.getDelete());
             deleteMessage.setText(dictionary.getDeleteMessage());
-            deleteMessage.addActionListener(e -> deleteMessageAction(messageDto));
+            deleteMessage.addActionListener(e -> deleteMessageAction(messageDto, mainFrame));
             menu.add(deleteMessage);
         }
 
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void deleteMessageAction(MessageDto messageDto) {
+    private void deleteMessageAction(MessageDto messageDto, MainFrame mainFrame) {
+        Client client = getClient();
         try {
-            mainFrame.getClient().deleteMessage(messageDto);
+            client.deleteMessage(messageDto);
             mainFrame.getChatArea().remove(this);
             FrameHelper.repaintComponents(mainFrame.getChatArea());
         } catch (Exception e) {

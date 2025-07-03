@@ -2,10 +2,12 @@ package ru.avdonin.client.repository.configs;
 
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public enum DefaultConfigs {
-    LANGUAGE("language", "SYSTEM"),
-    TIME_ZONE("time_zone", "SYSTEM"),
+    LANGUAGE("language", null),
+    TIME_ZONE("time_zone", null),
     HTTP_URI("http-uri", "http://localhost:8080"),
     WS_URI("ws-uri", "ws://localhost:8080");
 
@@ -14,6 +16,6 @@ public enum DefaultConfigs {
 
     DefaultConfigs(String configName, String configValue) {
         this.configName = configName;
-        this.configValue = configValue;
+        this.configValue = Objects.requireNonNullElse(configValue, "SYSTEM");
     }
 }

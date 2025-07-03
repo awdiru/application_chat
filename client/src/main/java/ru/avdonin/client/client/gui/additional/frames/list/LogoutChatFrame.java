@@ -1,18 +1,20 @@
 package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.Client;
-import ru.avdonin.client.client.Context;
+import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
+import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
 
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.constatnts.KeysCtx.*;
+import static ru.avdonin.client.client.context.ContextKeys.*;
 
 public class LogoutChatFrame extends BaseAdditionalFrame {
     public LogoutChatFrame(ChatDto deleteChat) {
+        BaseDictionary dictionary = getDictionary();
 
         initFrame(dictionary.getLogoutChat(),
                 new Dimension(250, 150));
@@ -21,7 +23,7 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
         JLabel deleteLabel = new JLabel("<html><div style='text-align: center;'>" + question + "</div></html>");
         deleteLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JPanel buttonPanel = getLogoutChatButtonPanel(deleteChat.getId());
+        JPanel buttonPanel = getLogoutChatButtonPanel(deleteChat.getId(), dictionary);
 
         JPanel deletePanel = new JPanel(new BorderLayout());
         deletePanel.add(deleteLabel, BorderLayout.NORTH);
@@ -29,9 +31,9 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
         add(deletePanel);
     }
 
-    private JPanel getLogoutChatButtonPanel(String deleteChatId) {
+    private JPanel getLogoutChatButtonPanel(String deleteChatId, BaseDictionary dictionary) {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
-        JButton yesButton = getYesButton(deleteChatId);
+        JButton yesButton = getYesButton(deleteChatId, dictionary);
 
         JButton noButton = new JButton();
         noButton.addActionListener(e -> dispose());
@@ -46,7 +48,7 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
         return wrapperPanel;
     }
 
-    private JButton getYesButton(String deleteChatId) {
+    private JButton getYesButton(String deleteChatId, BaseDictionary dictionary) {
         JButton yesButton = new JButton();
         yesButton.addActionListener(e -> {
             try {

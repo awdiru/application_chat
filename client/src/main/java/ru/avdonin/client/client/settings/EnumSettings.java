@@ -1,6 +1,6 @@
 package ru.avdonin.client.client.settings;
 
-public interface FrameSettings {
+public interface EnumSettings {
     void getFrame();
     String getSelectedSetting();
 }
