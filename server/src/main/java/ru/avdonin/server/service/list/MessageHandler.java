@@ -20,9 +20,7 @@ import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.exceptions.IncorrectDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
-import ru.avdonin.template.model.chat.dto.ChatIdDto;
 import ru.avdonin.template.model.util.ActionNotification;
-import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 
 import java.io.IOException;
@@ -75,20 +73,26 @@ public class MessageHandler extends TextWebSocketHandler {
 
     }
 
-    public void sendToUsersMessageNotification(ActionNotification actionNotification) throws IOException {
+    public void sendToUsersMessage(ActionNotification actionNotification) throws IOException {
         ActionNotification.Message message;
+
         if (actionNotification.getData() instanceof ActionNotification.Message)
             message = (ActionNotification.Message) actionNotification.getData();
-        else throw new RuntimeException("The message notification contains incorrect information");
+        else throw new RuntimeException("The notification contains incorrect information");
 
-        List<String> users = chatParticipantRepository.findAllParticipant(message.getChatId()).stream()
-                .map(ChatParticipant::getUser)
-                .map(User::getUsername)
-                .toList();
+        List<String> users = getUsers(message.getChatId());
+        sendUsers(users, actionNotification, message.getSender());
+    }
 
-        for (String user : users)
-            if (!user.equals(message.getSender()))
-                sendToUser(user, actionNotification);
+    public void sendToUsersTyping(ActionNotification actionNotification) throws IOException {
+        ActionNotification.Typing typing;
+
+        if (actionNotification.getData() instanceof ActionNotification.Typing)
+            typing = (ActionNotification.Typing) actionNotification.getData();
+        else throw new RuntimeException("The notification contains incorrect information");
+
+        List<String> users = getUsers(typing.getChatId());
+        sendUsers(users, actionNotification, typing.getUsername());
     }
 
     public void sendToUser(String username, ActionNotification message) throws IOException {
@@ -124,5 +128,18 @@ public class MessageHandler extends TextWebSocketHandler {
         String username = uri.getQueryParams().getFirst("username");
         if (username == null) throw new IncorrectUserDataException("Username cannot be empty");
         return username;
+    }
+
+    private void sendUsers(List<String> users, ActionNotification actionNotification, String sender) throws IOException {
+        for (String user : users)
+            if (!user.equals(sender))
+                sendToUser(user, actionNotification);
+    }
+
+    private List<String> getUsers(String chatId) {
+        return chatParticipantRepository.findAllParticipant(chatId).stream()
+                .map(ChatParticipant::getUser)
+                .map(User::getUsername)
+                .toList();
     }
 }

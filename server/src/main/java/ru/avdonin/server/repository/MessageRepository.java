@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import ru.avdonin.server.entity_model.Message;
 
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -16,4 +17,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             order by time desc
             """)
     List<Message> findAllMessagesChat(String chatId, Pageable page);
+
+    List<Message> findAllByTime(Instant time);
 }

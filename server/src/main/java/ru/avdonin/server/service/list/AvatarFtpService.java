@@ -18,7 +18,7 @@ public class AvatarFtpService extends AbstractFtpService {
                 "default",
                 "default-avatar.png",
                 "/user_avatars",
-                (Integer) Constants.COMPRESSION_AVATAR.getValue(),
-                (Integer) Constants.COMPRESSION_AVATAR.getValue());
+                Constants.COMPRESSION_AVATAR.getValue(),
+                Constants.COMPRESSION_AVATAR.getValue());
     }
 }
