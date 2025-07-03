@@ -1,4 +1,4 @@
-package ru.avdonin.client.client.gui.additional.panels.list.elements;
+package ru.avdonin.client.client.gui.additional.panels.list.items;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -72,17 +72,11 @@ public class MessageItemPanel extends BaseJPanel {
         headerPanel = new JPanel(new BorderLayout(5, 0));
         headerPanel.setOpaque(false);
 
-        ImageIcon avatarIcon = mainFrame.getAvatars().computeIfAbsent(messageDto.getSender(), k -> {
-            mainFrame.getAvatars().put(messageDto.getSender(), dictionary.getDefaultAvatar());
-            mainFrame.loadAvatarAsync(messageDto.getSender(), MessageItemPanel.this);
-            return mainFrame.getAvatars().get(k);
-        });
+        ImageIcon avatarIcon = mainFrame.getUserAvatar(messageDto.getSender());
 
-        if (avatarIcon != null) {
-            JLabel avatarLabel = new JLabel(avatarIcon);
-            avatarLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-            headerPanel.add(avatarLabel, BorderLayout.WEST);
-        }
+        JLabel avatarLabel = new JLabel(avatarIcon);
+        avatarLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+        headerPanel.add(avatarLabel, BorderLayout.WEST);
 
         String formattedTitle = "<html><div style='padding:2px'>"
                 + FrameHelper.formatDateTime(messageDto.getTime())

@@ -1,5 +1,6 @@
 package ru.avdonin.server.service.list;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -15,7 +16,9 @@ import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
+import ru.avdonin.template.model.chat.dto.ChatIdDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
 import ru.avdonin.template.model.util.ActionNotification;
 
 import java.io.IOException;
@@ -32,9 +35,11 @@ public class MessageService extends AbstractService {
     private final ChatRepository chatRepository;
     private final ImageFtpService imageFtpService;
     private final MessageHandler messageHandler;
+    private final MessageServiceHelper messageServiceHelper;
     private final Map<String, List<Message>> chatsMessages = new HashMap<>();
     private final Map<String, String> messagesImages = new HashMap<>();
 
+    @Transactional
     public void saveMessage(MessageDto messageDto) throws IOException {
 
         User sender = userRepository.findByUsername(messageDto.getSender())
@@ -55,6 +60,7 @@ public class MessageService extends AbstractService {
                 .chat(chat)
                 .fileNames(fileNames)
                 .edited(false)
+                .isRead(false)
                 .build();
 
         messageRepository.save(message);
@@ -72,11 +78,19 @@ public class MessageService extends AbstractService {
 
     public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
         int from = chatGetHistoryDto.getFrom();
-        List<Message> history = messageRepository.findAllMessagesChat(chatGetHistoryDto.getChatId(),
+        String chatId = chatGetHistoryDto.getChatId();
+
+        List<Message> history = messageRepository.findAllMessagesChat(chatId,
                 PageRequest.of(from, chatGetHistoryDto.getSize()));
 
+        messageServiceHelper.readMessage(new ChatIdDto(chatId, chatGetHistoryDto.getLocale()));
+
         if (from == 0) {
-            List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatGetHistoryDto.getChatId(), k -> new ArrayList<>());
+            List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatId, k -> new ArrayList<>())
+                    .stream()
+                    .peek(m -> m.setIsRead(true))
+                    .toList();
+            chatsMessages.put(chatId, unsavedHistory);
             history.addAll(unsavedHistory);
         }
 
@@ -113,6 +127,24 @@ public class MessageService extends AbstractService {
         messageRepository.delete(message);
     }
 
+    public void readMessage(ChatIdDto chatIdDto) {
+        try {
+            messageServiceHelper.readMessage(chatIdDto);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public UnreadMessagesCountDto getUnreadMessagesCount(ChatIdDto chatIdDto) {
+        long unreadMessagesCount = messageRepository.getUnreadMessagesCount(chatIdDto.getChatId());
+        return UnreadMessagesCountDto.builder()
+                .chatId(chatIdDto.getChatId())
+                .unreadMessagesCount(unreadMessagesCount)
+                .locale(chatIdDto.getLocale())
+                .build();
+    }
+
     private MessageDto getMessageDto(Message message, String locale) {
         Set<String> imagesBase64 = null;
 
@@ -140,6 +172,7 @@ public class MessageService extends AbstractService {
                 .chatId(message.getChat().getId())
                 .imagesBase64(imagesBase64)
                 .edited(message.getEdited())
+                .read(true)
                 .build();
     }
 

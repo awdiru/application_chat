@@ -35,6 +35,9 @@ public class Message {
     @JoinColumn(name = "chat_id")
     private Chat chat;
 
-    @Column(name = "is_editable")
+    @Column(name = "edited")
     private Boolean edited;
+
+    @Column(name = "is_read")
+    private Boolean isRead;
 }

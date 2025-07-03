@@ -5,9 +5,9 @@ import lombok.Setter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
-import ru.avdonin.client.client.gui.additional.panels.list.elements.ChatItemPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.MessageAreaPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.elements.MessageItemPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.items.ChatItemPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.elements.MessageAreaPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.items.MessageItemPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.Settings;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -24,6 +24,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 import static ru.avdonin.client.client.context.ContextKeysEnum.*;
@@ -31,8 +34,9 @@ import static ru.avdonin.template.constatns.Constants.COMPRESSION_AVATAR;
 
 @Getter
 public class MainFrame extends JFrame {
-    private final Map<String, ImageIcon> avatars = new HashMap<>();
-    private final Map<String, ChatItemPanel> chatItemJPanels = new HashMap<>();
+    private final Map<String, ImageIcon> avatars = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Future<?>> pendingAvatarLoads = new ConcurrentHashMap<>();
+    private final Map<String, ChatItemPanel> chatItemJPanels = new ConcurrentHashMap<>();
 
     private final String username;
 
@@ -49,15 +53,15 @@ public class MainFrame extends JFrame {
 
 
     public MainFrame() {
+        Context.put(MAIN_FRAME, this);
+
         this.username = Context.get(USERNAME);
-        this.avatars.put(username, getAvatarIcon());
+        this.avatars.put(username, getUserAvatar(username));
 
         initUi();
         loadChats();
         loadInvitations();
         setVisible(true);
-
-        Context.put(MAIN_FRAME, this);
     }
 
     public void onMessageReceived(MessageDto message) {
@@ -74,6 +78,7 @@ public class MainFrame extends JFrame {
     public void loadChats() {
         new SwingWorker<List<ChatDto>, Void>() {
             final Client client = getClient();
+
             @Override
             protected List<ChatDto> doInBackground() {
                 try {
@@ -108,6 +113,7 @@ public class MainFrame extends JFrame {
 
     private void initUi() {
         BaseDictionary dictionary = getDictionary();
+
         setTitle(dictionary.getChat() + " - " + username);
         setSize(600, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -119,6 +125,7 @@ public class MainFrame extends JFrame {
     public void loadChatHistory() {
         new SwingWorker<List<MessageDto>, Void>() {
             final Client client = getClient();
+
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
@@ -147,6 +154,7 @@ public class MainFrame extends JFrame {
     private void loadChatHistory(int from) {
         new SwingWorker<List<MessageDto>, Void>() {
             final Client client = getClient();
+
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
@@ -194,6 +202,7 @@ public class MainFrame extends JFrame {
     public void loadInvitations() {
         new SwingWorker<List<InvitationChatDto>, Void>() {
             final Client client = getClient();
+
             @Override
             protected List<InvitationChatDto> doInBackground() {
                 try {
@@ -292,18 +301,6 @@ public class MainFrame extends JFrame {
         return chatsPanel;
     }
 
-    private ImageIcon getAvatarIcon() {
-        Client client = getClient();
-        try {
-            UserDto userDto = client.getUserDto(username);
-            return FrameHelper.getScaledIcon(userDto.getAvatarBase64(),
-                    COMPRESSION_AVATAR.getValue(),
-                    COMPRESSION_AVATAR.getValue());
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
     private JPanel getInvitationsPanel() {
         BaseDictionary dictionary = getDictionary();
         invitationsContainer = new JPanel();
@@ -361,19 +358,41 @@ public class MainFrame extends JFrame {
         return itemPanel;
     }
 
-    public void loadAvatarAsync(String username, JComponent component) {
-        Client client = getClient();
-        SwingUtilities.invokeLater(() -> {
-            try {
-                String avatarBase64 = client.getAvatar(username);
-                ImageIcon avatar = FrameHelper.getScaledIcon(avatarBase64,
-                        COMPRESSION_AVATAR.getValue(),
-                        COMPRESSION_AVATAR.getValue());
-                avatars.get(username).setImage(avatar.getImage());
-                FrameHelper.repaintComponents(component);
-            } catch (Exception e) {
-                FrameHelper.errorHandler(e, MainFrame.this);
-            }
+    public ImageIcon getUserAvatar(String username) {
+        ImageIcon avatar = avatars.get(username);
+        if (avatar == null) {
+            avatar = new ImageIcon(getDictionary().getDefaultAvatar().getImage());
+            avatars.put(username, avatar);
+            loadAvatarAsync(username);
+        }
+        return avatar;
+    }
+
+    private void loadAvatarAsync(String username) {
+        pendingAvatarLoads.compute(username, (key, existingTask) -> {
+
+            if (existingTask != null && !existingTask.isDone()) return existingTask;
+
+            return ForkJoinPool.commonPool().submit(() -> {
+                try {
+                    Thread.sleep(1000);
+
+                    Client client = getClient();
+                    String avatarBase64 = client.getAvatar(username);
+                    if (avatarBase64 == null || avatarBase64.isEmpty()) return;
+                    ImageIcon avatar = FrameHelper.getScaledIcon(avatarBase64,
+                            COMPRESSION_AVATAR.getValue(),
+                            COMPRESSION_AVATAR.getValue());
+
+                    avatars.get(username).setImage(avatar.getImage());
+                    FrameHelper.repaintComponents(chatArea);
+
+                } catch (Exception e) {
+                    FrameHelper.errorHandler(e, MainFrame.this);
+                } finally {
+                    pendingAvatarLoads.remove(username);
+                }
+            });
         });
     }
 
@@ -423,8 +442,11 @@ public class MainFrame extends JFrame {
         //Перезагрузить
         JButton restart = new JButton(dictionary.getReboot());
         restart.addActionListener(e -> {
+            dispose();
+            pendingAvatarLoads.clear();
             avatars.clear();
-            FrameHelper.restart(MainFrame.this);
+            chatItemJPanels.clear();
+            new MainFrame();
         });
         buttonsPanel.add(restart);
         //Настройки
@@ -518,7 +540,7 @@ public class MainFrame extends JFrame {
         for (UserDto user : users) {
             JMenuItem userItem = new JMenuItem();
 
-            userItem.setIcon(FrameHelper.getScaledIcon(user.getAvatarBase64(), 16, 16));
+            userItem.setIcon(FrameHelper.getScaledIcon(getUserAvatar(user.getUsername()), 16, 16));
             userItem.setText(user.getUsername());
 
             participants.add(userItem);
@@ -582,6 +604,7 @@ public class MainFrame extends JFrame {
 
         if (selectedChat != null && selectedChat.getChat().equals(chat)) return;
         client.connect();
+        client.readMessages(chat.getId());
         this.messageArea.clear();
         this.selectedChat = chatItemPanel;
         this.chatName.setText(FrameHelper.getChatName(chat));

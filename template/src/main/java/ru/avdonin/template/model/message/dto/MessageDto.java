@@ -24,6 +24,7 @@ public class MessageDto {
     @ToString.Exclude
     private Set<String> imagesBase64;
     private Boolean edited;
+    private Boolean read;
     @EqualsAndHashCode.Exclude
     private String locale;
 }

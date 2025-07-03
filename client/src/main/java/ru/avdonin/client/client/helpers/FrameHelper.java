@@ -59,16 +59,13 @@ public class FrameHelper {
     }
 
     public static void errorHandler(Exception e, JFrame parent) {
-        if (e.getMessage() == null || e.getMessage().isEmpty()) return;
-        JOptionPane.showMessageDialog(parent, e.getMessage(), dictionary.getError(), JOptionPane.ERROR_MESSAGE);
+        String text;
+        text = isEmptyException(e) ? e.getClass().toString() : e.getMessage();
+        JOptionPane.showMessageDialog(parent, text, dictionary.getError(), JOptionPane.ERROR_MESSAGE);
     }
 
-    public static <F extends JFrame> void restart(F parent) {
-        parent.dispose();
-        F frame;
-        if (parent instanceof  MainFrame) frame = (F) new MainFrame();
-        else throw new IllegalArgumentException("unknown class");
-        frame.setVisible(true);
+    private static boolean isEmptyException(Exception e) {
+        return e.getMessage() == null || e.getMessage().isEmpty();
     }
 
     public static String formatDateTime(OffsetDateTime dateTime) {
@@ -144,8 +141,19 @@ public class FrameHelper {
             Image scaledImage = icon.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
             return new ImageIcon(scaledImage);
 
-        } catch (Exception ignored) {
-            return dictionary.getDefaultImage();
+        } catch (Exception e) {
+            errorHandler(e, Context.get(MAIN_FRAME));
+            return new ImageIcon();
+        }
+    }
+
+    public static ImageIcon getScaledIcon(ImageIcon image, int x, int y) {
+        try {
+            Image scaledImage = image.getImage().getScaledInstance(x, y, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
+        } catch (Exception e) {
+            errorHandler(e, Context.get(MAIN_FRAME));
+            return new ImageIcon();
         }
     }
 

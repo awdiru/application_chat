@@ -11,6 +11,5 @@ import lombok.*;
 public class UserDto {
     private Long id;
     private String username;
-    private String avatarBase64;;
     private String locale;
 }

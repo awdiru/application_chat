@@ -46,7 +46,7 @@ public class UserController extends AbstractController {
     }
 
     @PostMapping("/avatar/change")
-    public ResponseEntity<Object> changeAvatar(@RequestBody UserDto userDto) {
+    public ResponseEntity<Object> changeAvatar(@RequestBody UserAvatarDto userDto) {
         try {
             log.info("change user avatar: " + userDto.getUsername());
             userService.changeAvatar(userDto);

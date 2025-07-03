@@ -84,7 +84,7 @@ public class UserService extends AbstractService {
                 .build();
     }
 
-    public void changeAvatar(UserDto userDto) {
+    public void changeAvatar(UserAvatarDto userDto) {
         User user = searchUserByUsername(userDto.getUsername(), userDto.getLocale());
         String newAvatarName = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("dd-MM-yyyy|HH-mm-ss-SSS"))
@@ -92,7 +92,6 @@ public class UserService extends AbstractService {
         user.setAvatarFileName(newAvatarName);
         User saved = userRepository.save(user);
         avatarFtpService.upload(saved.getUsername(), saved.getAvatarFileName(), userDto.getAvatarBase64());
-        //messageService.getUsersAvatar().put(user.getUsername(), userDto.getAvatarBase64());
     }
 
     public UserDto getUserByUsername(UserDto userDto) {
@@ -100,7 +99,6 @@ public class UserService extends AbstractService {
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .avatarBase64(avatarFtpService.download(user.getUsername(), user.getAvatarFileName()))
                 .build();
     }
 

@@ -1,10 +1,10 @@
-package ru.avdonin.client.client.gui.additional.panels.list;
+package ru.avdonin.client.client.gui.additional.panels.list.elements;
 
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.elements.MessageItemPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.items.MessageItemPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;

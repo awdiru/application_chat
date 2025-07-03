@@ -30,7 +30,8 @@ CREATE TABLE public.messages (
     sender_id   int8                              NOT NULL,
 	chat_id     varchar(255)                      NOT NULL,
 	"file_name" varchar,
-	is_editable bool DEFAULT false                NOT NULL,
+	edited      bool DEFAULT false,
+	is_read     bool DEFAULT false,
 	CONSTRAINT messages_pk PRIMARY KEY (id),
 	CONSTRAINT messages_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE,
 	CONSTRAINT messages_users_fk FOREIGN KEY (sender_id) REFERENCES public.users(id)

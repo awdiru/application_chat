@@ -1,6 +1,7 @@
-package ru.avdonin.client.client.gui.additional.panels.list.elements;
+package ru.avdonin.client.client.gui.additional.panels.list.items;
 
 import lombok.Getter;
+import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
@@ -16,30 +17,39 @@ import java.awt.event.MouseEvent;
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
 public class ChatItemPanel extends BaseJPanel {
+    private final JLabel newMessageLabel = new JLabel();
     @Getter
     private final ChatDto chat;
     private Integer newMessageCount = 0;
-    private JLabel newMessageLabel;
 
     public ChatItemPanel(ChatDto chat) {
-        BaseDictionary dictionary = getDictionary();
         this.chat = chat;
-        createChatItem(dictionary);
+        try {
+            BaseDictionary dictionary = getDictionary();
+            Client client = getClient();
+
+            Integer unreadMessagesCount = Math.toIntExact(client.getUnreadMessagesCount(chat.getId()));
+            setNewMessageCount(unreadMessagesCount);
+            createChatItem(dictionary);
+
+        } catch (Exception e) {
+            FrameHelper.errorHandler(e, getMainFrame());
+        }
     }
 
 
     public void addNotificationChat() {
         newMessageLabel.setIcon(FrameHelper.getNumber(++newMessageCount));
-        FrameHelper.repaintComponents(newMessageLabel);
+        FrameHelper.repaintComponents(this);
     }
 
     public void delNotificationChat() {
         newMessageCount = 0;
         newMessageLabel.setIcon(FrameHelper.getNumber(0));
-        FrameHelper.repaintComponents(newMessageLabel);
+        FrameHelper.repaintComponents(this);
     }
 
-    public void setNewMessageCount(Integer newMessageCount) {
+    private void setNewMessageCount(Integer newMessageCount) {
         this.newMessageCount = newMessageCount - 1;
         addNotificationChat();
     }
@@ -51,7 +61,6 @@ public class ChatItemPanel extends BaseJPanel {
         JButton menuButton = new JButton(dictionary.getBurger());
         menuButton.addActionListener(e -> showChatContextMenu(menuButton, dictionary));
 
-        newMessageLabel = new JLabel(FrameHelper.getNumber(0));
         JPanel containerCN = new JPanel(new BorderLayout());
         containerCN.add(newMessageLabel);
 

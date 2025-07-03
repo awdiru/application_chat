@@ -18,6 +18,7 @@ import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
 import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.*;
 import ru.avdonin.template.model.util.LocaleDto;
@@ -233,7 +234,7 @@ public class Client {
 
     public List<InvitationChatDto> getInvitationsChats() throws Exception {
         UsernameDto usernameDto = UsernameDto.builder()
-            .username(Context.get(USERNAME))
+                .username(Context.get(USERNAME))
                 .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/invitations", usernameDto);
@@ -287,7 +288,7 @@ public class Client {
     }
 
     public void avatarChange(String username, String avatarBase64) throws Exception {
-        UserDto userDto = UserDto.builder()
+        UserAvatarDto userDto = UserAvatarDto.builder()
                 .username(username)
                 .avatarBase64(avatarBase64)
                 .locale(getLocale())
@@ -323,6 +324,29 @@ public class Client {
                 .build();
 
         post("/typing", typingDto);
+    }
+
+    public Long getUnreadMessagesCount(String chatId) throws Exception {
+        ChatIdDto chatIdDto = ChatIdDto.builder()
+                .chatId(chatId)
+                .locale(getLocale())
+                .build();
+        HttpResponse<String> response = get("/message/unread/get", chatIdDto);
+        UnreadMessagesCountDto unreadMessagesCountDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        });
+
+        if (!unreadMessagesCountDto.getChatId().equals(chatId))
+            throw new RuntimeException("Not found server response");
+
+        return unreadMessagesCountDto.getUnreadMessagesCount();
+    }
+
+    public void readMessages(String chatId) throws Exception {
+        ChatIdDto chatIdDto = ChatIdDto.builder()
+                .chatId(chatId)
+                .locale(getLocale())
+                .build();
+        post("/message/read", chatIdDto);
     }
 
     private HttpResponse<String> get(String method, Object body) throws Exception {
@@ -369,13 +393,13 @@ public class Client {
     private String createErrorMessage(ResponseMessage responseMessage) {
         BaseDictionary dictionary = getDictionary();
         String time = responseMessage.getTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm"));
-        return time + " " + dictionary.getErrorCode() + "\n"
-                + dictionary.getStatusCode() + ": " + responseMessage.getStatus() + "\n"
+        return time + "\n"
+                + dictionary.getErrorCode() + ": " + responseMessage.getStatus() + "\n"
                 + dictionary.getError() + ": " + responseMessage.getMessage();
     }
 
     private String getLocale() {
-        return FactoryDictionary.getFactory().getSettings().getLocale();
+        return getDictionary().getLocale();
     }
 
     private URI getURI(String method) {
