@@ -1,14 +1,13 @@
 package ru.avdonin.client.client.settings.dictionary;
 
 import ru.avdonin.client.client.context.Context;
-import ru.avdonin.client.client.context.ContextKeys;
 import ru.avdonin.client.client.settings.BaseFactory;
 import ru.avdonin.client.repository.configs.DefaultConfigs;
 import ru.avdonin.template.exceptions.FactoryException;
 
 import java.util.Locale;
 
-import static ru.avdonin.client.client.context.ContextKeys.DICTIONARY;
+import static ru.avdonin.client.client.context.ContextKeysEnum.DICTIONARY;
 
 public class FactoryDictionary extends BaseFactory<EnumDictionary, BaseDictionary> {
     private static FactoryDictionary factory;

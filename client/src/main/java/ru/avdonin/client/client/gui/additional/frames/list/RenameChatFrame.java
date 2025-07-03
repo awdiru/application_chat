@@ -1,5 +1,8 @@
 package ru.avdonin.client.client.gui.additional.frames.list;
 
+import com.sun.tools.javac.Main;
+import ru.avdonin.client.client.Client;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -15,6 +18,7 @@ public class RenameChatFrame extends BaseAdditionalFrame {
     
     public RenameChatFrame(ChatDto renameChat, Boolean isAdmin) {
         BaseDictionary dictionary = getDictionary();
+
         this.renameChat = renameChat;
         this.isAdmin = isAdmin;
         this.renameField = new JTextField();
@@ -31,16 +35,19 @@ public class RenameChatFrame extends BaseAdditionalFrame {
     }
     
     private JButton getRenameButton(BaseDictionary dictionary) {
+        MainFrame mainFrame = getMainFrame();
+        Client client = getClient();
+
         JButton renameButton = new JButton();
         renameButton.setText(dictionary.getRename());
         renameButton.addActionListener(e -> {
             try {
                 if (!renameField.getText().equals(renameChat.getChatName())) {
-                    parent.getClient().renameChat(parent.getUsername(), renameChat.getId(), renameField.getText(), isAdmin);
-                    parent.loadChats();
+                    client.renameChat(mainFrame.getUsername(), renameChat.getId(), renameField.getText(), isAdmin);
+                    mainFrame.loadChats();
                 }
             } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, parent);
+                FrameHelper.errorHandler(ex, mainFrame);
             } finally {
                 dispose();
             }

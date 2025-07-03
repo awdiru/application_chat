@@ -33,8 +33,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
-import static ru.avdonin.client.client.context.ContextKeys.TIME_ZONE;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.TIME_ZONE;
 import static ru.avdonin.client.repository.configs.DefaultConfigs.*;
 
 @ClientEndpoint

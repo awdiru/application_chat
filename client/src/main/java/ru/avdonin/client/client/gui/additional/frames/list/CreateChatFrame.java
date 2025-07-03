@@ -2,6 +2,7 @@ package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.context.Context;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -9,7 +10,7 @@ import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class CreateChatFrame extends BaseAdditionalFrame {
     public CreateChatFrame(boolean isPrivate) {
@@ -32,13 +33,15 @@ public class CreateChatFrame extends BaseAdditionalFrame {
     }
 
     private JButton getPubChatButton(boolean isPrivate, JTextField labelField, BaseDictionary dictionary) {
+        MainFrame mainFrame = getMainFrame();
+
         JButton pubChatButton = new JButton(dictionary.getCreateChat());
         pubChatButton.addActionListener(e -> {
             try {
                 Client client = Context.get(CLIENT);
                 String username = Context.get(USERNAME);
                 client.createChat(username, labelField.getText(), isPrivate);
-                parent.loadChats();
+                mainFrame.loadChats();
 
             } catch (Exception ex) {
                 FrameHelper.errorHandler(ex, CreateChatFrame.this);

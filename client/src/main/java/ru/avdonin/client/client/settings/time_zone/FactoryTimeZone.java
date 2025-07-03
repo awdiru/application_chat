@@ -1,7 +1,6 @@
 package ru.avdonin.client.client.settings.time_zone;
 
 import ru.avdonin.client.client.context.Context;
-import ru.avdonin.client.client.context.ContextKeys;
 import ru.avdonin.client.client.settings.BaseFactory;
 import ru.avdonin.client.repository.configs.DefaultConfigs;
 import ru.avdonin.template.exceptions.FactoryException;
@@ -9,7 +8,7 @@ import ru.avdonin.template.exceptions.FactoryException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
-import static ru.avdonin.client.client.context.ContextKeys.TIME_ZONE;
+import static ru.avdonin.client.client.context.ContextKeysEnum.TIME_ZONE;
 
 public class FactoryTimeZone extends BaseFactory<EnumTimeZone, BaseTimeZone> {
     private static FactoryTimeZone factory;

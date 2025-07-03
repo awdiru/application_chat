@@ -1,4 +1,4 @@
-package ru.avdonin.client.client.gui.additional.panels.list;
+package ru.avdonin.client.client.gui.additional.panels.list.elements;
 
 import lombok.Getter;
 import ru.avdonin.client.client.gui.MainFrame;

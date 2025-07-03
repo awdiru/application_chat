@@ -8,7 +8,7 @@ import ru.avdonin.client.repository.ConfigsRepository;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class Context {
     private static final Map<String, Object> ctx = new HashMap<>();
@@ -20,7 +20,7 @@ public class Context {
         put(CLIENT, new Client());
     }
 
-    public static void put(ContextKeys key, Object value) {
+    public static void put(ContextKeysEnum key, Object value) {
         if (!key.getAClass().isInstance(value))
             throw new IllegalArgumentException("Invalid type for key: " + key
                     + ". Expected: " + key.getAClass() + ", got: " + value.getClass());
@@ -32,7 +32,7 @@ public class Context {
         ctx.put(key, value);
     }
 
-    public static <T> T get(ContextKeys key) {
+    public static <T> T get(ContextKeysEnum key) {
         Object value = ctx.get(key.getKey());
         if (value == null) throw new IllegalArgumentException("key " + key.getKey() + " not found");
         return (T) key.getAClass().cast(value);
@@ -44,7 +44,7 @@ public class Context {
         return value;
     }
 
-    public static void remove(ContextKeys key) {
+    public static void remove(ContextKeysEnum key) {
         ctx.remove(key.getKey());
     }
 

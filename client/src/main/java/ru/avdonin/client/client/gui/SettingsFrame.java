@@ -13,7 +13,7 @@ import ru.avdonin.client.client.settings.time_zone.EnumTimeZone;
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class SettingsFrame {
     private static final Integer WIDTH = 250;

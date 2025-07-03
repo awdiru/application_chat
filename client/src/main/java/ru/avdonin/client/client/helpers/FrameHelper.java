@@ -22,7 +22,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class FrameHelper {
     private static final BaseDictionary dictionary = Context.get(DICTIONARY);
@@ -63,10 +63,12 @@ public class FrameHelper {
         JOptionPane.showMessageDialog(parent, e.getMessage(), dictionary.getError(), JOptionPane.ERROR_MESSAGE);
     }
 
-    public static void restart(JFrame parent) {
+    public static <F extends JFrame> void restart(F parent) {
         parent.dispose();
-        MainFrame mainFrame = new MainFrame();
-        mainFrame.setVisible(true);
+        F frame;
+        if (parent instanceof  MainFrame) frame = (F) new MainFrame();
+        else throw new IllegalArgumentException("unknown class");
+        frame.setVisible(true);
     }
 
     public static String formatDateTime(OffsetDateTime dateTime) {
@@ -204,15 +206,6 @@ public class FrameHelper {
         textArea.setBackground(BACKGROUNG_COLOR);
         textArea.addMouseListener(selectListener);
         return textArea;
-    }
-
-    public static JTextField getTextField(String title) {
-        JTextField textField = new JTextField(title);
-        textField.setEditable(false);
-        textField.setFocusable(false);
-        textField.setBorder(null);
-        textField.setBackground(BACKGROUNG_COLOR);
-        return textField;
     }
 
     public static void setupKeyBindings(JComponent component,

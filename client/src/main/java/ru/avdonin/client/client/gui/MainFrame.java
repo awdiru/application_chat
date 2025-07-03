@@ -1,14 +1,13 @@
 package ru.avdonin.client.client.gui;
 
-import jakarta.websocket.DeploymentException;
 import lombok.Getter;
 import lombok.Setter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
-import ru.avdonin.client.client.gui.additional.panels.list.ChatItemPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.elements.ChatItemPanel;
 import ru.avdonin.client.client.gui.additional.panels.list.MessageAreaPanel;
-import ru.avdonin.client.client.gui.additional.panels.list.MessagePanel;
+import ru.avdonin.client.client.gui.additional.panels.list.elements.MessageItemPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.Settings;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -22,19 +21,16 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 import static ru.avdonin.template.constatns.Constants.COMPRESSION_AVATAR;
 
 @Getter
 public class MainFrame extends JFrame {
-    private final Client client = Context.get(CLIENT);
-
     private final Map<String, ImageIcon> avatars = new HashMap<>();
     private final Map<String, ChatItemPanel> chatItemJPanels = new HashMap<>();
 
@@ -67,7 +63,7 @@ public class MainFrame extends JFrame {
     public void onMessageReceived(MessageDto message) {
         if (!message.getChatId().equals(selectedChat.getChat().getId())) return;
 
-        chatArea.add(new MessagePanel(message));
+        chatArea.add(new MessageItemPanel(message));
 
         SwingUtilities.invokeLater(() -> {
             JScrollBar scrollBar = chatScroll.getVerticalScrollBar();
@@ -77,6 +73,7 @@ public class MainFrame extends JFrame {
 
     public void loadChats() {
         new SwingWorker<List<ChatDto>, Void>() {
+            final Client client = getClient();
             @Override
             protected List<ChatDto> doInBackground() {
                 try {
@@ -121,6 +118,7 @@ public class MainFrame extends JFrame {
 
     public void loadChatHistory() {
         new SwingWorker<List<MessageDto>, Void>() {
+            final Client client = getClient();
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
@@ -136,7 +134,7 @@ public class MainFrame extends JFrame {
                 try {
                     chatArea.removeAll();
                     for (MessageDto m : get())
-                        chatArea.add(new MessagePanel(m));
+                        chatArea.add(new MessageItemPanel(m));
 
                     FrameHelper.repaintComponents(chatArea);
                 } catch (Exception e) {
@@ -148,6 +146,7 @@ public class MainFrame extends JFrame {
 
     private void loadChatHistory(int from) {
         new SwingWorker<List<MessageDto>, Void>() {
+            final Client client = getClient();
             @Override
             protected List<MessageDto> doInBackground() {
                 try {
@@ -170,7 +169,7 @@ public class MainFrame extends JFrame {
                     int totalHeight = 0;
 
                     for (MessageDto m : get()) {
-                        JPanel messageItem = new MessagePanel(m);
+                        JPanel messageItem = new MessageItemPanel(m);
                         newMessages.add(messageItem);
                         totalHeight += messageItem.getPreferredSize().height;
                     }
@@ -194,6 +193,7 @@ public class MainFrame extends JFrame {
 
     public void loadInvitations() {
         new SwingWorker<List<InvitationChatDto>, Void>() {
+            final Client client = getClient();
             @Override
             protected List<InvitationChatDto> doInBackground() {
                 try {
@@ -293,6 +293,7 @@ public class MainFrame extends JFrame {
     }
 
     private ImageIcon getAvatarIcon() {
+        Client client = getClient();
         try {
             UserDto userDto = client.getUserDto(username);
             return FrameHelper.getScaledIcon(userDto.getAvatarBase64(),
@@ -361,6 +362,7 @@ public class MainFrame extends JFrame {
     }
 
     public void loadAvatarAsync(String username, JComponent component) {
+        Client client = getClient();
         SwingUtilities.invokeLater(() -> {
             try {
                 String avatarBase64 = client.getAvatar(username);
@@ -378,6 +380,8 @@ public class MainFrame extends JFrame {
 
     private void showInvitationsContextMenu(JComponent parent, InvitationChatDto invitationChatDto) {
         BaseDictionary dictionary = getDictionary();
+        Client client = getClient();
+
         JPopupMenu menu = new JPopupMenu();
 
         JMenuItem confirmInvite = new JMenuItem();
@@ -411,6 +415,8 @@ public class MainFrame extends JFrame {
 
 
     private JPanel getStatusBar() {
+        Client client = getClient();
+
         BaseDictionary dictionary = getDictionary();
         //Панель кнопок
         JPanel buttonsPanel = new JPanel();
@@ -451,6 +457,8 @@ public class MainFrame extends JFrame {
     }
 
     private void changeAvatar() {
+        Client client = getClient();
+
         JFileChooser fileChooser = new JFileChooser();
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
                 "Image Files", "jpg", "jpeg", "png");
@@ -505,7 +513,7 @@ public class MainFrame extends JFrame {
     private void showParticipantsContextMenu(JComponent parent) throws Exception {
         JPopupMenu participants = new JPopupMenu();
         if (selectedChat == null) return;
-
+        Client client = getClient();
         List<UserDto> users = client.getChatParticipants(selectedChat.getChat().getId());
         for (UserDto user : users) {
             JMenuItem userItem = new JMenuItem();
@@ -521,6 +529,7 @@ public class MainFrame extends JFrame {
 
     private void handleUserSelection(UserDto user) {
         try {
+            Client client = getClient();
             ChatDto newChat = user.getUsername().equals(username)
                     ? client.getPersonalChat(username)
                     : client.getPrivateChat(username, user.getUsername());
@@ -568,13 +577,11 @@ public class MainFrame extends JFrame {
         return main;
     }
 
-    public void connect() throws DeploymentException, IOException {
-        client.connect();
-    }
-
     public void findChat(ChatDto chat, ChatItemPanel chatItemPanel) throws Exception {
+        Client client = getClient();
+
         if (selectedChat != null && selectedChat.getChat().equals(chat)) return;
-        connect();
+        client.connect();
         this.messageArea.clear();
         this.selectedChat = chatItemPanel;
         this.chatName.setText(FrameHelper.getChatName(chat));
@@ -585,5 +592,9 @@ public class MainFrame extends JFrame {
 
     private BaseDictionary getDictionary() {
         return Context.get(DICTIONARY);
+    }
+
+    private Client getClient() {
+        return Context.get(CLIENT);
     }
 }

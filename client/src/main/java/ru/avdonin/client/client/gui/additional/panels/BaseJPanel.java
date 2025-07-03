@@ -7,7 +7,7 @@ import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 
 import javax.swing.*;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class BaseJPanel extends JPanel {
     protected BaseDictionary getDictionary() {

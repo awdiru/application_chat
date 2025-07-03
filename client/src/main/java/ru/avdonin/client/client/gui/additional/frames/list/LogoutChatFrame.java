@@ -2,6 +2,7 @@ package ru.avdonin.client.client.gui.additional.frames.list;
 
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.context.Context;
+import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.BaseAdditionalFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -10,7 +11,7 @@ import ru.avdonin.template.model.chat.dto.ChatDto;
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class LogoutChatFrame extends BaseAdditionalFrame {
     public LogoutChatFrame(ChatDto deleteChat) {
@@ -49,6 +50,8 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
     }
 
     private JButton getYesButton(String deleteChatId, BaseDictionary dictionary) {
+        MainFrame mainFrame = getMainFrame();
+
         JButton yesButton = new JButton();
         yesButton.addActionListener(e -> {
             try {
@@ -56,10 +59,10 @@ public class LogoutChatFrame extends BaseAdditionalFrame {
                 String username = Context.get(USERNAME);
 
                 client.logoutOfChat(username, deleteChatId);
-                parent.loadChats();
+                mainFrame.loadChats();
 
             } catch (Exception ex) {
-                FrameHelper.errorHandler(ex, parent);
+                FrameHelper.errorHandler(ex, mainFrame);
             } finally {
                 dispose();
             }

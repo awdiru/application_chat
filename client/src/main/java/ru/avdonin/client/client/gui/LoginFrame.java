@@ -8,7 +8,7 @@ import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import javax.swing.*;
 import java.awt.*;
 
-import static ru.avdonin.client.client.context.ContextKeys.*;
+import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class LoginFrame extends JFrame {
     private final Client client = Context.get(CLIENT);

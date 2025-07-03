@@ -1,4 +1,4 @@
-package ru.avdonin.client.client.gui.additional.panels.list;
+package ru.avdonin.client.client.gui.additional.panels.list.elements;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +15,7 @@ import java.awt.*;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
-public class MessagePanel extends BaseJPanel {
+public class MessageItemPanel extends BaseJPanel {
     private static final Color SELF_MESSAGE_COLOR = new Color(205, 214, 244);
     private static final Color FRIEND_MESSAGE_COLOR = new Color(157, 180, 239);
     private final Color bgColor;
@@ -32,7 +32,7 @@ public class MessagePanel extends BaseJPanel {
     @Getter
     private JPanel imagesPanel;
 
-    public MessagePanel(MessageDto messageDto) {
+    public MessageItemPanel(MessageDto messageDto) {
         this.messageDto = messageDto;
         this.bgColor = messageDto.getSender().equals(getUsername()) ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
         init();
@@ -46,7 +46,6 @@ public class MessagePanel extends BaseJPanel {
     public void init() {
         BaseDictionary dictionary = getDictionary();
         MainFrame mainFrame = getMainFrame();
-        Client client = getClient();
 
         removeAll();
         initHeader(dictionary, mainFrame);
@@ -75,7 +74,7 @@ public class MessagePanel extends BaseJPanel {
 
         ImageIcon avatarIcon = mainFrame.getAvatars().computeIfAbsent(messageDto.getSender(), k -> {
             mainFrame.getAvatars().put(messageDto.getSender(), dictionary.getDefaultAvatar());
-            mainFrame.loadAvatarAsync(messageDto.getSender(), MessagePanel.this);
+            mainFrame.loadAvatarAsync(messageDto.getSender(), MessageItemPanel.this);
             return mainFrame.getAvatars().get(k);
         });
 

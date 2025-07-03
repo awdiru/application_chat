@@ -4,6 +4,7 @@ import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
+import ru.avdonin.client.client.gui.additional.panels.list.elements.MessageItemPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -38,7 +39,7 @@ public class MessageAreaPanel extends BaseJPanel {
     private boolean isEditMode;
 
     //Для редактирования сообщений
-    private MessagePanel messagePanel;
+    private MessageItemPanel messageItemPanel;
 
     public MessageAreaPanel() {
         BaseDictionary dictionary = getDictionary();
@@ -79,15 +80,15 @@ public class MessageAreaPanel extends BaseJPanel {
         FrameHelper.repaintComponents(attachPanel, textArea);
     }
 
-    public void changeMessageMode(MessagePanel messagePanel) {
-        this.messagePanel = messagePanel;
+    public void changeMessageMode(MessageItemPanel messageItemPanel) {
+        this.messageItemPanel = messageItemPanel;
         this.isEditMode = true;
-        this.textArea.setText(messagePanel.getMessageDto().getTextContent());
+        this.textArea.setText(messageItemPanel.getMessageDto().getTextContent());
         this.sentImagesBase64.clear();
         this.attachPanel.removeAll();
 
-        if (messagePanel.getMessageDto().getImagesBase64() != null)
-            for (String imageBase64 : messagePanel.getMessageDto().getImagesBase64()) addImage(imageBase64);
+        if (messageItemPanel.getMessageDto().getImagesBase64() != null)
+            for (String imageBase64 : messageItemPanel.getMessageDto().getImagesBase64()) addImage(imageBase64);
     }
 
     private void stopTyping(MainFrame mainFrame, Client client) {
@@ -248,9 +249,10 @@ public class MessageAreaPanel extends BaseJPanel {
             MainFrame mainFrame = getMainFrame();
             String username = getUsername();
             Client client = getClient();
+
             try {
                 stopTyping(mainFrame, client);
-                mainFrame.connect();
+                client.connect();
                 MessageDto messageDto = MessageDto.builder()
                         .time(OffsetDateTime.now())
                         .sender(username)
@@ -277,9 +279,9 @@ public class MessageAreaPanel extends BaseJPanel {
         try {
             isEditMode = false;
             stopTyping(mainFrame, client);
-            mainFrame.connect();
+            client.connect();
 
-            MessageDto oldMessage = messagePanel.getMessageDto();
+            MessageDto oldMessage = messageItemPanel.getMessageDto();
 
             MessageDto messageDto = MessageDto.builder()
                     .id(oldMessage.getId())
@@ -298,8 +300,8 @@ public class MessageAreaPanel extends BaseJPanel {
             messageDto.setTextContent(textArea.getText());
             messageDto.setImagesBase64(sentImagesBase64);
 
-            messagePanel.init(messageDto);
-            FrameHelper.repaintComponents(messagePanel);
+            messageItemPanel.init(messageDto);
+            FrameHelper.repaintComponents(messageItemPanel);
 
         } catch (Exception ex) {
             FrameHelper.errorHandler(ex, mainFrame);

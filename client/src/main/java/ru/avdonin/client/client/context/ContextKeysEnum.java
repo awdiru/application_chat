@@ -7,7 +7,7 @@ import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.client.client.settings.time_zone.BaseTimeZone;
 import ru.avdonin.client.repository.ConfigsRepository;
 
-public enum ContextKeys {
+public enum ContextKeysEnum {
     DICTIONARY("dictionary", BaseDictionary.class),
     TIME_ZONE("timeZone", BaseTimeZone.class),
     CLIENT("client", Client.class),
@@ -19,7 +19,7 @@ public enum ContextKeys {
     private final String key;
     private final Class<?> aClass;
 
-    ContextKeys(String key, Class<?> aClass) {
+    ContextKeysEnum(String key, Class<?> aClass) {
         this.key = key;
         this.aClass = aClass;
     }
