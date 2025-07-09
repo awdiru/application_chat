@@ -17,6 +17,8 @@ import ru.avdonin.template.model.user.dto.UserDto;
 import ru.avdonin.template.model.user.dto.UserFriendDto;
 import ru.avdonin.template.model.user.dto.UsernameDto;
 import ru.avdonin.template.model.util.ActionNotification;
+import ru.avdonin.template.model.util.actions.Actions;
+import ru.avdonin.template.model.util.actions.list.InvitationAct;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -152,9 +154,9 @@ public class ChatService extends AbstractService {
                 .build();
         invitationsRepository.save(invitationChat);
 
-        ActionNotification actionNotification = ActionNotification.builder()
-                .action(ActionNotification.Action.INVITATION)
-                .data(new ActionNotification.Invitation())
+        ActionNotification<?> actionNotification = ActionNotification.builder()
+                .action(Actions.INVITATION)
+                .data(new InvitationAct())
                 .build();
 
         messageHandler.sendToUser(user.getUsername(), actionNotification);
@@ -164,7 +166,7 @@ public class ChatService extends AbstractService {
         User user = getUser(usernameDto.getUsername(), usernameDto.getLocale());
         List<InvitationChat> invitationsChats = invitationsRepository.findAllByUsername(user.getUsername());
         return invitationsChats.stream()
-                .map(inv -> InvitationChatDto.builder()
+                .map(inv -> (InvitationChatDto) InvitationChatDto.builder()
                         .chatId(inv.getChat().getId())
                         .username(inv.getUser().getUsername())
                         .chatName(inv.getChat().getChatName())
@@ -225,7 +227,7 @@ public class ChatService extends AbstractService {
     public List<ChatDto> getChats(String username) {
         return chatParticipantRepository.findAllChatsUser(username).stream()
                 .map(cp ->
-                        ChatDto.builder()
+                        (ChatDto) ChatDto.builder()
                                 .id(cp.getChat().getId())
                                 .chatName(cp.getChat().getChatName())
                                 .admin(cp.getChat().getAdmin().getUsername())

@@ -1,5 +1,6 @@
 package ru.avdonin.client.client.helpers;
 
+import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -25,11 +26,11 @@ import java.util.Base64;
 import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class FrameHelper {
-    private static final BaseDictionary dictionary = Context.get(DICTIONARY);
     public static final Color BACKGROUNG_COLOR = UIManager.getColor("Panel.background");
 
 
     public static String getMonth(OffsetDateTime date) {
+        BaseDictionary dictionary = getDictionary();
         return switch (date.getMonth()) {
             case JANUARY -> dictionary.getJanuary();
             case FEBRUARY -> dictionary.getFebruary();
@@ -47,6 +48,7 @@ public class FrameHelper {
     }
 
     public static String getDayOfWeek(OffsetDateTime date) {
+        BaseDictionary dictionary = getDictionary();
         return switch (date.getDayOfWeek()) {
             case MONDAY -> dictionary.getMonday();
             case TUESDAY -> dictionary.getTuesday();
@@ -59,6 +61,7 @@ public class FrameHelper {
     }
 
     public static void errorHandler(Exception e, JFrame parent) {
+        BaseDictionary dictionary = getDictionary();
         String text;
         text = isEmptyException(e) ? e.getClass().toString() : e.getMessage();
         JOptionPane.showMessageDialog(parent, text, dictionary.getError(), JOptionPane.ERROR_MESSAGE);
@@ -80,6 +83,8 @@ public class FrameHelper {
     }
 
     public static String attachImage() throws IOException {
+        BaseDictionary dictionary = getDictionary();
+
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle(dictionary.getAttachImage());
         fileChooser.setFileFilter(new FileNameExtensionFilter(dictionary.getImages(), "jpg", "png"));
@@ -158,6 +163,7 @@ public class FrameHelper {
     }
 
     public static ImageIcon getIcon(String imageBase64) {
+        BaseDictionary dictionary = getDictionary();
         try {
             byte[] imageData = Base64.getDecoder().decode(imageBase64);
             return new ImageIcon(imageData);
@@ -168,6 +174,7 @@ public class FrameHelper {
     }
 
     public static ImageIcon getNumber(Integer num) {
+        BaseDictionary dictionary = getDictionary();
         return switch (num) {
             case 0 -> dictionary.getEnvelope();
             case 1 -> dictionary.getOne();
@@ -233,5 +240,21 @@ public class FrameHelper {
     public static boolean isEmptyMessage(MessageDto messageDto) {
         return (messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
                 && (messageDto.getImagesBase64() == null || messageDto.getImagesBase64().isEmpty());
+    }
+
+    public static BaseDictionary getDictionary() {
+        return Context.get(DICTIONARY);
+    }
+
+    public static MainFrame getMainFrame() {
+        return Context.get(MAIN_FRAME);
+    }
+
+    public static Client getClient() {
+        return Context.get(CLIENT);
+    }
+
+    public static String getUsername() {
+        return Context.get(USERNAME);
     }
 }

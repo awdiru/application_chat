@@ -4,7 +4,6 @@ import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.gui.additional.frames.AdditionalFrameFactory;
-import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.chat.dto.ChatDto;
@@ -16,7 +15,7 @@ import java.awt.event.MouseEvent;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
-public class ChatItemPanel extends BaseJPanel {
+public class ChatItemPanel extends JPanel {
     private final JLabel newMessageLabel = new JLabel();
     @Getter
     private final ChatDto chat;
@@ -25,15 +24,15 @@ public class ChatItemPanel extends BaseJPanel {
     public ChatItemPanel(ChatDto chat) {
         this.chat = chat;
         try {
-            BaseDictionary dictionary = getDictionary();
-            Client client = getClient();
+            BaseDictionary dictionary = FrameHelper.getDictionary();
+            Client client = FrameHelper.getClient();
 
             Integer unreadMessagesCount = Math.toIntExact(client.getUnreadMessagesCount(chat.getId()));
             setNewMessageCount(unreadMessagesCount);
             createChatItem(dictionary);
 
         } catch (Exception e) {
-            FrameHelper.errorHandler(e, getMainFrame());
+            FrameHelper.errorHandler(e, FrameHelper.getMainFrame());
         }
     }
 
@@ -75,7 +74,7 @@ public class ChatItemPanel extends BaseJPanel {
     }
 
     private MouseAdapter getSelectListener() {
-        MainFrame mainFrame = getMainFrame();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
         return new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -101,7 +100,7 @@ public class ChatItemPanel extends BaseJPanel {
     }
 
     private void showChatContextMenu(JComponent parent, BaseDictionary dictionary) {
-        String username = getUsername();
+        String username = FrameHelper.getUsername();
         JPopupMenu menu = new JPopupMenu();
 
         if (!chat.getPrivateChat()) {
@@ -144,7 +143,7 @@ public class ChatItemPanel extends BaseJPanel {
     }
 
     private void logoutChat(ChatDto deleteChat) {
-        MainFrame mainFrame = getMainFrame();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
         AdditionalFrameFactory.getLogoutChatFrame(deleteChat);
         if (chat != null && deleteChat.getId().equals(chat.getId()))
             mainFrame.getChatArea().removeAll();

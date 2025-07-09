@@ -13,7 +13,6 @@ import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.settings.time_zone.BaseTimeZone;
 import ru.avdonin.client.repository.ConfigsRepository;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
-import ru.avdonin.client.client.settings.dictionary.FactoryDictionary;
 import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.*;
@@ -21,9 +20,10 @@ import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
 import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.*;
-import ru.avdonin.template.model.util.LocaleDto;
 import ru.avdonin.template.model.util.ResponseMessage;
 import ru.avdonin.template.model.util.TypingDto;
+import ru.avdonin.template.model.util.actions.list.MessageAct;
+import ru.avdonin.template.model.util.actions.list.TypingAct;
 
 import java.io.IOException;
 import java.net.URI;
@@ -89,31 +89,31 @@ public class Client {
     }
 
     private void typingAction(ActionNotification<?> actionNotification, MainFrame mainFrame) {
-        ActionNotification.Typing typing;
+        TypingAct typingAct;
 
-        if (actionNotification.getData() instanceof ActionNotification.Typing)
-            typing = (ActionNotification.Typing) actionNotification.getData();
+        if (actionNotification.getData() instanceof TypingAct)
+            typingAct = (TypingAct) actionNotification.getData();
         else throw new RuntimeException("The typing notification contains incorrect information");
 
-        if (typing.getIsTyping())
-            mainFrame.getMessageArea().addUserTyping(typing.getUsername(), typing.getChatId());
-        else mainFrame.getMessageArea().delUserTyping(typing.getUsername(), typing.getChatId());
+        if (typingAct.getIsTyping())
+            mainFrame.getMessageArea().addUserTyping(typingAct.getUsername(), typingAct.getChatId());
+        else mainFrame.getMessageArea().delUserTyping(typingAct.getUsername(), typingAct.getChatId());
     }
 
     private void messageAction(ActionNotification<?> actionNotification, MainFrame mainFrame) throws Exception {
-        ActionNotification.Message message;
+        MessageAct messageAct;
 
-        if (actionNotification.getData() instanceof ActionNotification.Message)
-            message = (ActionNotification.Message) actionNotification.getData();
+        if (actionNotification.getData() instanceof MessageAct)
+            messageAct = (MessageAct) actionNotification.getData();
         else throw new RuntimeException("The message notification contains incorrect information");
 
-        if (!message.getChatId().equals(mainFrame.getSelectedChat().getChat().getId())) {
-            mainFrame.getChatItemJPanels().get(message.getChatId()).addNotificationChat();
+        if (!messageAct.getChatId().equals(mainFrame.getSelectedChat().getChat().getId())) {
+            mainFrame.getChatItemJPanels().get(messageAct.getChatId()).addNotificationChat();
             return;
         }
 
         MessageDto requestDto = MessageDto.builder()
-                .id(message.getMessageId())
+                .id(messageAct.getMessageId())
                 .build();
 
         HttpResponse<String> response = get("/message/get", requestDto);
@@ -188,8 +188,11 @@ public class Client {
     }
 
     public List<ChatDto> getChats(String username) throws Exception {
-        LocaleDto localeDto = new LocaleDto(getLocale());
-        HttpResponse<String> response = get("/chat/get/all?username=" + username, localeDto);
+        UsernameDto usernameDto = UsernameDto.builder()
+                .username(username)
+                .locale(getLocale())
+                .build();
+        HttpResponse<String> response = get("/chat/get/all", usernameDto);
         return objectMapper.readValue(response.body(), new TypeReference<>() {
         });
     }

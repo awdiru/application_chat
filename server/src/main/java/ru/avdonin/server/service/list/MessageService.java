@@ -20,6 +20,8 @@ import ru.avdonin.template.model.chat.dto.ChatIdDto;
 import ru.avdonin.template.model.message.dto.MessageDto;
 import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
 import ru.avdonin.template.model.util.ActionNotification;
+import ru.avdonin.template.model.util.actions.Actions;
+import ru.avdonin.template.model.util.actions.list.MessageAct;
 
 import java.io.IOException;
 import java.time.*;
@@ -36,7 +38,6 @@ public class MessageService extends AbstractService {
     private final ImageFtpService imageFtpService;
     private final MessageHandler messageHandler;
     private final MessageServiceHelper messageServiceHelper;
-    private final Map<String, List<Message>> chatsMessages = new HashMap<>();
     private final Map<String, String> messagesImages = new HashMap<>();
 
     @Transactional
@@ -65,9 +66,9 @@ public class MessageService extends AbstractService {
 
         messageRepository.save(message);
 
-        ActionNotification actionNotification = ActionNotification.builder()
-                .action(ActionNotification.Action.MESSAGE)
-                .data(ActionNotification.Message.builder()
+        ActionNotification<?> actionNotification = ActionNotification.builder()
+                .action(Actions.MESSAGE)
+                .data(MessageAct.builder()
                         .messageId(message.getId())
                         .sender(sender.getUsername())
                         .chatId(chat.getId())
@@ -83,16 +84,10 @@ public class MessageService extends AbstractService {
         List<Message> history = messageRepository.findAllMessagesChat(chatId,
                 PageRequest.of(from, chatGetHistoryDto.getSize()));
 
-        messageServiceHelper.readMessage(new ChatIdDto(chatId, chatGetHistoryDto.getLocale()));
-
-        if (from == 0) {
-            List<Message> unsavedHistory = chatsMessages.computeIfAbsent(chatId, k -> new ArrayList<>())
-                    .stream()
-                    .peek(m -> m.setIsRead(true))
-                    .toList();
-            chatsMessages.put(chatId, unsavedHistory);
-            history.addAll(unsavedHistory);
-        }
+        messageServiceHelper.readMessage(ChatIdDto.builder()
+                .chatId(chatId)
+                .locale(chatGetHistoryDto.getLocale())
+                .build());
 
         return history.stream()
                 .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
@@ -128,12 +123,7 @@ public class MessageService extends AbstractService {
     }
 
     public void readMessage(ChatIdDto chatIdDto) {
-        try {
-            messageServiceHelper.readMessage(chatIdDto);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        messageServiceHelper.readMessage(chatIdDto);
     }
 
     public UnreadMessagesCountDto getUnreadMessagesCount(ChatIdDto chatIdDto) {
@@ -172,7 +162,7 @@ public class MessageService extends AbstractService {
                 .chatId(message.getChat().getId())
                 .imagesBase64(imagesBase64)
                 .edited(message.getEdited())
-                .read(true)
+                .isRead(true)
                 .build();
     }
 

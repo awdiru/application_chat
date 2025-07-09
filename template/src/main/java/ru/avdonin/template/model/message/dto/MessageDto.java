@@ -1,6 +1,8 @@
 package ru.avdonin.template.model.message.dto;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
+import ru.avdonin.template.model.BaseDto;
 
 import java.time.OffsetDateTime;
 import java.util.Set;
@@ -9,10 +11,10 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
-@EqualsAndHashCode
-public class MessageDto {
+@EqualsAndHashCode(callSuper = false)
+public class MessageDto extends BaseDto {
     @EqualsAndHashCode.Exclude
     private Long id;
     @EqualsAndHashCode.Exclude
@@ -24,7 +26,5 @@ public class MessageDto {
     @ToString.Exclude
     private Set<String> imagesBase64;
     private Boolean edited;
-    private Boolean read;
-    @EqualsAndHashCode.Exclude
-    private String locale;
+    private Boolean isRead;
 }

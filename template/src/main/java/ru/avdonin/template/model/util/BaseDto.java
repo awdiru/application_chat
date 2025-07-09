@@ -8,6 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 @ToString
-public class LocaleDto {
+public class BaseDto {
     private String locale;
 }

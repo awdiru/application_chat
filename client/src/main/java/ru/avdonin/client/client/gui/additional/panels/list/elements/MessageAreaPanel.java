@@ -3,7 +3,6 @@ package ru.avdonin.client.client.gui.additional.panels.list.elements;
 import lombok.Getter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.gui.additional.panels.list.items.MessageItemPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
@@ -22,7 +21,7 @@ import java.util.Set;
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
 @Getter
-public class MessageAreaPanel extends BaseJPanel {
+public class MessageAreaPanel extends JPanel {
     private final Set<String> sentImagesBase64 = new HashSet<>();
     private final Set<String> usersTyping = new HashSet<>();
 
@@ -42,16 +41,16 @@ public class MessageAreaPanel extends BaseJPanel {
     private MessageItemPanel messageItemPanel;
 
     public MessageAreaPanel() {
-        BaseDictionary dictionary = getDictionary();
-        MainFrame mainFrame = getMainFrame();
-        Client client = getClient();
+        BaseDictionary dictionary =FrameHelper. getDictionary();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
+        Client client = FrameHelper.getClient();
 
         initTypingTimer(mainFrame, client);
         initMessageAreaJPanel(dictionary, mainFrame, client);
     }
 
     public void addUserTyping(String username, String chatId) {
-        MainFrame mainFrame = getMainFrame();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
         if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.add(username);
@@ -59,7 +58,7 @@ public class MessageAreaPanel extends BaseJPanel {
     }
 
     public void delUserTyping(String username, String chatId) {
-        MainFrame mainFrame = getMainFrame();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
         if (!chatId.equals(mainFrame.getSelectedChat().getChat().getId())) return;
 
         usersTyping.remove(username);
@@ -190,7 +189,7 @@ public class MessageAreaPanel extends BaseJPanel {
     }
 
     private void attachButtonAction() {
-        MainFrame mainFrame = getMainFrame();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
         try {
             String image = FrameHelper.attachImage();
             addImage(image);
@@ -211,7 +210,7 @@ public class MessageAreaPanel extends BaseJPanel {
     }
 
     private JButton getDeleteButton(String image, JComponent component) {
-        BaseDictionary dictionary = getDictionary();
+        BaseDictionary dictionary = FrameHelper.getDictionary();
         deleteButton = new JButton();
         deleteButton.setIcon(dictionary.getDelete());
         deleteButton.addActionListener(e -> {
@@ -223,7 +222,7 @@ public class MessageAreaPanel extends BaseJPanel {
     }
 
     private String getTypingText(Set<String> usersTyping) {
-        BaseDictionary dictionary = getDictionary();
+        BaseDictionary dictionary = FrameHelper.getDictionary();
         StringBuilder builder = new StringBuilder();
 
         if (usersTyping.isEmpty()) return "";
@@ -246,9 +245,9 @@ public class MessageAreaPanel extends BaseJPanel {
 
     public void sendMessageAction() {
         SwingUtilities.invokeLater(() -> {
-            MainFrame mainFrame = getMainFrame();
-            String username = getUsername();
-            Client client = getClient();
+            MainFrame mainFrame = FrameHelper.getMainFrame();
+            String username = FrameHelper.getUsername();
+            Client client = FrameHelper.getClient();
 
             try {
                 stopTyping(mainFrame, client);
@@ -274,8 +273,8 @@ public class MessageAreaPanel extends BaseJPanel {
     }
 
     private void changeMessageAction() {
-        MainFrame mainFrame = getMainFrame();
-        Client client = getClient();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
+        Client client = FrameHelper.getClient();
         try {
             isEditMode = false;
             stopTyping(mainFrame, client);

@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.avdonin.client.client.Client;
 import ru.avdonin.client.client.gui.MainFrame;
-import ru.avdonin.client.client.gui.additional.panels.BaseJPanel;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
@@ -15,10 +14,11 @@ import java.awt.*;
 
 import static ru.avdonin.client.client.constatnts.Constants.*;
 
-public class MessageItemPanel extends BaseJPanel {
+public class MessageItemPanel extends JPanel {
     private static final Color SELF_MESSAGE_COLOR = new Color(205, 214, 244);
     private static final Color FRIEND_MESSAGE_COLOR = new Color(157, 180, 239);
-    private final Color bgColor;
+    private final boolean isSelfMessage;
+    // private final Color bgColor;
 
     @Getter
     @Setter
@@ -34,7 +34,7 @@ public class MessageItemPanel extends BaseJPanel {
 
     public MessageItemPanel(MessageDto messageDto) {
         this.messageDto = messageDto;
-        this.bgColor = messageDto.getSender().equals(getUsername()) ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
+        this.isSelfMessage = messageDto.getSender().equals(FrameHelper.getUsername());
         init();
     }
 
@@ -44,8 +44,8 @@ public class MessageItemPanel extends BaseJPanel {
     }
 
     public void init() {
-        BaseDictionary dictionary = getDictionary();
-        MainFrame mainFrame = getMainFrame();
+        BaseDictionary dictionary = FrameHelper.getDictionary();
+        MainFrame mainFrame = FrameHelper.getMainFrame();
 
         removeAll();
         initHeader(dictionary, mainFrame);
@@ -56,7 +56,7 @@ public class MessageItemPanel extends BaseJPanel {
         setBackground(BACKGROUND_COLOR.getValue());
         setOpaque(false);
 
-        if (messageDto.getSender().equals(getUsername()))
+        if (isSelfMessage)
             setLayout(new FlowLayout(FlowLayout.RIGHT));
         else setLayout(new FlowLayout(FlowLayout.LEFT));
 
@@ -88,14 +88,14 @@ public class MessageItemPanel extends BaseJPanel {
         JButton actions = new JButton(dictionary.getBurger());
         actions.addActionListener(e -> showMessageActionsContextMenu(actions, dictionary, mainFrame));
         headerPanel.add(actions, BorderLayout.EAST);
-        headerPanel.setBackground(bgColor);
+        headerPanel.setBackground(getBgColor());
     }
 
     private void showMessageActionsContextMenu(JButton parent, BaseDictionary dictionary, MainFrame mainFrame) {
-        String username = getUsername();
+        String username = FrameHelper.getUsername();
 
         JPopupMenu menu = new JPopupMenu();
-        if (messageDto.getSender().equals(getUsername())) {
+        if (messageDto.getSender().equals(username)) {
             JMenuItem changeMessage = new JMenuItem();
             changeMessage.setIcon(dictionary.getPencil());
             changeMessage.setText(dictionary.getChangeMessage());
@@ -115,7 +115,7 @@ public class MessageItemPanel extends BaseJPanel {
     }
 
     private void deleteMessageAction(MessageDto messageDto, MainFrame mainFrame) {
-        Client client = getClient();
+        Client client = FrameHelper.getClient();
         try {
             client.deleteMessage(messageDto);
             mainFrame.getChatArea().remove(this);
@@ -130,11 +130,12 @@ public class MessageItemPanel extends BaseJPanel {
         if (messageDto.getTextContent() != null && !messageDto.getTextContent().isEmpty()) {
             textPane = FrameHelper.getTextArea(messageDto.getTextContent(), null);
             textPane.setSize(new Dimension(250, Short.MAX_VALUE));
-            textPane.setBackground(bgColor);
+            textPane.setBackground(getBgColor());
         }
     }
 
     private void initImages() {
+        Color bgColor = getBgColor();
         imagesPanel = null;
         if (messageDto.getImagesBase64() != null && !messageDto.getImagesBase64().isEmpty()) {
             imagesPanel = new JPanel();
@@ -165,6 +166,10 @@ public class MessageItemPanel extends BaseJPanel {
         if (imagesPanel != null) messagePanel.add(imagesPanel, BorderLayout.SOUTH);
 
         messagePanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-        messagePanel.setBackground(bgColor);
+        messagePanel.setBackground(getBgColor());
+    }
+
+    private Color getBgColor() {
+        return isSelfMessage ? SELF_MESSAGE_COLOR : FRIEND_MESSAGE_COLOR;
     }
 }

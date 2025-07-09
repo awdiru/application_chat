@@ -1,6 +1,5 @@
 package ru.avdonin.server.controller.list;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +11,8 @@ import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.util.TypingDto;
 
 import ru.avdonin.server.controller.AbstractController;
+import ru.avdonin.template.model.util.actions.list.TypingAct;
+import ru.avdonin.template.model.util.actions.Actions;
 
 
 @RestController
@@ -29,8 +30,8 @@ public class TypingController extends AbstractController {
         try {
             log.info("typing: " + typingDto.getUsername() + " " + typingDto.getIsTyping());
             ActionNotification actionNotification = ActionNotification.builder()
-                    .action(ActionNotification.Action.TYPING)
-                    .data(ActionNotification.Typing.builder()
+                    .action(Actions.TYPING)
+                    .data(TypingAct.builder()
                             .chatId(typingDto.getChatId())
                             .username(typingDto.getUsername())
                             .isTyping(typingDto.getIsTyping())

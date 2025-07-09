@@ -22,6 +22,8 @@ import ru.avdonin.template.exceptions.IncorrectUserDataException;
 import ru.avdonin.template.logger.Logger;
 import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.util.ResponseMessage;
+import ru.avdonin.template.model.util.actions.list.MessageAct;
+import ru.avdonin.template.model.util.actions.list.TypingAct;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -73,29 +75,29 @@ public class MessageHandler extends TextWebSocketHandler {
 
     }
 
-    public void sendToUsersMessage(ActionNotification actionNotification) throws IOException {
-        ActionNotification.Message message;
+    public void sendToUsersMessage(ActionNotification<?> actionNotification) throws IOException {
+        MessageAct messageAct;
 
-        if (actionNotification.getData() instanceof ActionNotification.Message)
-            message = (ActionNotification.Message) actionNotification.getData();
+        if (actionNotification.getData() instanceof MessageAct)
+            messageAct = (MessageAct) actionNotification.getData();
         else throw new RuntimeException("The notification contains incorrect information");
 
-        List<String> users = getUsers(message.getChatId());
-        sendUsers(users, actionNotification, message.getSender());
+        List<String> users = getUsers(messageAct.getChatId());
+        sendUsers(users, actionNotification, messageAct.getSender());
     }
 
-    public void sendToUsersTyping(ActionNotification actionNotification) throws IOException {
-        ActionNotification.Typing typing;
+    public void sendToUsersTyping(ActionNotification<?> actionNotification) throws IOException {
+        TypingAct typingAct;
 
-        if (actionNotification.getData() instanceof ActionNotification.Typing)
-            typing = (ActionNotification.Typing) actionNotification.getData();
+        if (actionNotification.getData() instanceof TypingAct)
+            typingAct = (TypingAct) actionNotification.getData();
         else throw new RuntimeException("The notification contains incorrect information");
 
-        List<String> users = getUsers(typing.getChatId());
-        sendUsers(users, actionNotification, typing.getUsername());
+        List<String> users = getUsers(typingAct.getChatId());
+        sendUsers(users, actionNotification, typingAct.getUsername());
     }
 
-    public void sendToUser(String username, ActionNotification message) throws IOException {
+    public void sendToUser(String username, ActionNotification<?> message) throws IOException {
         WebSocketSession session = sessions.get(username);
         if (session != null && session.isOpen()) {
             log.info("sendMessage: " + message);

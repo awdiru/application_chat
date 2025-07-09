@@ -101,10 +101,10 @@ public class ChatController extends AbstractController {
     }
 
     @GetMapping("/get/all")
-    public ResponseEntity<Object> getChats(@RequestParam String username) {
+    public ResponseEntity<Object> getChats(@RequestBody UsernameDto usernameDto) {
         try {
-            log.info("username: " + username);
-            List<ChatDto> chats = chatService.getChats(username);
+            log.info("username: " + usernameDto.getUsername());
+            List<ChatDto> chats = chatService.getChats(usernameDto.getUsername());
             return ResponseEntity.ok().body(chats);
         } catch (Exception e) {
             return getErrorResponse(e);

@@ -11,7 +11,7 @@ import java.awt.*;
 import static ru.avdonin.client.client.context.ContextKeysEnum.*;
 
 public class LoginFrame extends JFrame {
-    private final Client client = Context.get(CLIENT);
+    private final Client client = FrameHelper.getClient();
     private JTextField usernameField;
     private JPasswordField passwordField;
 
