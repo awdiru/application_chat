@@ -54,4 +54,15 @@ CREATE TABLE public.invitation_chat (
 	CONSTRAINT invitation_chat_users_fk FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
+CREATE TABLE public.forwarded_messages (
+	id         int8 GENERATED ALWAYS AS IDENTITY NOT NULL,
+    message_id int8                              NOT NULL,
+    sender_id  int8                              NOT NULL,
+    chat_id    varchar(255)                      NOT NULL,
+	"time"     timestamp                         NOT NULL,
+	CONSTRAINT forwarded_messages_messages_fk FOREIGN KEY (message_id) REFERENCES public.messages(id) ON DELETE CASCADE,
+	CONSTRAINT forwarded_messages_chats_fk FOREIGN KEY (chat_id) REFERENCES public.chats(id) ON DELETE CASCADE,
+	CONSTRAINT forwarded_messages_users_fk FOREIGN KEY (sender_id) REFERENCES public.users(id),
+);
+
 

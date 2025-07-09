@@ -7,6 +7,7 @@ import ru.avdonin.client.client.gui.additional.panels.list.items.MessageItemPane
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -252,7 +253,7 @@ public class MessageAreaPanel extends JPanel {
             try {
                 stopTyping(mainFrame, client);
                 client.connect();
-                MessageDto messageDto = MessageDto.builder()
+                NewMessageDto messageDto = NewMessageDto.builder()
                         .time(OffsetDateTime.now())
                         .sender(username)
                         .chatId(mainFrame.getSelectedChat().getChat().getId())
@@ -280,9 +281,11 @@ public class MessageAreaPanel extends JPanel {
             stopTyping(mainFrame, client);
             client.connect();
 
-            MessageDto oldMessage = messageItemPanel.getMessageDto();
+            MessageDto<?> message = messageItemPanel.getMessageDto();
+            if (!(message.getData() instanceof NewMessageDto oldMessage))
+                throw  new RuntimeException();
 
-            MessageDto messageDto = MessageDto.builder()
+            NewMessageDto messageDto = NewMessageDto.builder()
                     .id(oldMessage.getId())
                     .time(oldMessage.getTime())
                     .sender(oldMessage.getSender())

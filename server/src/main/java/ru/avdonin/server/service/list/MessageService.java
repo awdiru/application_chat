@@ -5,23 +5,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import ru.avdonin.server.entity_model.Chat;
+import ru.avdonin.server.entity_model.*;
 import ru.avdonin.server.repository.ChatRepository;
+import ru.avdonin.server.repository.ForwardedMessageRepository;
 import ru.avdonin.server.service.AbstractService;
 import ru.avdonin.template.exceptions.IncorrectChatDataException;
 import ru.avdonin.template.exceptions.IncorrectDataException;
 import ru.avdonin.template.exceptions.IncorrectUserDataException;
-import ru.avdonin.server.entity_model.Message;
-import ru.avdonin.server.entity_model.User;
 import ru.avdonin.server.repository.MessageRepository;
 import ru.avdonin.server.repository.UserRepository;
 import ru.avdonin.template.model.chat.dto.ChatGetHistoryDto;
 import ru.avdonin.template.model.chat.dto.ChatIdDto;
-import ru.avdonin.template.model.message.dto.MessageDto;
-import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
-import ru.avdonin.template.model.util.ActionNotification;
-import ru.avdonin.template.model.util.actions.Actions;
-import ru.avdonin.template.model.util.actions.list.MessageAct;
+import ru.avdonin.template.model.message.dto.*;
+import ru.avdonin.template.model.util.actions.list.*;
 
 import java.io.IOException;
 import java.time.*;
@@ -33,24 +29,22 @@ import java.util.*;
 public class MessageService extends AbstractService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
-    private final EncryptionService encryptionService;
     private final ChatRepository chatRepository;
+    private final ForwardedMessageRepository forwardedMessageRepository;
+
+    private final EncryptionService encryptionService;
     private final ImageFtpService imageFtpService;
     private final MessageHandler messageHandler;
     private final MessageServiceHelper messageServiceHelper;
+
     private final Map<String, String> messagesImages = new HashMap<>();
 
     @Transactional
-    public void saveMessage(MessageDto messageDto) throws IOException {
+    public void saveMessage(NewMessageDto messageDto) throws IOException {
 
-        User sender = userRepository.findByUsername(messageDto.getSender())
-                .orElseThrow(() -> new IncorrectUserDataException(getDictionary(messageDto.getLocale())
-                        .getSaveMessageIncorrectUserDataException(messageDto.getSender())));
-        Chat chat = chatRepository.findChatById(messageDto.getChatId())
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(messageDto.getLocale())
-                        .getSaveMessageIncorrectChatDataException()));
+        User sender = getUser(messageDto.getSender(), messageDto.getLocale());
+
+        Chat chat = getChat(messageDto.getChatId(), messageDto.getLocale());
 
         String fileNames = getMessageFileNamesAndSaveFiles(messageDto);
 
@@ -65,42 +59,82 @@ public class MessageService extends AbstractService {
                 .build();
 
         messageRepository.save(message);
-
-        ActionNotification<?> actionNotification = ActionNotification.builder()
-                .action(Actions.MESSAGE)
-                .data(MessageAct.builder()
-                        .messageId(message.getId())
-                        .sender(sender.getUsername())
-                        .chatId(chat.getId())
-                        .build())
-                .build();
-        messageHandler.sendToUsersMessage(actionNotification);
+        messageServiceHelper.sendToUsers(MessageAct.builder()
+                .messageId(message.getId())
+                .sender(sender.getUsername())
+                .chatId(chat.getId())
+                .build());
     }
 
-    public List<MessageDto> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
+    @Transactional
+    public void forwardMessage(ForwardedMessageDto messageDto) throws IOException {
+        Message message = getMessageOrException(messageDto.getMessage());
+        User sender = getUser(messageDto.getSender(), messageDto.getLocale());
+        Chat chat = getChat(messageDto.getChatId(), messageDto.getLocale());
+
+        ForwardedMessage forwardedMessage = ForwardedMessage.builder()
+                .chat(chat)
+                .sender(sender)
+                .message(message)
+                .time(messageDto.getTime().toInstant())
+                .build();
+
+        ForwardedMessage saved = forwardedMessageRepository.save(forwardedMessage);
+        messageServiceHelper.sendToUsers(ForwardAct.builder()
+                .forwardedMessageId(saved.getId())
+                .chatId(chat.getId())
+                .build());
+    }
+
+    public List<MessageDto<?>> getMessages(ChatGetHistoryDto chatGetHistoryDto) {
         int from = chatGetHistoryDto.getFrom();
         String chatId = chatGetHistoryDto.getChatId();
+        String locale = chatGetHistoryDto.getLocale();
 
         List<Message> history = messageRepository.findAllMessagesChat(chatId,
                 PageRequest.of(from, chatGetHistoryDto.getSize()));
 
+        List<ForwardedMessage> historyForward = forwardedMessageRepository.findAllMessagesChat(chatId);
+
         messageServiceHelper.readMessage(ChatIdDto.builder()
                 .chatId(chatId)
-                .locale(chatGetHistoryDto.getLocale())
+                .locale(locale)
                 .build());
 
-        return history.stream()
-                .map(message -> getMessageDto(message, chatGetHistoryDto.getLocale()))
-                .sorted(Comparator.comparing(MessageDto::getTime))
+        List<MessageDto<?>> allMessageDto = new ArrayList<>(history.size() + historyForward.size());
+        for (Message m : history) {
+            MessageDto<?> messageDto = MessageDto.builder()
+                    .type(MessageDto.Type.MESSAGE)
+                    .data(getNewMessageDto(m, locale))
+                    .build();
+            allMessageDto.add(messageDto);
+        }
+
+        for (ForwardedMessage fm : historyForward) {
+            MessageDto<?> messageDto = MessageDto.builder()
+                    .type(MessageDto.Type.FORWARD)
+                    .data(getForwardMessageDto(fm, locale))
+                    .build();
+            allMessageDto.add(messageDto);
+        }
+
+        return allMessageDto.stream()
+                .sorted(Comparator.comparing(historyDto -> historyDto.getData().getTime()))
                 .toList();
     }
 
-    public MessageDto getMessage(MessageDto messageDto) {
+    public MessageDto<?> getMessage(NewMessageDto messageDto) {
         Message message = getMessageOrException(messageDto);
-        return getMessageDto(message, messageDto.getLocale());
+        return getMessageDto(getNewMessageDto(message, messageDto.getLocale()));
     }
 
-    public void changeMessage(MessageDto messageDto) {
+    public MessageDto<?> getForward(ForwardedMessageDto messageDto) {
+        ForwardedMessage forwardedMessage = forwardedMessageRepository.findById(messageDto.getId())
+                .orElseThrow(() -> new IncorrectDataException("The message with id " + messageDto.getId() + " does not exist"));
+        return getMessageDto(getForwardMessageDto(forwardedMessage, messageDto.getLocale()));
+    }
+
+    public void changeMessage(NewMessageDto messageDto) {
         Message message = getMessageOrException(messageDto);
 
         if (!message.getSender().getUsername().equals(messageDto.getSender()))
@@ -113,7 +147,7 @@ public class MessageService extends AbstractService {
         messageRepository.save(message);
     }
 
-    public void deleteMessage(MessageDto messageDto) {
+    public void deleteMessage(NewMessageDto messageDto) {
         Message message = getMessageOrException(messageDto);
 
         if (!message.getSender().getUsername().equals(messageDto.getSender()))
@@ -135,7 +169,7 @@ public class MessageService extends AbstractService {
                 .build();
     }
 
-    private MessageDto getMessageDto(Message message, String locale) {
+    private NewMessageDto getNewMessageDto(Message message, String locale) {
         Set<String> imagesBase64 = null;
 
         if (message.getFileNames() != null) {
@@ -149,7 +183,7 @@ public class MessageService extends AbstractService {
             }
         }
 
-        return MessageDto.builder()
+        return NewMessageDto.builder()
                 .id(message.getId())
                 .time(message.getTime().atOffset(ZoneOffset.UTC))
                 .textContent(
@@ -166,7 +200,16 @@ public class MessageService extends AbstractService {
                 .build();
     }
 
-    private String getMessageFileNamesAndSaveFiles(MessageDto messageDto) {
+    private ForwardedMessageDto getForwardMessageDto(ForwardedMessage forwardedMessage, String locale) {
+        return ForwardedMessageDto.builder()
+                .time(forwardedMessage.getTime().atOffset(ZoneOffset.UTC))
+                .sender(forwardedMessage.getSender().getUsername())
+                .chatId(forwardedMessage.getChat().getId())
+                .message(getNewMessageDto(forwardedMessage.getMessage(), locale))
+                .build();
+    }
+
+    private String getMessageFileNamesAndSaveFiles(NewMessageDto messageDto) {
         StringBuilder fileNamesBuilder = null;
         boolean isFilesAttached = messageDto.getImagesBase64() != null
                 && !messageDto.getImagesBase64().isEmpty();
@@ -185,7 +228,7 @@ public class MessageService extends AbstractService {
         return fileNamesBuilder == null ? null : fileNamesBuilder.toString();
     }
 
-    private Message getMessageOrException(MessageDto messageDto) {
+    private Message getMessageOrException(NewMessageDto messageDto) {
         if (messageDto.getId() != null)
             return messageRepository.findById(messageDto.getId())
                     .orElseThrow(() -> new IncorrectDataException("The message with id " + messageDto.getId() + " was not found"));
@@ -195,7 +238,7 @@ public class MessageService extends AbstractService {
             throw new IncorrectDataException("The message not found");
 
         for (Message message : messages) {
-            MessageDto respMessage = getMessageDto(message, messageDto.getLocale());
+            NewMessageDto respMessage = getNewMessageDto(message, messageDto.getLocale());
             if (respMessage.equals(messageDto)) return message;
         }
         throw new IncorrectDataException("The message not found");
@@ -203,6 +246,27 @@ public class MessageService extends AbstractService {
 
     private String getFileName() {
         return LocalDateTime.now() + ".png";
+    }
+
+    private User getUser(String username, String locale) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IncorrectUserDataException(getDictionary(locale)
+                        .getSaveMessageIncorrectUserDataException(username)));
+    }
+
+    private Chat getChat(String chatId, String locale) {
+        return chatRepository.findChatById(chatId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IncorrectChatDataException(getDictionary(locale)
+                        .getSaveMessageIncorrectChatDataException()));
+    }
+
+    private <M extends BaseMessageDto> MessageDto<?> getMessageDto(M messageDto) {
+        return MessageDto.builder()
+                .type(messageServiceHelper.getType(messageDto))
+                .data(messageDto)
+                .build();
     }
 }
 

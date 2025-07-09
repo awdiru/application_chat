@@ -93,8 +93,8 @@ public class ChatController extends AbstractController {
             log.info("chat id " + chatGetHistoryDto.getChatId()
                     + ", from " + chatGetHistoryDto.getFrom()
                     + ", size " + chatGetHistoryDto.getSize());
-            List<MessageDto> messages = messageService.getMessages(chatGetHistoryDto);
-            return ResponseEntity.ok().body(messages);
+            List<MessageDto<?>> response = messageService.getMessages(chatGetHistoryDto);
+            return ResponseEntity.ok().body(response);
         } catch (Exception e) {
             return getErrorResponse(e);
         }

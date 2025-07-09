@@ -12,20 +12,15 @@ import java.time.Instant;
 @Builder
 @ToString
 @Entity
-@Table(name = "messages")
-public class Message {
+@Table(name = "forwarded_messages")
+public class ForwardedMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "time", columnDefinition = "TIMESTAMP WITH TIME ZONE")
-    private Instant time;
-
-    @Column(name = "content")
-    private String textContent;
-
-    @Column(name = "file_name")
-    private String fileNames;
+    @ManyToOne
+    @JoinColumn(name = "message_id")
+    private Message message;
 
     @ManyToOne
     @JoinColumn(name = "sender_id")
@@ -35,9 +30,6 @@ public class Message {
     @JoinColumn(name = "chat_id")
     private Chat chat;
 
-    @Column(name = "edited")
-    private Boolean edited;
-
-    @Column(name = "is_read")
-    private Boolean isRead = false;
+    @Column(name = "time")
+    private Instant time;
 }

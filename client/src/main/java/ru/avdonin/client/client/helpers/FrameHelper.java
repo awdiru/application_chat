@@ -6,7 +6,7 @@ import ru.avdonin.client.client.context.Context;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.constatns.Constants;
 import ru.avdonin.template.model.chat.dto.ChatDto;
-import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -237,7 +237,7 @@ public class FrameHelper {
         });
     }
 
-    public static boolean isEmptyMessage(MessageDto messageDto) {
+    public static boolean isEmptyMessage(NewMessageDto messageDto) {
         return (messageDto.getTextContent() == null || messageDto.getTextContent().isEmpty())
                 && (messageDto.getImagesBase64() == null || messageDto.getImagesBase64().isEmpty());
     }

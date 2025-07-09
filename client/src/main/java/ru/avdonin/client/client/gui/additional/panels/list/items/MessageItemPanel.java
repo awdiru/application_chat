@@ -7,6 +7,7 @@ import ru.avdonin.client.client.gui.MainFrame;
 import ru.avdonin.client.client.helpers.FrameHelper;
 import ru.avdonin.client.client.settings.dictionary.BaseDictionary;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -22,7 +23,7 @@ public class MessageItemPanel extends JPanel {
 
     @Getter
     @Setter
-    private MessageDto messageDto;
+    private MessageDto<?> messageDto;
     @Getter
     private JPanel headerPanel;
     @Getter
@@ -32,13 +33,13 @@ public class MessageItemPanel extends JPanel {
     @Getter
     private JPanel imagesPanel;
 
-    public MessageItemPanel(MessageDto messageDto) {
+    public MessageItemPanel(MessageDto<?> messageDto) {
         this.messageDto = messageDto;
-        this.isSelfMessage = messageDto.getSender().equals(FrameHelper.getUsername());
+        this.isSelfMessage = messageDto.getData().getSender().equals(FrameHelper.getUsername());
         init();
     }
 
-    public void init(MessageDto messageDto) {
+    public void init(MessageDto<?> messageDto) {
         this.messageDto = messageDto;
         init();
     }
@@ -114,7 +115,7 @@ public class MessageItemPanel extends JPanel {
         menu.show(parent, 0, parent.getHeight());
     }
 
-    private void deleteMessageAction(MessageDto messageDto, MainFrame mainFrame) {
+    private void deleteMessageAction(NewMessageDto messageDto, MainFrame mainFrame) {
         Client client = FrameHelper.getClient();
         try {
             client.deleteMessage(messageDto);

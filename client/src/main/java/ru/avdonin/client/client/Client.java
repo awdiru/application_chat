@@ -17,6 +17,7 @@ import ru.avdonin.template.exceptions.ClientException;
 import ru.avdonin.template.exceptions.NoConnectionServerException;
 import ru.avdonin.template.model.chat.dto.*;
 import ru.avdonin.template.model.message.dto.MessageDto;
+import ru.avdonin.template.model.message.dto.NewMessageDto;
 import ru.avdonin.template.model.message.dto.UnreadMessagesCountDto;
 import ru.avdonin.template.model.util.ActionNotification;
 import ru.avdonin.template.model.user.dto.*;
@@ -112,16 +113,16 @@ public class Client {
             return;
         }
 
-        MessageDto requestDto = MessageDto.builder()
+        NewMessageDto requestDto = NewMessageDto.builder()
                 .id(messageAct.getMessageId())
                 .build();
 
         HttpResponse<String> response = get("/message/get", requestDto);
 
-        MessageDto messageDto = objectMapper.readValue(response.body(), new TypeReference<>() {
+        MessageDto<?> messageDto = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
         BaseTimeZone timeZone = getTimeZone();
-        messageDto.setTime(messageDto.getTime()
+        messageDto.getData().setTime(messageDto.getData().getTime()
                 .withOffsetSameInstant(ZoneOffset.ofHours(
                         timeZone.getOffset()
                 )));
@@ -146,7 +147,7 @@ public class Client {
         post("/user" + path, userDto);
     }
 
-    public void sendMessage(MessageDto message) throws Exception {
+    public void sendMessage(NewMessageDto message) throws Exception {
         message.setLocale(getLocale());
         post("/message/send", message);
     }
@@ -162,11 +163,11 @@ public class Client {
         return avatarDto.getAvatarBase64();
     }
 
-    public List<MessageDto> getChatHistory(String chatId) throws Exception {
+    public List<MessageDto<?>> getChatHistory(String chatId) throws Exception {
         return getChatHistory(chatId, 0);
     }
 
-    public List<MessageDto> getChatHistory(String chatId, int from) throws Exception {
+    public List<MessageDto<?>> getChatHistory(String chatId, int from) throws Exception {
         ChatGetHistoryDto chatGetHistoryDto = ChatGetHistoryDto.builder()
                 .chatId(chatId)
                 .from(from)
@@ -174,12 +175,12 @@ public class Client {
                 .locale(getLocale())
                 .build();
         HttpResponse<String> response = get("/chat/get/history", chatGetHistoryDto);
-        List<MessageDto> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
+        List<MessageDto<?>> messages = objectMapper.readValue(response.body(), new TypeReference<>() {
         });
         BaseTimeZone timeZone = getTimeZone();
         return messages.stream()
                 .peek(message -> {
-                    message.setTime(message.getTime()
+                    message.getData().setTime(message.getData().getTime()
                             .withOffsetSameInstant(ZoneOffset.ofHours(
                                     timeZone.getOffset()
                             )));
@@ -299,7 +300,7 @@ public class Client {
         post("/user/avatar/change", userDto);
     }
 
-    public void deleteMessage(MessageDto messageDto) throws Exception {
+    public void deleteMessage(NewMessageDto messageDto) throws Exception {
         post("/message/delete", messageDto);
     }
 
@@ -314,7 +315,7 @@ public class Client {
         });
     }
 
-    public void changeMessage(MessageDto messageDto) throws Exception {
+    public void changeMessage(NewMessageDto messageDto) throws Exception {
         post("/message/change", messageDto);
     }
 

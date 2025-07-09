@@ -64,8 +64,8 @@ public class MainFrame extends JFrame {
         setVisible(true);
     }
 
-    public void onMessageReceived(MessageDto message) {
-        if (!message.getChatId().equals(selectedChat.getChat().getId())) return;
+    public void onMessageReceived(MessageDto<?> message) {
+        if (!message.getData().getChatId().equals(selectedChat.getChat().getId())) return;
 
         chatArea.add(new MessageItemPanel(message));
 
@@ -123,11 +123,11 @@ public class MainFrame extends JFrame {
 
 
     public void loadChatHistory() {
-        new SwingWorker<List<MessageDto>, Void>() {
+        new SwingWorker<List<MessageDto<?>>, Void>() {
             final Client client = getClient();
 
             @Override
-            protected List<MessageDto> doInBackground() {
+            protected List<MessageDto<?>> doInBackground() {
                 try {
                     return client.getChatHistory(selectedChat.getChat().getId());
                 } catch (Exception e) {
@@ -140,7 +140,7 @@ public class MainFrame extends JFrame {
             protected void done() {
                 try {
                     chatArea.removeAll();
-                    for (MessageDto m : get())
+                    for (MessageDto<?> m : get())
                         chatArea.add(new MessageItemPanel(m));
 
                     FrameHelper.repaintComponents(chatArea);
@@ -152,11 +152,11 @@ public class MainFrame extends JFrame {
     }
 
     private void loadChatHistory(int from) {
-        new SwingWorker<List<MessageDto>, Void>() {
+        new SwingWorker<List<MessageDto<?>>, Void>() {
             final Client client = getClient();
 
             @Override
-            protected List<MessageDto> doInBackground() {
+            protected List<MessageDto<?>> doInBackground() {
                 try {
                     return client.getChatHistory(selectedChat.getChat().getId(), from);
                 } catch (Exception e) {
@@ -176,7 +176,7 @@ public class MainFrame extends JFrame {
                     List<JPanel> newMessages = new ArrayList<>();
                     int totalHeight = 0;
 
-                    for (MessageDto m : get()) {
+                    for (MessageDto<?> m : get()) {
                         JPanel messageItem = new MessageItemPanel(m);
                         newMessages.add(messageItem);
                         totalHeight += messageItem.getPreferredSize().height;

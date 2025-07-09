@@ -14,7 +14,6 @@ import ru.avdonin.template.model.util.actions.BaseData;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ActionNotification<T extends BaseData> {
-
     private Actions action;
     private T data;
 }
